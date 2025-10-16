@@ -1,0 +1,66 @@
+import React from 'react';
+import styles from './LandingPage.module.css';
+import heroImage from '../assets/hero-ai-orb.jpg'; 
+const LandingPage = () => {
+  return (
+    <div className={styles.container}>
+      {/* Navigation Bar */}
+      <header className={styles.header}>
+        <div className={styles.logo}>MediMinder</div>
+        <nav className={styles.nav}>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#who-its-for">Who It's For</a>
+          <a href="#benefits">Benefits</a>
+        </nav>
+        <a href="/signin" className={styles.signInButton}>Sign In</a>
+      </header>
+
+      {/* Main Hero Section */}
+      <main className={styles.heroSection}>
+        <div className={styles.leftPanel}>
+          <div className={styles.aiTag}>✨ AI-Powered Healthcare Companion</div>
+          <h1 className={styles.title}>
+            Your healthcare,
+            <br />
+            <span className={styles.highlightRemembered}>remembered</span> and{' '}
+            <span className={styles.highlightReimagined}>reimagined</span>
+          </h1>
+          <p className={styles.description}>
+            Never miss a detail from your doctor visits. MediMinder records
+            conversations, creates clear summaries, and keeps your health
+            journey organized—so you can focus on what matters most.
+          </p>
+          <div className={styles.buttonGroup}>
+            <a href="/register/patient" className={styles.primaryButton}>
+              Register as Patient <span>&rarr;</span>
+            </a>
+            <a href="/register/caregiver" className={styles.secondaryButton}>
+              Register as Caregiver
+            </a>
+          </div>
+
+          {/* Stats Section */}
+          <div className={styles.statsSection}>
+              <div className={styles.statItem}>
+                  <div className={styles.statValue}>50K+</div>
+                  <div className={styles.statLabel}>Families Supported</div>
+              </div>
+              <div className={styles.statItem}>
+                  <div className={styles.statValue}>98%</div>
+                  <div className={styles.statLabel}>User Satisfaction</div>
+              </div>
+              <div className={styles.statItem}>
+                  <div className={styles.statValue}>24/7</div>
+                  <div className={styles.statLabel}>AI Support</div>
+              </div>
+          </div>
+        </div>
+        <div className={styles.rightPanel}>
+          <img src={heroImage} alt="Healthcare professional holding a glowing icon" className={styles.heroImage} />
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default LandingPage;

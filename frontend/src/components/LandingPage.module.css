@@ -1,0 +1,217 @@
+/* Using CSS variables for easy theming */
+:root {
+    --primary-blue: #4a6dff;
+    --secondary-purple: #8a3ffc;
+    --dark-text: #1a1a1a;
+    --light-text: #555;
+    --bg-color: #ffffff;
+    --border-color: #e0e0e0;
+  }
+  
+/* this holds the main wrapper for the page content*/
+  .container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: var(--bg-color);
+    padding: 0 5%;
+    margin: 0 auto;
+    min-height: 100vh;   
+    display: flex;         
+    flex-direction: column;
+  }
+  
+  /* Header & Navigation (logo and nav links) */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+  }
+  
+  /* style the "MediMinder" logo */
+  .logo {
+    font-weight: bold;
+    font-size: 1.5rem;
+  }
+  
+  /* style navigation links*/
+  .nav a {
+    margin: 0 15px;
+    text-decoration: none;
+    color: var(--light-text);
+    font-weight: 500;
+  }
+  /* sign in button */
+  .signInButton {
+    text-decoration: none;
+    color: var(--dark-text);
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+  
+  /* Hero Section - title, description, buttons, and image */
+  .heroSection {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    gap: 80px;
+    max-width: 1600px;
+    margin: 200px auto 0;
+  }
+  
+  /* text content on left*/
+  .leftPanel {
+    flex: 1;
+    max-width: 650px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  /* AI-Powered Healthcare Companion tag*/
+  .aiTag {
+    display: inline-block;
+    background-color: #f0f4ff;
+    color: var(--primary-blue);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid #dbe4ff;
+    text-align: left;
+  }
+
+  /* main title "Your healthcare ... */
+  .title {
+    font-size: clamp(4.3rem, 5vw, 6rem);    font-weight: 700;
+    color: var(--dark-text);
+    margin-top: 15px;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  /* colors for the remembered and reimagined*/
+  .highlightRemembered,
+  .highlightReimagined {
+    background-image: linear-gradient(to right, var(--primary-blue), var(--secondary-purple));
+    
+    -webkit-background-clip: text;
+    background-clip: text;
+    
+    color: transparent;
+  }
+
+  /* paragraph of description*/
+  .description {
+    font-size: 1.2rem;
+    color: var(--light-text);
+    margin-top: -10px;
+    line-height: 1.6;
+    text-align: left;
+  }
+  
+  /* two buttons of registration */
+  .buttonGroup {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  /* shared styles for primary and second button*/
+  .primaryButton, .secondaryButton {
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* blue button (patient) */
+  .primaryButton {
+    background-color: var(--primary-blue);
+    color: white;
+  }
+  /* effect when hovering over blue button*/
+  .primaryButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 109, 255, 0.3);
+  }
+  
+  /* gray button (caregiver) */
+  .secondaryButton {
+    background-color: #f0f0f0;
+    color: var(--dark-text);
+  }
+  /* effect when hovering gray button*/
+  .secondaryButton:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* style the right side (image)*/
+  .rightPanel {
+    flex: 1;
+    max-width: 700px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* style the image*/
+  .heroImage {
+    max-width: 115%;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Stats Section */
+  .statsSection {
+      display: flex;
+      justify-content: flex-start;
+      gap: 60px;
+      padding: 40px 0;
+  }
+  
+  .statItem {
+      text-align: left;
+  }
+  
+  .statValue {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--dark-text);
+  }
+  
+  .statLabel {
+      font-size: 1rem;
+      color: var(--light-text);
+      margin-top: 5px;
+  }
+
+/* Media queries for larger screens */
+@media (min-width: 1400px) {
+  .title {
+    font-size: 4rem;
+  }
+  .description {
+    font-size: 1.3rem;
+  }
+  .primaryButton, .secondaryButton {
+    padding: 16px 32px;
+  }
+  .statsSection {
+    gap: 80px;
+  }
+  .statValue {
+    font-size: 2.5rem;
+  }
+  .statLabel {
+    font-size: 1.1rem;
+  }
+}
