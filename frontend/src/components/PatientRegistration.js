@@ -3,12 +3,16 @@ import styles from './PatientRegistration.module.css';
 import { FcGoogle } from 'react-icons/fc';
 import { AiOutlineMail } from 'react-icons/ai';
 import { FaApple } from 'react-icons/fa';
+import { MdMailOutline } from 'react-icons/md';
+import { FaCheck } from 'react-icons/fa';
 
 const RegisterPatientPage = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    code: '',
   });
 
   const handleInputChange = (e) => {
@@ -17,8 +21,11 @@ const RegisterPatientPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Add API call or form submission logic here
+    if (!showVerification) {
+      setShowVerification(true);
+    } else {
+      console.log('Verification code submitted:', formData.code);
+    }
   };
 
   return (
@@ -34,27 +41,29 @@ const RegisterPatientPage = () => {
           <h1 className={styles.title}>Create Patient Account</h1>
           <p className={styles.subtitle}>Choose your preferred sign-up method</p>
 
-          {!showEmailForm ? (
-            <>
-              <div className={styles.buttonGroup}>
-                <button
-                  className={`${styles.signUpButton} ${styles.emailButton}`}
-                  onClick={() => setShowEmailForm(true)}
-                >
-                  <AiOutlineMail size={18} />
-                  Sign up with Email
-                </button>
-                <button className={`${styles.signUpButton} ${styles.googleButton}`}>
-                  <FcGoogle size={18} />
-                  Sign up with Google
-                </button>
-                <button className={`${styles.signUpButton} ${styles.appleButton}`}>
-                  <FaApple size={18} />
-                  Sign up with Apple
-                </button>
-              </div>
-            </>
-          ) : (
+          {/* Step 1 – Choose sign-up method */}
+          {!showEmailForm && !showVerification && (
+            <div className={styles.buttonGroup}>
+              <button
+                className={`${styles.signUpButton} ${styles.emailButton}`}
+                onClick={() => setShowEmailForm(true)}
+              >
+                <AiOutlineMail size={18} />
+                Sign up with Email
+              </button>
+              <button className={`${styles.signUpButton} ${styles.googleButton}`}>
+                <FcGoogle size={18} />
+                Sign up with Google
+              </button>
+              <button className={`${styles.signUpButton} ${styles.appleButton}`}>
+                <FaApple size={18} />
+                Sign up with Apple
+              </button>
+            </div>
+          )}
+
+          {/* Step 2 – Email and Password Form */}
+          {showEmailForm && !showVerification && (
             <div className={styles.formCard}>
               <form className={styles.emailForm} onSubmit={handleSubmit}>
                 <div className={styles.formGroup}>
@@ -100,10 +109,54 @@ const RegisterPatientPage = () => {
               </form>
             </div>
           )}
+
+          {/* Step 3 – Email Verification */}
+          {showVerification && (
+            <div className={styles.formCard}>
+              <div className={styles.iconCircle}>
+                <MdMailOutline size={35} />
+              </div>
+
+              <h2 className={styles.verifyTitle}>Verify Your Email</h2>
+              <p className={styles.verifySubtitle}>
+                We sent a 6-digit code to {formData.email}
+              </p>
+
+              <form className={styles.emailForm} onSubmit={handleSubmit}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="code">Verification code</label>
+                  <input
+                    type="text"
+                    id="code"
+                    name="code"
+                    placeholder="000000"
+                    value={formData.code}
+                    onChange={handleInputChange}
+                    required
+                    className={styles.verificationInputField}
+                  />
+                </div>
+
+                <div className={styles.buttonColumn}>
+                  <button type="submit" className={`${styles.signUpButton} ${styles.continueButton}`}>
+                    <FaCheck size={14} style={{ marginLeft: '8px', color: '#fff' }} />
+                    Verify Email
+                  </button>
+                </div>
+
+                <div className={styles.resendWrapper}>
+                  <button type="button" className={styles.resendButton}>
+                    Resend code
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
           <div className={styles.footerNote}>
-          Already have an account?{' '}
-          <a href="#" className={styles.contactLink}>Sign in</a>
-        </div>
+            Already have an account?{' '}
+            <a href="#" className={styles.contactLink}>Sign in</a>
+          </div>
         </div>
       </main>
     </div>

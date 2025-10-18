@@ -141,8 +141,8 @@ const PatientConsent = () => {
               onChange={(e) => setConsented(e.target.checked)}
             />
             <label htmlFor="consent">
-                I have read and agree to the terms outlined above. I understand my rights and responsibilities,
-                including how my health information will be used and protected under HIPAA regulations.
+              I have read and agree to the terms outlined above. I understand my rights and responsibilities,
+              including how my health information will be used and protected under HIPAA regulations.
             </label>
           </div>
 
