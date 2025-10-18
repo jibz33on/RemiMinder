@@ -5,8 +5,22 @@ import { AiOutlineMail } from 'react-icons/ai';
 import { FaApple } from 'react-icons/fa';
 import { MdMailOutline } from 'react-icons/md';
 import { FaCheck } from 'react-icons/fa';
+import { useNavigate } from "react-router-dom";
 
 const RegisterPatientPage = () => {
+
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    // optional: show confirm dialog or save progress
+    navigate("/");
+  };
+
+  const handleContinue = () => {
+    // Optional validation or saving logic
+    navigate("/consent/patient");
+  };
+
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +46,9 @@ const RegisterPatientPage = () => {
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.logo}>MediMinder</div>
+        <div className={styles.logo} onClick={goHome}>
+          MediMinder
+        </div>
       </header>
 
       {/* Main Content */}
@@ -138,7 +154,7 @@ const RegisterPatientPage = () => {
                 </div>
 
                 <div className={styles.buttonColumn}>
-                  <button type="submit" className={`${styles.signUpButton} ${styles.continueButton}`}>
+                  <button onClick={handleContinue} type="submit" className={`${styles.signUpButton} ${styles.continueButton}`}>
                     <FaCheck size={14} style={{ marginLeft: '8px', color: '#fff' }} />
                     Verify Email
                   </button>

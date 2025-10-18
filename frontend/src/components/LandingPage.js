@@ -1,7 +1,19 @@
 import React from 'react';
 import styles from './LandingPage.module.css';
 import heroImage from '../assets/hero-ai-orb.jpg'; 
+import { useNavigate } from "react-router-dom";
+
 const LandingPage = () => {
+  const navigate = useNavigate();
+
+  const goToPatientRegister = () => {
+    navigate("/register/patient");
+  };
+
+  const goToCaregiverRegister = () => {
+    navigate("/register/caregiver");
+  };
+
   return (
     <div className={styles.container}>
       {/* Navigation Bar */}
@@ -31,12 +43,12 @@ const LandingPage = () => {
             journey organized—so you can focus on what matters most.
           </p>
           <div className={styles.buttonGroup}>
-            <a href="/register/patient" className={styles.primaryButton}>
+            <button onClick={goToPatientRegister} className={styles.primaryButton}>
               Register as Patient <span>&rarr;</span>
-            </a>
-            <a href="/register/caregiver" className={styles.secondaryButton}>
+            </button>
+            <button onClick={goToCaregiverRegister} className={styles.secondaryButton}>
               Register as Caregiver
-            </a>
+            </button>
           </div>
 
           {/* Stats Section */}

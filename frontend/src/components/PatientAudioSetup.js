@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { Mic, CheckCircle, AlertCircle } from 'lucide-react';
 import styles from './PatientAudioSetup.module.css';
+import { useNavigate } from "react-router-dom";
 
 export function PatientAudioSetup() {
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    // optional: show confirm dialog or save progress
+    navigate("/");
+  };
+
   const [permissionStatus, setPermissionStatus] = useState('idle');
 
   const requestPermission = () => {
@@ -10,7 +18,8 @@ export function PatientAudioSetup() {
     // Simulate permission request
     setTimeout(() => {
       setPermissionStatus('granted');
-    //   alert('Microphone access granted');
+      alert('Microphone access granted');
+      navigate("/dashboard/patient");
     }, 1000);
   };
 
@@ -18,13 +27,16 @@ export function PatientAudioSetup() {
     // Reset the component or just notify user
     // alert('Skipped microphone setup');
     setPermissionStatus('idle');
+    navigate("/dashboard/patient");
   };
 
   return (
     <div className={styles.container}>
         {/* Header (same as registration) */}
         <header className={styles.header}>
-            <div className={styles.logo}>MediMinder</div>
+            <div className={styles.logo} onClick={goHome}>
+                MediMinder
+            </div>
         </header>
         <main className={styles.main}>
             <div className={styles.page}>

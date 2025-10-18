@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
 import styles from './PatientConsent.module.css';
 import { FaLock, FaFileAlt, FaShieldAlt } from 'react-icons/fa';
+import { useNavigate } from "react-router-dom";
 
 const PatientConsent = () => {
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    // optional: show confirm dialog or save progress
+    navigate("/");
+  };
+  
   const [consented, setConsented] = useState(false);
 
   const handleConsent = () => {
     if (!consented) {
-    //   alert('Please review and accept the consent agreement');
+      // alert('Please review and accept the consent agreement');
       return;
     }
     // alert('Consent recorded successfully');
+    navigate("/profile/patient");
   };
 
   return (
     <div className={styles.container}>
       {/* Header (same as registration) */}
       <header className={styles.header}>
-        <div className={styles.logo}>MediMinder</div>
+        <div className={styles.logo} onClick={goHome}>
+          MediMinder
+        </div>
       </header>
 
       {/* Consent Section */}

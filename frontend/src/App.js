@@ -4,15 +4,20 @@ import PatientRegistration from './components/PatientRegistration';
 import PatientConsent from './components/PatientConsent';
 import PatientProfileSetup from './components/PatientProfileSetup';
 import PatientAudioSetup from './components/PatientAudioSetup';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 function App() {
   return (
     <div className="App">
-      <LandingPage />
-      {/* <PatientRegistration /> */}
-      {/* <PatientConsent /> */}
-      {/* <PatientProfileSetup /> */}
-      {/* <PatientAudioSetup /> */}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/register/patient" element={<PatientRegistration />} />
+          <Route path="/consent/patient" element={<PatientConsent />} />
+          <Route path="/profile/patient" element={<PatientProfileSetup />} />
+          <Route path="/audio" element={<PatientAudioSetup />} />
+        </Routes>
+    </BrowserRouter>
     </div>
   );
 }

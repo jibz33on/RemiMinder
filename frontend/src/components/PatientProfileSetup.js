@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaCamera, FaUser} from 'react-icons/fa';
 import styles from './PatientProfileSetup.module.css';
+import { useNavigate } from "react-router-dom";
 
 const PatientProfileSetup = () => {
   const [fullName, setFullName] = useState('');
@@ -9,11 +10,28 @@ const PatientProfileSetup = () => {
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
 
+  const navigate = useNavigate();
+
+  const goHome = () => {
+    // optional: show confirm dialog or save progress
+    navigate("/");
+  };
+
+  const handleContinue = () => {
+    // Optional validation or saving logic
+    if (!fullName && !dob && !phone) {
+      return;
+    }
+    navigate("/audio");
+  };
+
   return (
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.logo}>MediMinder</div>
+        <div className={styles.logo} onClick={goHome}>
+          MediMinder
+        </div>
       </header>
 
       {/* Main */}
@@ -50,7 +68,7 @@ const PatientProfileSetup = () => {
 
             <div className={styles.row}>
               <div className={styles.formGroup}>
-                <label htmlFor="dob">Date of Birth</label>
+                <label htmlFor="dob">Date of Birth *</label>
                 <div className={styles.dateInputWrapper}>
                     <input
                     type="date"
@@ -147,7 +165,7 @@ const PatientProfileSetup = () => {
             </div>
           </div>
 
-          <button className={styles.confirmButton}>Confirm & Continue</button>
+          <button className={styles.confirmButton} onClick={handleContinue}>Confirm & Continue</button>
         </div>
       </main>
     </div>
