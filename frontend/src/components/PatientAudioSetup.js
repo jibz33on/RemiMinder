@@ -18,8 +18,9 @@ export function PatientAudioSetup() {
     // Simulate permission request
     setTimeout(() => {
       setPermissionStatus('granted');
-      alert('Microphone access granted');
-      navigate("/dashboard/patient");
+      setTimeout(() => {
+        navigate("/dashboard/patient");
+      }, 1000);
     }, 1000);
   };
 
