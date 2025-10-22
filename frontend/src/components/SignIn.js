@@ -1,177 +1,156 @@
-import React, { useState } from "react";
-import styles from "./SignIn.module.css";
+import React, { useState, useEffect } from "react";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { supabase } from "../supabaseClient";
+import styles from "./PatientRegistration.module.css";
+import { FcGoogle } from "react-icons/fc";
+import { AiOutlineMail } from "react-icons/ai";
+import { FaApple, FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaUserFriends } from "react-icons/fa";
 
-const SignIn = () => {
+export default function PatientSignIn() {
   const navigate = useNavigate();
-  const [role, setRole] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showAppleModal, setShowAppleModal] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
-  const goHome = () => navigate("/");
-  const goBackToRole = () => setRole(null);
+  // --- Redirect if already signed in ---
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) navigate("/dashboard/patient");
+    };
+    checkSession();
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!email.trim()) newErrors.email = "Email is required.";
-    if (!password.trim()) newErrors.password = "Password is required.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) navigate("/dashboard/patient");
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [navigate]);
 
-  const handleLogin = () => {
-    if (!validateForm()) return;
-
-    // Placeholder auth logic
-    if (role === "patient") {
-      navigate("/dashboard/patient");
-    } else if (role === "caregiver") {
-      navigate("/dashboard/caregiver");
+  // --- Google Sign In ---
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/dashboard/patient` },
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error("Google sign-in error:", err.message);
+      alert("Failed to sign in with Google. Please try again.");
     }
-  };
-
-  const handleSignUp = () => {
-    navigate(role === "patient" ? "/register/patient" : "/register/caregiver");
   };
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <header className={styles.header}>
-        <div className={styles.logo} onClick={goHome}>
+        <div className="logo" style={{ cursor: "pointer" }} onClick={() => navigate("/")}>
           RemeMinderAI
         </div>
       </header>
 
-      {/* Main Content */}
       <main className={styles.main}>
         <div className={styles.card}>
-          <h1 className={styles.title}>Welcome Back</h1>
-          {!role ? (
-            <>
-              <p className={styles.subtitle}>Choose your role to continue</p>
+          <h1 className={styles.title}>Sign In</h1>
+          <p className={styles.subtitle}>Choose your preferred sign-in method</p>
 
-              <div className={styles.formCard}>
-                <div className={styles.roleButtons}>
-                    <button
-                    className={styles.roleButton}
-                    onClick={() => setRole("patient")}
-                    >
-                        <div className={styles.iconBoxPatient}>
-                            <FaUser className={styles.icon} />
-                        </div>
-                        <div>
-                            <h1>Patient</h1>
-                            <p>Record and track my own visits</p>
-                        </div>
-                    </button>
-                    <button
-                    className={styles.roleButton2}
-                    onClick={() => setRole("caregiver")}
-                    >
-                        <div className={styles.iconBoxCaregiver}>
-                            <FaUserFriends className={styles.icon} />
-                        </div>
-                        <div>
-                            <h1>Caregiver</h1>
-                            <p>Manage care for my loved ones</p>
-                        </div>
-                    </button>
-                    <button
-                    className={styles.backButton}
-                    onClick={goHome}
-                    >
-                    Back
-                    </button>
-                </div>
-              </div>
-            </>
+          {!showEmailForm ? (
+            <div className={styles.buttonGroup}>
+              <button
+                className={`${styles.signUpButton} ${styles.emailButton}`}
+                onClick={() => setShowEmailForm(true)}
+              >
+                <AiOutlineMail size={18} />
+                Sign in with Email
+              </button>
+              <button
+                className={`${styles.signUpButton} ${styles.googleButton}`}
+                onClick={handleGoogleSignIn}
+              >
+                <FcGoogle size={18} />
+                Sign in with Google
+              </button>
+              <button
+                className={`${styles.signUpButton} ${styles.appleButton}`}
+                onClick={() => setShowAppleModal(true)}
+              >
+                <FaApple size={18} />
+                Sign in with Apple
+              </button>
+            </div>
           ) : (
-            <>
-              <p className={styles.subtitle}>
-                Sign in to your {role === "patient" ? "Patient" : "Caregiver"} account
-              </p>
-
-              <div className={styles.formCard}>
-                <form
-                    className={styles.form}
-                    onSubmit={(e) => {
-                    e.preventDefault();
-                    handleLogin();
-                    }}
-                >
-                    <h1>Email Address</h1>
-                    <div className={styles.inputGroup}>
-                    <input
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={`${role === "patient" ? styles.input : styles.input2} ${
-                            errors.email ? styles.inputError : ""
-                        }`}
-                        />
-                    {errors.email && (
-                        <p className={styles.errorText}>{errors.email}</p>
-                    )}
-                    </div>
-                    <h1>Password</h1>
-                    <div className={styles.inputGroup}>
-                    <input
-                        type="password"
-                        placeholder="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className={`${role === "patient" ? styles.input : styles.input2} ${
-                            errors.password ? styles.inputError : ""
-                        }`}
-                        />
-                    {errors.password && (
-                        <p className={styles.errorText}>{errors.password}</p>
-                    )}
-                    </div>
-                    <div
-                    className={styles.forgotPassword}
-                    onClick={() => navigate("/forgot-password")}
-                    >
-                    Forgot Password?
-                    </div>
-
-                    <button
-                    type="submit"
-                    className={role === "patient" ? styles.primaryButton : styles.primaryButton2}
-                    >
-                    Log In
-                    </button>
-
-                    {/* <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={handleSignUp}
-                    >
-                    Sign Up
-                    </button> */}
-                    
-                    <button
-                    className={styles.backButton}
-                    onClick={goBackToRole}
-                    >
-                    Back
-                    </button>
-                </form>
-              </div>
-            </>
+            <div className={styles.formCard}>
+              <Auth
+                supabaseClient={supabase}
+                appearance={{
+                  theme: ThemeSupa,
+                  style: { button: { borderRadius: "8px", fontWeight: "600" }, input: { borderRadius: "8px" } },
+                }}
+                theme="light"
+                providers={[]} // only email/password
+                view="sign_in"
+              />
+              <button onClick={() => setShowEmailForm(false)} className={styles.backButton}>
+                Back
+              </button>
+            </div>
           )}
-          <div className={styles.footerNote}>
-            Don't have an account?{' '}
-            <a href="/register/patient" className={styles.contactLink}>Sign up</a>
-          </div>
         </div>
       </main>
+
+      {/* --- Apple Modal --- */}
+      {showAppleModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <button className={styles.modalClose} onClick={() => setShowAppleModal(false)}>
+              <FaTimes size={14} />
+            </button>
+            <h2 className={styles.modalTitle}>Coming Soon 🍎</h2>
+            <p className={styles.modalText}>
+              Apple sign-in isn’t available yet. Please try Google or Email for now.
+            </p>
+            <button onClick={() => setShowAppleModal(false)} className={styles.modalButton}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Forgot Password Modal --- */}
+      {showForgotModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <button className={styles.modalClose} onClick={() => setShowForgotModal(false)}>
+              <FaTimes size={14} />
+            </button>
+            <h2 className={styles.modalTitle}>Reset Password</h2>
+            <p>Enter your email to receive a password reset link:</p>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              className={styles.input}
+            />
+            <button
+              className={styles.modalButton}
+              onClick={async () => {
+                const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                  redirectTo: `${window.location.origin}/sign-in`,
+                });
+                if (error) setResetMessage(error.message);
+                else setResetMessage("Check your email for the reset link!");
+              }}
+            >
+              Send Reset Link
+            </button>
+            {resetMessage && <p>{resetMessage}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-export default SignIn;
+}
