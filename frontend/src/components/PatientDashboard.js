@@ -6,6 +6,7 @@ import styles from "./PatientDashboard.module.css";
 export default function PatientDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getUser = async () => {
@@ -15,19 +16,39 @@ export default function PatientDashboard() {
         return;
       }
 
+      // Not logged in → redirect home
       if (!session) {
-        navigate("/"); // redirect if not logged in
-      } else {
-        setUser(session.user);
+        navigate("/");
+        return;
       }
+
+      const currentUser = session.user;
+      const isOnboarded = currentUser.user_metadata?.onboarding_complete;
+
+      // If onboarding incomplete → redirect
+      if (!isOnboarded) {
+        navigate("/consent/patient");
+        return;
+      }
+
+      setUser(currentUser);
+      setLoading(false);
     };
 
     getUser();
 
-    // Optional: listen for auth state changes
+    // Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) navigate("/"); // auto redirect on sign out
-      else setUser(session.user);
+      if (!session) {
+        navigate("/");
+      } else {
+        const currentUser = session.user;
+        if (!currentUser.user_metadata?.onboarding_complete) {
+          navigate("/consent/patient");
+        } else {
+          setUser(currentUser);
+        }
+      }
     });
 
     return () => listener.subscription.unsubscribe();
@@ -36,19 +57,14 @@ export default function PatientDashboard() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-  
-      // Clear persisted role
       localStorage.removeItem("role");
-  
-      // Optional: clear any other app-specific state if needed
-      // e.g., sessionStorage.clear();
-  
-      navigate("/"); // back to landing page
+      navigate("/");
     } catch (err) {
       console.error("Logout failed:", err.message);
     }
   };
-  
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <div className={styles.container}>

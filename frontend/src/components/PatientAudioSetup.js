@@ -1,36 +1,56 @@
-import { useState } from 'react';
-import { Mic, CheckCircle, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import styles from './PatientAudioSetup.module.css';
+import { useState } from "react";
+import { Mic, CheckCircle, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabaseClient";
+import styles from "./PatientAudioSetup.module.css";
 
 export function PatientAudioSetup() {
   const navigate = useNavigate();
-  const [permissionStatus, setPermissionStatus] = useState('idle'); // 'idle' | 'requesting' | 'granted' | 'denied'
+  const [permissionStatus, setPermissionStatus] = useState("idle"); // 'idle' | 'requesting' | 'granted' | 'denied'
 
-  const goHome = () => navigate('/');
+  const goHome = () => navigate("/");
+
+  // Helper to mark onboarding complete
+  const completeOnboarding = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error("Could not get user:", userError?.message);
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: { onboarding_complete: true },
+    });
+
+    if (error) console.error("Failed to update onboarding status:", error.message);
+  };
 
   const requestPermission = async () => {
-    setPermissionStatus('requesting');
+    setPermissionStatus("requesting");
     try {
-      // Request actual microphone permission
+      // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Stop the microphone immediately after permission check
-      stream.getTracks().forEach(track => track.stop());
+      // Stop microphone immediately after permission check
+      stream.getTracks().forEach((track) => track.stop());
 
-      setPermissionStatus('granted');
+      setPermissionStatus("granted");
+
+      // Mark onboarding complete
+      await completeOnboarding();
 
       // Navigate to dashboard after short delay
-      setTimeout(() => navigate('/dashboard/patient'), 1000);
+      setTimeout(() => navigate("/dashboard/patient"), 1000);
     } catch (err) {
-      console.error('Microphone permission denied', err);
-      setPermissionStatus('denied');
+      console.error("Microphone permission denied", err);
+      setPermissionStatus("denied");
     }
   };
 
-  const handleSkip = () => {
-    setPermissionStatus('idle');
-    navigate('/dashboard/patient');
+  const handleSkip = async () => {
+    setPermissionStatus("idle");
+    await completeOnboarding(); // mark onboarding complete even if skipped
+    navigate("/dashboard/patient");
   };
 
   return (
@@ -64,14 +84,12 @@ export function PatientAudioSetup() {
                   <Mic className={styles.micIcon} />
                 </div>
 
-                {permissionStatus === 'granted' && (
+                {permissionStatus === "granted" && (
                   <div className={styles.checkBadge}>
                     <CheckCircle className={styles.checkIcon} />
                   </div>
                 )}
-                {permissionStatus === 'requesting' && (
-                  <div className={styles.spinner} />
-                )}
+                {permissionStatus === "requesting" && <div className={styles.spinner} />}
               </div>
             </div>
 
@@ -80,10 +98,10 @@ export function PatientAudioSetup() {
               <h4 className={styles.benefitsTitle}>What you can do with voice visits:</h4>
               <div className={styles.benefitList}>
                 {[
-                  'Record doctor appointments and health visits',
-                  'Get AI-generated summaries of your visits',
-                  'Share visit summaries with your caregivers',
-                  'Build a comprehensive health history',
+                  "Record doctor appointments and health visits",
+                  "Get AI-generated summaries of your visits",
+                  "Share visit summaries with your caregivers",
+                  "Build a comprehensive health history",
                 ].map((text, i) => (
                   <div key={i} className={styles.benefitItem}>
                     <CheckCircle className={styles.benefitIcon} />
@@ -105,20 +123,20 @@ export function PatientAudioSetup() {
             </div>
 
             {/* Permission Buttons / Messages */}
-            {permissionStatus === 'idle' && (
+            {permissionStatus === "idle" && (
               <button className={styles.grantBtn} onClick={requestPermission}>
                 <Mic className={styles.grantBtnIcon} />
                 Grant Microphone Access
               </button>
             )}
 
-            {permissionStatus === 'requesting' && (
+            {permissionStatus === "requesting" && (
               <button className={styles.grantBtn} disabled>
                 Requesting Permission...
               </button>
             )}
 
-            {permissionStatus === 'granted' && (
+            {permissionStatus === "granted" && (
               <div className={styles.grantedSection}>
                 <div className={styles.grantedMessage}>
                   <CheckCircle className={styles.checkIconSmall} />
@@ -127,7 +145,7 @@ export function PatientAudioSetup() {
               </div>
             )}
 
-            {permissionStatus === 'denied' && (
+            {permissionStatus === "denied" && (
               <div className={styles.grantedSection}>
                 <div className={styles.deniedMessage}>
                   <AlertCircle className={styles.checkIconSmall} />
