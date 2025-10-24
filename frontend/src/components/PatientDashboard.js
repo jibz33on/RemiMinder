@@ -22,19 +22,57 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single();
-        if (profile?.display_name) setDisplayName(profile.display_name);
+      // 1) immediate local fallback: display_name or patientProfile.fullName
+      const cachedDisplay = localStorage.getItem("display_name");
+      if (cachedDisplay) {
+        setDisplayName(cachedDisplay);
+        console.debug("Using cached display_name:", cachedDisplay);
+      } else {
+        const patientProfileRaw = localStorage.getItem("patientProfile");
+        if (patientProfileRaw) {
+          try {
+            const parsed = JSON.parse(patientProfileRaw);
+            if (parsed?.fullName) {
+              setDisplayName(parsed.fullName);
+              console.debug("Using cached patientProfile.fullName:", parsed.fullName);
+            }
+          } catch (err) {
+            console.warn("Error parsing patientProfile from localStorage", err);
+          }
+        }
+      }
+  
+      // 2) fetch supabase user + optionally profile, but DO NOT let DB override local immediately unless present
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+  
+        if (user) {
+          const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", user.id)
+            .single();
+  
+          if (!error && profile?.display_name) {
+            // If DB has a value and it's different, update state + cache
+            if (profile.display_name !== localStorage.getItem("display_name")) {
+              setDisplayName(profile.display_name);
+              localStorage.setItem("display_name", profile.display_name);
+              console.debug("Updated display_name from DB:", profile.display_name);
+            }
+          }
+        } else {
+          // user not present, clear local cache
+          localStorage.removeItem("display_name");
+        }
+      } catch (err) {
+        console.error("Error loading user/profile:", err);
       }
     }
+  
     loadUser();
-  }, []);
+  }, []);  
 
   useEffect(() => {
     const url = window.location.hash;
@@ -94,15 +132,9 @@ export default function PatientDashboard() {
     return () => listener.subscription.unsubscribe();
   }, [navigate]);
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.removeItem("role");
-      setUser(null);
-      navigate("/");
-    } catch (err) {
-      console.error("Logout failed:", err.message);
-    }
+  // ➕ New function for navigating to settings
+  const goToSettings = () => {
+    navigate("/patient/settings");
   };
 
   const visitHistory = [
@@ -149,7 +181,7 @@ export default function PatientDashboard() {
     },
   ];
 
-  if (loading) return <p>Loading...</p>;
+  // if (loading) return <p>Loading...</p>;
 
   return (
     <div className={`${styles.dashboardContainer} ${styles.fadeIn}`}>
@@ -170,21 +202,25 @@ export default function PatientDashboard() {
                 </div>
                 <h1 className={styles.welcomeText}>
                   Welcome, {
+                    displayName ||
                     user?.user_metadata?.name ||
                     user?.user_metadata?.full_name ||
                     (user?.email
-                      ? user.email.split("@")[0].charAt(0).toUpperCase() + user.email.split("@")[0].slice(1)
+                      ? user.email.split("@")[0].charAt(0).toUpperCase() +
+                        user.email.split("@")[0].slice(1)
                       : "User")
                   }
                 </h1>
                 <p className={styles.subText}>How are you feeling today?</p>
               </div>
             </div>
+
+            {/* ➕ SETTINGS BUTTON */}
             <div className={styles.headerButtons}>
               <button className={styles.iconButton}>
                 <MessageSquare size={20} />
               </button>
-              <button className={styles.iconButton}>
+              <button className={styles.iconButton} onClick={goToSettings}>
                 <SettingsIcon size={20} />
               </button>
             </div>
@@ -225,7 +261,7 @@ export default function PatientDashboard() {
             </div>
             <h3>Invite Caregiver</h3>
             <p>Share your health information</p>
-            <button className={styles.deepPurpleButton}>Send Invitation</button>
+            <button className={styles.purpleButton}>Send Invitation</button>
           </div>
 
           <div className={styles.actionCard}>
@@ -234,7 +270,7 @@ export default function PatientDashboard() {
             </div>
             <h3>Visit History</h3>
             <p>View all past visit summaries</p>
-            <button className={styles.deepPurpleButton}>View All</button>
+            <button className={styles.purpleButton}>View All</button>
           </div>
         </div>
 
@@ -338,13 +374,6 @@ export default function PatientDashboard() {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* LOGOUT */}
-        <div className={styles.logoutContainer}>
-          <button onClick={handleLogout} className={styles.logoutButton}>
-            Log Out
-          </button>
         </div>
       </div>
     </div>

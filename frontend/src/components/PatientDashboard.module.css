@@ -121,12 +121,13 @@
 
 /* MAIN */
 .mainContent {
-  max-width: 1920px;
-  margin: 2rem 11rem;
-  padding: 0 2rem;
+  width: 100%;
+  max-width: 1100px; /* same as .headerContent */
+  margin: 0 auto; /* center horizontally */
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+  padding: 2rem 0; /* remove extra left/right padding */
 }
 
 /* === ACTION CARDS (3-column) === */

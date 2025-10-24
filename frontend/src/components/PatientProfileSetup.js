@@ -38,6 +38,20 @@ const PatientProfileSetup = () => {
     if (!fullName && !dob && !phone) {
       return;
     }
+
+    // Save profile locally
+    const profileData = {
+      fullName,
+      dob,
+      gender,
+      phone,
+      notes,
+      email: userEmail,
+    };
+    
+    localStorage.setItem("patientProfile", JSON.stringify(profileData));
+    localStorage.setItem("display_name", fullName);
+
     navigate("/audio");
   };
 
@@ -177,7 +191,7 @@ const PatientProfileSetup = () => {
               </div>
               <div className={styles.reviewRow}>
                 <span>Email:</span>
-                <span>john.doe@example.com</span>
+                <span>{userEmail || "john.doe@example.com"}</span>
               </div>
             </div>
           </div>
