@@ -188,6 +188,9 @@ export default function PatientDashboard() {
 
   // if (loading) return <p>Loading...</p>;
 
+  // Derived profile image from metadata or fallback
+  const profileImage = user?.user_metadata?.picture || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150";
+
   return (
     <div className={`${styles.dashboardContainer} ${styles.fadeIn}`}>
       {/* HEADER */}
@@ -195,11 +198,11 @@ export default function PatientDashboard() {
         <div className={styles.headerContent}>
           <div className={styles.headerTop}>
             <div className={styles.profileSection}>
-              <img
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
-                alt="Profile"
-                className={styles.avatar}
-              />
+            <img
+              src={profileImage}
+              alt="Profile"
+              className={styles.avatar}
+            />
               <div>
                 <div className={styles.logoRow}>
                   <Heart size={18} className={styles.logoIcon} />

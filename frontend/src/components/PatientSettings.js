@@ -16,8 +16,8 @@ import {
 export default function PatientSettings({ onBack, onLogout, role = "patient" }) {
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState({
-    name: "",
-    email: "",
+    name: "Jane Doe",
+    email: "jane.doe@email.com",
     phone: "+1 (555) 123-4567",
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
@@ -32,18 +32,18 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
         data: { user },
         error,
       } = await supabase.auth.getUser();
-
+  
       if (error) {
         console.error("Error fetching user:", error.message);
         return;
       }
-
+  
       if (user) {
         setUser(user);
-      
+  
         // 🟢 Try to load locally saved patient profile first
         const localProfile = JSON.parse(localStorage.getItem("patientProfile"));
-        
+  
         setUserData((prev) => ({
           ...prev,
           name:
@@ -53,12 +53,15 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
             user.email.split("@")[0],
           phone: localProfile?.phone || prev.phone,
           email: user.email,
+          avatar:
+            user.user_metadata?.picture ||
+            prev.avatar, // fallback to existing avatar if no picture in metadata
         }));
-      }      
+      }
     };
-
+  
     fetchUser();
-  }, []);
+  }, []);  
 
   const handleBack = () => {
     navigate(-1); // navigates back to previous page
