@@ -390,10 +390,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: auto;
 }
 .visitInfo h4 {
   color: #111827;
   margin-bottom: 0.2rem;
+  margin-top: auto;
 }
 .visitInfo p {
   color: #6b7280;
@@ -448,6 +450,7 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  margin-bottom: auto;
 }
 
 /* Logout */

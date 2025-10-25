@@ -183,7 +183,7 @@ const LandingPage = () => {
       <section id="who-its-for" className={styles.whoItsFor}>
         <div className={styles.whoIntro}>
           <h2>
-            Built for <span className={styles.gradientText}>everyone</span> who cares about health
+            Built for <span className={styles.gradientText}>everyone</span> who cares<br />about health
           </h2>
           <p>
             From patients navigating complex conditions to families supporting loved ones.

@@ -97,6 +97,7 @@
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
+    margin-top: auto;
   }
   
   .roleText {
@@ -145,6 +146,7 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
+    margin-bottom: auto;
   }
   
   .iconCircleBlue {
@@ -160,6 +162,10 @@
   .iconCircleGreen {
     background: #dcfce7;
     color: #059669;
+  }
+
+  .subheader {
+    margin-top: auto;
   }
   
   .subtext {
@@ -282,3 +288,11 @@
     margin-top: 0.5rem;
   }
   
+  p {
+    font-family: inherit;
+  }
+
+  h3, h4, h5, h6 {
+    font-weight: 500;
+    font-family: inherit;
+  }

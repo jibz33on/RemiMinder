@@ -103,7 +103,7 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
         {/* Profile Card */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h3>Profile Information</h3>
+            <h3 className={styles.subheader}>Profile Information</h3>
             <button className={styles.editButton}>Edit</button>
           </div>
 
@@ -142,7 +142,7 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
               <Bell size={18} />
             </div>
             <div>
-              <h3>Notifications</h3>
+              <h3 className={styles.subheader}>Notifications</h3>
               <p className={styles.subtext}>
                 Manage your notification preferences
               </p>
@@ -181,7 +181,7 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
               <Shield size={18} />
             </div>
             <div>
-              <h3>Privacy & Security</h3>
+              <h3 className={styles.subheader}>Privacy & Security</h3>
               <p className={styles.subtext}>Control your data and security</p>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function PatientSettings({ onBack, onLogout, role = "patient" }) 
                 <CreditCard size={18} />
               </div>
               <div>
-                <h3>Billing & Subscription</h3>
+                <h3 className={styles.subheader}>Billing & Subscription</h3>
                 <p className={styles.subtext}>Manage your payment methods</p>
               </div>
             </div>

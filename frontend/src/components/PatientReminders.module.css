@@ -116,6 +116,7 @@
     width: 36px;
     height: 36px;
     border-radius: 8px;
+    margin-bottom: auto;
   }
   
   .iconCircleBlue {
@@ -137,6 +138,7 @@
     font-size: 1rem;
     font-weight: 500;
     color: #1f2937;
+    margin-top: auto;
   }
   
   .personaTag {
@@ -204,12 +206,13 @@
   
   .snoozeButton,
   .stopButton {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     padding: 0.3rem 0.6rem;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.2s;
+    font-family: inherit;
   }
   
   .snoozeButton {
@@ -228,5 +231,13 @@
   
   .stopButton:hover {
     background: #fecaca;
+  }
+  
+  .reminderMessage {
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin-top: 6px;
+    line-height: 1.4;
+    max-width: 65%;
   }
   

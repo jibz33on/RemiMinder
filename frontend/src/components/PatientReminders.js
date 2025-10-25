@@ -25,6 +25,8 @@ export default function PatientReminders() {
       time: "8:00 PM",
       status: "upcoming",
       persona: "Elderly Patient",
+      message:
+        "It’s time for your evening medication — Metoprolol 50mg. Take it with a sip of water and unwind for the night 🌙",
     },
     {
       id: 2,
@@ -33,6 +35,8 @@ export default function PatientReminders() {
       time: "8:15 PM",
       status: "active",
       persona: "Elderly Patient",
+      message:
+        "Please measure your blood pressure and log it in the app when ready. You’re doing great — steady progress every day 💗",
     },
     {
       id: 3,
@@ -41,7 +45,9 @@ export default function PatientReminders() {
       time: "10:30 AM",
       status: "past",
       outcome: "completed",
-      persona: "Caregiver",
+      persona: "Elderly Patient",
+      message:
+        "Hope your appointment with Dr. Kim went well! You can record your visit notes or upload your summary anytime 🩺",
     },
     {
       id: 4,
@@ -50,9 +56,11 @@ export default function PatientReminders() {
       time: "7:30 AM",
       status: "past",
       outcome: "snoozed",
-      persona: "Caregiver",
+      persona: "Elderly Patient",
+      message:
+        "Don’t forget your morning medication — Atorvastatin 20mg. You’ve snoozed this one before, so be sure to take it soon 💊",
     },
-  ];
+  ];  
 
   const renderIcon = (type) => {
     switch (type) {
@@ -163,6 +171,7 @@ export default function PatientReminders() {
                       <div>
                         <h3>{reminder.title}</h3>
                         <p className={styles.personaTag}>{reminder.type} Reminder</p>
+                        <p className={styles.reminderMessage}>{reminder.message}</p>
                       </div>
                     </div>
                     <div className={styles.reminderMeta}>
