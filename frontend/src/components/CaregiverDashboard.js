@@ -66,7 +66,9 @@ export default function CaregiverDashboard() {
     checkSession();
   }, [navigate]);
 
-  const goToSettings = () => {}; // disabled
+  const goToSettings = () => {
+    navigate("/caregiver/settings");
+  };
   const goToReminders = () => {}; // disabled
   const goToMessages = () => {}; // disabled
   const goToManagePatients = () => {}; // disabled
@@ -147,11 +149,11 @@ export default function CaregiverDashboard() {
             </div>
 
             <div className={styles.headerButtons}>
-              <button className={styles.iconButtonWhite} onClick={goToMessages}>
-                <MessageSquare size={20} />
-              </button>
               <button className={styles.iconButtonWhite} onClick={goToReminders}>
                 <Bell size={20} />
+              </button>
+              <button className={styles.iconButtonWhite} onClick={goToMessages}>
+                <MessageSquare size={20} />
               </button>
               <button className={styles.iconButtonWhite} onClick={goToSettings}>
                 <SettingsIcon size={20} />
