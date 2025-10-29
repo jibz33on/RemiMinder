@@ -9,6 +9,7 @@ import PatientAudioSetup from './components/PatientAudioSetup';
 import PatientDashboard from './components/PatientDashboard';
 import PatientReminders from './components/PatientReminders';
 import PatientSettings from "./components/PatientSettings";
+import PatientInvitation from "./components/PatientInvitation";
 import CaregiverDashboard from './components/CaregiverDashboard';
 import CaregiverSettings from "./components/CaregiverSettings";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -28,6 +29,7 @@ function App() {
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
           <Route path="/patient/reminders" element={<PatientReminders />} />
           <Route path="/patient/settings" element={<PatientSettings />} />
+          <Route path="/patient/invitation" element={<PatientInvitation />} />
           <Route path="/dashboard/caregiver" element={<CaregiverDashboard />} />
           <Route path="/caregiver/settings" element={<CaregiverSettings />} />
         </Routes>

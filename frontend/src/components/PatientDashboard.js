@@ -142,6 +142,10 @@ export default function PatientDashboard() {
     navigate("/patient/reminders");
   };  
 
+  const goToInvitation = () => {
+    navigate("/patient/invitation");
+  };  
+
   const visitHistory = [
     {
       id: 1,
@@ -273,7 +277,7 @@ export default function PatientDashboard() {
             </div>
             <h3>Invite Caregiver</h3>
             <p>Share your health information</p>
-            <button className={styles.purpleButton}>Send Invitation</button>
+            <button className={styles.purpleButton} onClick={goToInvitation}>Send Invitation</button>
           </div>
 
           <div className={styles.actionCard}>
