@@ -1,9 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import { Menu, ArrowLeft, Mic, CheckCircle2, Square, Upload } from 'lucide-react';
 import styles from './AudioRecorder.module.css'; // Import the CSS module
 
 const RecordVisitPage = () => {
+  const navigate = useNavigate();
   const [isRecording, setIsRecording] = useState(false);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+      const supabaseOnboardingComplete = session?.user?.user_metadata?.onboarding_complete;
+
+      // Allow access if either onboarding flag is set
+      const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
+
+      if (!session && !onboardingComplete) {
+        navigate('/patient-dashboard');
+      }
+    };
+    checkAccess();
+  }, [navigate]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [audioURL, setAudioURL] = useState('');
   const [audioBlob, setAudioBlob] = useState(null);
@@ -125,7 +144,7 @@ const RecordVisitPage = () => {
       {/* Main Content */}
       <main className={styles.mainContent}>
         <div className={styles.backButtonArea}>
-          <button className={styles.backButton}>
+          <button className={styles.backButton} onClick={() => navigate('/patient-dashboard')}>
             <ArrowLeft className={styles.iconSmall} />
             <span className={styles.backButtonText}>Record Visit</span>
           </button>

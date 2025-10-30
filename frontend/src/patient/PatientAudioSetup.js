@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mic, CheckCircle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
@@ -8,10 +8,25 @@ export function PatientAudioSetup() {
   const navigate = useNavigate();
   const [permissionStatus, setPermissionStatus] = useState("idle"); // 'idle' | 'requesting' | 'granted' | 'denied'
 
+  useEffect(() => {
+    // Enforce flow: must have completed profile setup
+    const patientProfile = localStorage.getItem("patientProfile");
+    console.log("PatientAudioSetup: checking patientProfile", patientProfile ? "present" : "not present");
+    if (!patientProfile) {
+      console.log("Redirecting back to profile setup");
+      navigate("/patient-profile-setup");
+    } else {
+      console.log("Profile present, staying in audio setup");
+    }
+  }, [navigate]);
+
   const goHome = () => navigate("/");
 
   // Helper to mark onboarding complete
   const completeOnboarding = async () => {
+    // Set localStorage backup (immediate and reliable)
+    localStorage.setItem("onboarding_complete", "true");
+
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error("Could not get user:", userError?.message);
@@ -40,7 +55,7 @@ export function PatientAudioSetup() {
       await completeOnboarding();
 
       // Navigate to dashboard after short delay
-      setTimeout(() => navigate("/dashboard/patient"), 1000);
+      setTimeout(() => navigate("/patient-dashboard"), 1000);
     } catch (err) {
       console.error("Microphone permission denied", err);
       setPermissionStatus("denied");
@@ -50,7 +65,7 @@ export function PatientAudioSetup() {
   const handleSkip = async () => {
     setPermissionStatus("idle");
     await completeOnboarding(); // mark onboarding complete even if skipped
-    navigate("/dashboard/patient");
+    navigate("/patient-dashboard");
   };
 
   return (

@@ -15,11 +15,11 @@ const PatientConsent = () => {
 
   const handleConsent = () => {
     if (!consented) {
-      // alert('Please review and accept the consent agreement');
+      alert('Please review and accept the consent agreement');
       return;
     }
     // alert('Consent recorded successfully');
-    navigate("/profile/patient");
+    navigate("/patient-profile-setup");
   };
 
   return (

@@ -94,16 +94,20 @@ export default function PatientDashboard() {
         return;
       }
 
-      if (!session) {
+      const currentUser = session?.user;
+      const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+      const supabaseOnboardingComplete = currentUser?.user_metadata?.onboarding_complete;
+
+      // Allow access if either onboarding flag is set (localStorage is primary, Supabase metadata is backup)
+      const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
+
+      if (!session && !onboardingComplete) {
         navigate("/");
         return;
       }
 
-      const currentUser = session.user;
-      const isOnboarded = currentUser.user_metadata?.onboarding_complete;
-
-      if (!isOnboarded) {
-        navigate("/consent/patient");
+      if (session && !onboardingComplete) {
+        navigate("/patient-audio-setup");
         return;
       }
 
@@ -117,15 +121,14 @@ export default function PatientDashboard() {
       (_event, session) => {
         if (isRecovery) return;
 
-        if (!session) {
+        const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+
+        if (!session && !localOnboardingComplete) {
           navigate("/");
-        } else {
-          const currentUser = session.user;
-          if (!currentUser.user_metadata?.onboarding_complete) {
-            navigate("/consent/patient");
-          } else {
-            setUser(currentUser);
-          }
+        } else if (session && !localOnboardingComplete) {
+          navigate("/patient-audio-setup");
+        } else if (session || localOnboardingComplete) {
+          setUser(session?.user || null);
         }
       }
     );
@@ -135,15 +138,15 @@ export default function PatientDashboard() {
 
   // ➕ New function for navigating to settings
   const goToSettings = () => {
-    navigate("/patient/settings");
+    navigate("/patient-settings");
   };
 
   const goToReminders = () => {
-    navigate("/patient/reminders");
+    navigate("/patient-reminders");
   };  
 
   const goToInvitation = () => {
-    navigate("/patient/invitation");
+    navigate("/patient-invitation");
   };  
 
   const visitHistory = [
@@ -268,7 +271,7 @@ export default function PatientDashboard() {
             </div>
             <h3>Record Visit</h3>
             <p>Start recording your healthcare visit</p>
-            <button className={styles.purpleButton}>Start Recording</button>
+            <button className={styles.purpleButton} onClick={() => navigate("/record")}>Start Recording</button>
           </div>
 
           <div className={styles.actionCard}>

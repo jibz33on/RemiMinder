@@ -14,7 +14,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   const goToSignIn = () => {
-    navigate("/signin");
+    navigate("/sign-in");
   };
 
   const steps = [
@@ -112,14 +112,14 @@ const LandingPage = () => {
           </p>
 
           <div className={styles.buttonGroup}>
-            <button 
-              onClick={() => navigate('/register/patient')} 
+            <button
+              onClick={() => navigate('/patient-registration')}
               className={styles.primaryButton}
             >
               Register as Patient&nbsp;<ArrowRight size={16} />
             </button>
-            <button 
-              onClick={() => navigate('/register/caregiver')} 
+            <button
+              onClick={() => navigate('/invitation')}
               className={styles.secondaryButton}
             >
               Register as Caregiver&nbsp;<ArrowRight size={16} />
@@ -282,7 +282,7 @@ const LandingPage = () => {
               <div className={styles.userOptions}>
                 {/* Patient Card */}
                 <button
-                  onClick={() => navigate("/register/patient")}
+                  onClick={() => navigate("/patient-registration")}
                   className={styles.ctaUserCard}
                 >
                   <div className={styles.iconBox}>
@@ -299,7 +299,7 @@ const LandingPage = () => {
 
                 {/* Caregiver Card */}
                 <button
-                  onClick={() => navigate("/register/caregiver")}
+                  onClick={() => navigate("/invitation")}
                   className={`${styles.ctaUserCard} ${styles.caregiverCard}`}
                 >
                   <div className={styles.iconBox}>

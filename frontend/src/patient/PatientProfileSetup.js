@@ -34,10 +34,13 @@ const PatientProfileSetup = () => {
   };
 
   const handleContinue = () => {
-    // Optional validation or saving logic
-    if (!fullName && !dob && !phone) {
+    // Required validation: fullName, dob, phone must be filled
+    if (!fullName || !dob || !phone) {
+      alert("Please fill in all required fields: Full Name, Date of Birth, and Phone Number.");
       return;
     }
+
+    console.log("Validation passed, saving profile...");
 
     // Save profile locally
     const profileData = {
@@ -48,11 +51,13 @@ const PatientProfileSetup = () => {
       notes,
       email: userEmail,
     };
-    
+
     localStorage.setItem("patientProfile", JSON.stringify(profileData));
     localStorage.setItem("display_name", fullName);
 
-    navigate("/audio");
+    console.log("Profile saved, navigating to /patient-audio-setup");
+
+    navigate("/patient-audio-setup");
   };
 
   return (
