@@ -25,25 +25,21 @@ export default function CaregiverSettings({ onBack, onLogout, role = "caregiver"
 
   const navigate = useNavigate();
 
-  // ✅ Fetch user info from Supabase
+  // ✅ Fetch caregiver info from Supabase or localStorage
   useEffect(() => {
     const fetchUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-  
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
         console.error("Error fetching user:", error.message);
         return;
       }
-  
+
       if (user) {
         setUser(user);
-  
-        // 🟢 Try to load locally saved patient profile first
-        const localProfile = JSON.parse(localStorage.getItem("patientProfile"));
-  
+
+        // 🟢 Load caregiver profile from localStorage first
+        const localProfile = JSON.parse(localStorage.getItem("caregiverProfile"));
+
         setUserData((prev) => ({
           ...prev,
           name:
@@ -51,17 +47,15 @@ export default function CaregiverSettings({ onBack, onLogout, role = "caregiver"
             user.user_metadata?.full_name ||
             user.user_metadata?.name ||
             user.email.split("@")[0],
-          phone: localProfile?.phone || prev.phone,
+          phone: localProfile?.phoneNumber || prev.phone,
           email: user.email,
-          avatar:
-            user.user_metadata?.picture ||
-            prev.avatar, // fallback to existing avatar if no picture in metadata
+          avatar: user.user_metadata?.picture || prev.avatar,
         }));
       }
     };
-  
+
     fetchUser();
-  }, []);  
+  }, []);
 
   const handleBack = () => {
     navigate(-1); // navigates back to previous page
@@ -71,7 +65,7 @@ export default function CaregiverSettings({ onBack, onLogout, role = "caregiver"
     try {
       await supabase.auth.signOut();
       localStorage.removeItem("role");
-      localStorage.removeItem("patientProfile"); // 🧹 clear local profile
+      localStorage.removeItem("caregiverProfile"); // 🧹 clear local profile
       localStorage.removeItem("display_name");
       setUser(null);
       navigate("/");
@@ -111,11 +105,7 @@ export default function CaregiverSettings({ onBack, onLogout, role = "caregiver"
           </div>
 
           <div className={styles.profileInfo}>
-            <img
-              src={userData.avatar}
-              alt="avatar"
-              className={styles.avatar}
-            />
+            <img src={userData.avatar} alt="avatar" className={styles.avatar} />
             <div>
               <h4>{userData.name}</h4>
               <p className={styles.roleText}>

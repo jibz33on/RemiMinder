@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from '../supabaseClient';
 
 const PatientCreateAccount = () => {
   const navigate = useNavigate();
@@ -25,64 +26,28 @@ const PatientCreateAccount = () => {
   const handleGoogleSignup = async () => {
     setIsLoading(true);
     try {
-      // Simulate Google OAuth flow
-      console.log('Initiating Google signup...');
-
-      // In a real implementation, you would:
-      // 1. Initialize Google OAuth
-      // 2. Open Google sign-in popup
-      // 3. Handle the OAuth response
-      // 4. Extract user information
-      // 5. Create account with Google data
-
-      // For demo purposes, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-
-      const mockGoogleUser = {
-        id: 'google_123456789',
-        email: 'patient@gmail.com',
-        name: 'John Doe',
-        picture: 'https://via.placeholder.com/100',
-        provider: 'google'
-      };
-
-      console.log('Google signup successful:', mockGoogleUser);
-
-      // Navigate to profile completion with Google user data
-      navigate('/patient-consent');
-
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/patient-consent'
+        }
+      });
+  
+      if (error) throw error;
+  
+      console.log('Google signup started:', data);
     } catch (error) {
-      console.error('Google signup failed:', error);
-      alert('Google signup failed. Please try again.');
+      console.error('Google signup failed:', error.message);
+      alert(error.message);
     } finally {
       setIsLoading(false);
     }
   };
+  
 
-  const handleAppleSignup = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate Apple OAuth flow
-      console.log('Initiating Apple signup...');
-
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-
-      const mockAppleUser = {
-        id: 'apple_123456789',
-        email: 'patient@icloud.com',
-        name: 'John Doe',
-        provider: 'apple'
-      };
-
-      console.log('Apple signup successful:', mockAppleUser);
-
-    } catch (error) {
-      console.error('Apple signup failed:', error);
-      alert('Apple signup failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleAppleSignup = () => {
+    alert('Apple Sign In is coming soon!');
+  };  
 
   const handleSignUp = (method) => {
     if (method === 'Email') {
@@ -92,6 +57,10 @@ const PatientCreateAccount = () => {
     } else if (method === 'Apple') {
       handleAppleSignup();
     }
+  };
+
+  const handleSignIn = () => {
+    navigate("/sign-in");
   };
 
   return (
@@ -284,7 +253,7 @@ const PatientCreateAccount = () => {
             }}
             onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            onClick={() => console.log('Sign in clicked')}
+            onClick={handleSignIn}
           >
             Sign in
           </span>

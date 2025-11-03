@@ -296,3 +296,26 @@
     font-weight: 500;
     font-family: inherit;
   }
+
+  .profileInfo h4 {
+    color: #111827; /* dark gray for name */
+  }
+  
+  .subheader {
+    color: #111827; /* dark gray for section headers */
+  }
+  
+  .subtext {
+    color: #374151; /* medium gray for descriptive text */
+  }
+  
+  .infoItem span.value {
+    color: #111827; /* dark gray for email/phone values */
+  }
+
+  .toggleItem h4 {
+    color: #111827; /* dark gray, same as profile name / section headers */
+    margin: 0; /* optional: remove default h4 margin if needed */
+  }
+  
+  

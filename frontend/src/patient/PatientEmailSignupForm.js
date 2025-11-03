@@ -23,21 +23,26 @@ const PatientEmailSignupForm = () => {
     navigate('/patient-create-account');
   };
 
+  const handleSignIn = () => {
+    navigate("/sign-in");
+  };
+
   const handleContinue = async () => {
     if (formData.email && formData.password) {
       try {
         console.log('Creating account for:', formData.email);
-
+  
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
             data: {
-              role: 'patient', // Mark this user as a patient
-            }
-          }
+              role: 'patient',
+            },
+            emailRedirectTo: `${window.location.origin}/sign-up-confirmation`
+          },
         });
-
+  
         if (error) {
           console.error('Signup error:', error);
           if (error.message.includes('already registered')) {
@@ -47,16 +52,16 @@ const PatientEmailSignupForm = () => {
           }
           return;
         }
-
+  
         console.log('Account created successfully:', data);
-        // Navigate to email verification - Supabase will send the email automatically
-        navigate('/patient-email-verification');
+        navigate('/patient-email-verification'); // show "check your email" screen
+  
       } catch (err) {
         console.error('Unexpected error:', err);
         alert('An unexpected error occurred. Please try again.');
       }
     }
-  };
+  };  
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -285,7 +290,7 @@ const PatientEmailSignupForm = () => {
             }}
             onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            onClick={() => console.log('Sign in clicked')}
+            onClick={handleSignIn}
           >
             Sign in
           </span>

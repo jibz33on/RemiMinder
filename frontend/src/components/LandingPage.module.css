@@ -148,7 +148,9 @@
   color: var(--dark-text);
 }
 .secondaryButton:hover {
-  background-color: #e0e0e0;
+  background-color: var(--secondary-green);
+  color: white;
+  transform: translateY(-2px);
 }
 .rightPanel {
   flex: 1;
@@ -265,8 +267,10 @@
 .caregiverCard:hover { border-color: var(--secondary-green); background: rgba(16,185,129,0.2); }
 .iconBox { width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; justify-content: center; align-items: center; flex-shrink: 0; background: rgba(123,92,246,0.1); }
 .caregiverCard .iconBox { background: rgba(16,185,129,0.1); }
-.userContent h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; }
+.userContent h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; margin-top: auto; }
+.userContentGreen h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--secondary-green); margin-top: auto; }
 .userContent p { font-size: 0.95rem; color: #6b7280; margin-bottom: 0.5rem; }
+.userContentGreen p { font-size: 0.95rem; color: #6b7280; margin-bottom: 0.5rem; }
 .ctaLink { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 500; color: var(--primary-purple); }
 .ctaLink2 { display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 500; color: var(--secondary-green); }
 .ctaLink svg .ctaLink2 svg{ transition: transform 0.3s ease; }
@@ -400,4 +404,86 @@
 }
 .socialLinks a:hover {
   color: var(--dark-text);
+}
+
+.demoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 3rem 0;
+}
+
+/* Fixed-size preview with 16:9 aspect ratio */
+.demoFrame {
+  position: relative;
+  width: 700px;
+  height: 450px;
+  border-radius: 16px;
+  overflow-y: auto;
+  background: #1f1b2e;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.3s ease;
+  scrollbar-width: thin;
+  scrollbar-color: #a78bfa #1f1b2e;
+}
+
+/* Scrollbar styling */
+.demoFrame::-webkit-scrollbar {
+  width: 6px;
+}
+.demoFrame::-webkit-scrollbar-thumb {
+  background-color: #a78bfa;
+  border-radius: 10px;
+}
+
+/* Fullscreen mode */
+.fullScreen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  border-radius: 12px;
+  background: #fff; /* light mode background */
+  color: #1a1a1a; /* dark text */
+}
+
+/* Fullscreen toggle (four-arrows icon) */
+.fullscreenButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(0, 0, 0, 0.4);
+  transition: background 0.2s;
+}
+
+.fullscreenButton:hover {
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.demoFrame {
+  background: #fff; /* light mode background */
+  color: #1a1a1a;
+}
+
+.demoFrame::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.demoFrame::-webkit-scrollbar-thumb {
+  background-color: #a78bfa;
+}
+
+.stepCard h3,
+.personaCard h3,
+.benefitContent h3 {
+  color: var(--dark-text)
 }

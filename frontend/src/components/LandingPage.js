@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './LandingPage.module.css';
 import heroImage from '../assets/hero-ai-orb.jpg'; 
 import howItWorksImage from '../assets/how-it-works-visual.jpg';
@@ -9,8 +9,12 @@ import {
   Mic, FileText, Bell, Shield, Heart, Brain, Clock, Users, 
   User, ArrowRight, CheckCircle2 
 } from "lucide-react";
+import ProductDemo from "./ProductDemo";
+import { Maximize2 } from "lucide-react";
 
 const LandingPage = () => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
   const navigate = useNavigate();
 
   const goToSignIn = () => {
@@ -119,7 +123,7 @@ const LandingPage = () => {
               Register as Patient&nbsp;<ArrowRight size={16} />
             </button>
             <button
-              onClick={() => navigate('/invitation')}
+              onClick={() => navigate('/create-account')}
               className={styles.secondaryButton}
             >
               Register as Caregiver&nbsp;<ArrowRight size={16} />
@@ -143,11 +147,18 @@ const LandingPage = () => {
         </div>
 
         <div className={styles.rightPanel}>
-          <img 
-            src={heroImage} 
-            alt="Healthcare professional holding a glowing icon" 
-            className={styles.heroImage} 
-          />
+          <div className={styles.demoWrapper}>
+            <div className={`${styles.demoFrame} ${isFullScreen ? styles.fullScreen : ""}`}>
+              <ProductDemo />
+              <button
+                className={styles.fullscreenButton}
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                aria-label="Toggle fullscreen"
+              >
+                <Maximize2 size={20} />
+              </button>
+            </div>
+          </div>
         </div>
       </main>
 
@@ -305,7 +316,7 @@ const LandingPage = () => {
                   <div className={styles.iconBox}>
                     <Users size={24} />
                   </div>
-                  <div className={styles.userContent}>
+                  <div className={styles.userContentGreen}>
                     <h3>I'm a Caregiver</h3>
                     <p>Stay connected with your loved ones' health, manage medications, and coordinate care easily.</p>
                     <span className={styles.ctaLink2}>

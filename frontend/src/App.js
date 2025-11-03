@@ -14,6 +14,8 @@ import CompleteProfile from './caregiver/CompleteProfile';
 import CaregiverDashboard from './caregiver/CaregiverDashboard';
 import CaregiverSettings from './caregiver/CaregiverSettings';
 
+import Consent from './caregiver/Consent';
+
 // Patient pages
 import PatientAudioSetup from './patient/PatientAudioSetup';
 import PatientConsent from './patient/PatientConsent';
@@ -51,6 +53,8 @@ function App() {
           <Route path="/caregiver-dashboard" element={<CaregiverDashboard />} />
           <Route path="/caregiver-settings" element={<CaregiverSettings />} />
 
+          <Route path="/consent" element={<Consent />} />
+
           {/* Patient routes */}
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
           <Route path="/patient-invitation" element={<PatientInvitation />} />
@@ -72,10 +76,10 @@ function App() {
 
           {/* You may need to decide on a default/catch-all route */}
           {/* This one from 'main' redirects unknown paths to /invitation */}
-          <Route path="*" element={<Navigate to="/invitation" replace />} />
+          {/* <Route path="*" element={<Navigate to="/invitation" replace />} /> */}
 
           {/* OR, if your landing page is the default, use this instead: */}
-          {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+          <Route path="*" element={<Navigate to="/" replace />} />
 
           <Route path="/visit-history" element={<VisitHistory onBack={() => window.history.back()} role="patient" />} />
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabaseClient";
 
 const EmailSignupForm = () => {
   const navigate = useNavigate();
@@ -7,8 +8,8 @@ const EmailSignupForm = () => {
     email: '',
     password: ''
   });
-  const [hoveredButton, setHoveredButton] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -18,81 +19,101 @@ const EmailSignupForm = () => {
     }));
   };
 
-  const handleBackToCreateAccount = () => {
-    navigate('/create-account');
-  };
-
-  const handleContinue = () => {
-    if (formData.email && formData.password) {
-      console.log('Form data:', formData);
-      navigate('/email-verification');
+  const handleContinue = async () => {
+    const { email, password } = formData;
+    if (!email || !password) {
+      alert("Please enter both email and password.");
+      return;
     }
-  };
+  
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { role: "caregiver" },
+          emailRedirectTo: `${window.location.origin}/sign-up-confirmation` 
+          // 👆 This ensures the email verification link goes to your confirmation page
+        },
+      });
+  
+      if (error) throw error;
+  
+      console.log("Caregiver signed up:", data);
+  
+      // ✅ Store email for the verification screen
+      localStorage.setItem("caregiverEmail", email);
+  
+      // Redirect to "check your email" screen
+      navigate("/email-verification");
+  
+    } catch (err) {
+      console.error("Signup error:", err);
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };  
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  const handleBack = () => navigate("/create-account");
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(to bottom, #F8FBF9, #FFFFFF)',
-      paddingTop: '120px',
-      fontFamily: 'Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(to bottom, #F8FBF9, #FFFFFF)",
+      paddingTop: "120px",
+      fontFamily: "Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
     }}>
       <div style={{
-        maxWidth: '1440px',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '0 24px'
+        maxWidth: "1440px",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "0 24px",
       }}>
-        {/* Heading Section */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        {/* Heading */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <h1 style={{
-            fontSize: '30px',
-            fontWeight: 'bold',
-            color: '#111827',
-            margin: '0',
-            lineHeight: '1.2'
+            fontSize: "30px",
+            fontWeight: "bold",
+            color: "#111827",
+            margin: 0,
+            lineHeight: "1.2",
           }}>
             Create Caregiver Account
           </h1>
-          
           <p style={{
-            fontSize: '18px',
-            fontWeight: 'normal',
-            color: '#6B7280',
-            margin: '8px 0 0 0',
-            lineHeight: '1.4'
+            fontSize: "18px",
+            color: "#6B7280",
+            margin: "8px 0 0 0",
           }}>
-            Choose your preferred sign-up method
+            Enter your email and password
           </p>
         </div>
 
-        {/* Card Form Container */}
+        {/* Form Card */}
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-          width: '400px',
-          padding: '32px 40px',
-          marginBottom: '20px'
+          backgroundColor: "white",
+          borderRadius: "16px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+          width: "400px",
+          padding: "32px 40px",
+          marginBottom: "20px",
         }}>
-          {/* Form Fields */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Email Field */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Email */}
             <div>
               <label style={{
-                display: 'block',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '8px'
+                display: "block",
+                fontSize: "16px",
+                fontWeight: "600",
+                color: "#111827",
+                marginBottom: "8px",
               }}>
                 Email Address
               </label>
@@ -103,77 +124,60 @@ const EmailSignupForm = () => {
                 onChange={handleInputChange}
                 placeholder="you@example.com"
                 style={{
-                  width: '100%',
-                  height: '48px',
-                  backgroundColor: '#F9FAFB',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: '8px',
-                  padding: '0 12px',
-                  fontSize: '16px',
-                  color: '#111827',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease',
-                  boxSizing: 'border-box'
+                  width: "100%",
+                  height: "48px",
+                  backgroundColor: "#F9FAFB",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "8px",
+                  padding: "0 12px",
+                  fontSize: "16px",
+                  color: "#111827",
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#00B881'}
-                onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
               />
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div>
               <label style={{
-                display: 'block',
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '8px'
+                display: "block",
+                fontSize: "16px",
+                fontWeight: "600",
+                color: "#111827",
+                marginBottom: "8px",
               }}>
                 Password
               </label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: "relative" }}>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create a secure password"
                   style={{
-                    width: '100%',
-                    height: '48px',
-                    backgroundColor: '#F9FAFB',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                    padding: '0 48px 0 12px',
-                    fontSize: '16px',
-                    color: '#111827',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease',
-                    boxSizing: 'border-box'
+                    width: "100%",
+                    height: "48px",
+                    backgroundColor: "#F9FAFB",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "8px",
+                    padding: "0 48px 0 12px",
+                    fontSize: "16px",
+                    color: "#111827",
                   }}
-                  onFocus={(e) => e.target.style.borderColor = '#00B881'}
-                  onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                 />
                 <button
                   type="button"
-                  onClick={togglePasswordVisibility}
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#6B7280',
-                    transition: 'color 0.2s ease'
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#6B7280",
                   }}
-                  onMouseEnter={(e) => e.target.style.color = '#111827'}
-                  onMouseLeave={(e) => e.target.style.color = '#6B7280'}
                 >
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -194,69 +198,57 @@ const EmailSignupForm = () => {
           </div>
 
           {/* Buttons */}
-          <div style={{ marginTop: '24px' }}>
-            {/* Primary Button */}
+          <div style={{ marginTop: "24px" }}>
             <button
-              style={{
-                width: '100%',
-                height: '48px',
-                backgroundColor: '#00B881',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={() => setHoveredButton('continue')}
-              onMouseLeave={() => setHoveredButton(null)}
               onClick={handleContinue}
+              disabled={loading}
+              style={{
+                width: "100%",
+                height: "48px",
+                backgroundColor: loading ? "#9CA3AF" : "#00B881",
+                border: "none",
+                borderRadius: "8px",
+                color: "white",
+                fontSize: "16px",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
             >
-              Continue
+              {loading ? "Creating account..." : "Continue"}
             </button>
 
-            {/* Secondary Button */}
             <button
+              onClick={handleBack}
               style={{
-                width: '100%',
-                backgroundColor: 'transparent',
-                border: 'none',
-                color: '#111827',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                marginTop: '16px',
-                transition: 'opacity 0.2s ease'
+                width: "100%",
+                backgroundColor: "transparent",
+                border: "none",
+                color: "#111827",
+                fontSize: "16px",
+                fontWeight: "500",
+                cursor: "pointer",
+                marginTop: "16px",
               }}
-              onMouseEnter={() => setHoveredButton('back')}
-              onMouseLeave={() => setHoveredButton(null)}
-              onClick={handleBackToCreateAccount}
             >
               Back
             </button>
           </div>
         </div>
 
-        {/* Footer Text */}
+        {/* Footer */}
         <div style={{
-          textAlign: 'center',
-          fontSize: '15px',
-          color: '#6B7280',
-          lineHeight: '1.4'
+          textAlign: "center",
+          fontSize: "15px",
+          color: "#6B7280",
         }}>
-          Already have an account?{' '}
+          Already have an account?{" "}
           <span
             style={{
-              color: '#00B881',
-              fontWeight: '600',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              transition: 'text-decoration 0.2s ease'
+              color: "#00B881",
+              fontWeight: "600",
+              cursor: "pointer",
             }}
-            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
-            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            onClick={() => console.log('Sign in clicked')}
+            onClick={() => navigate("/sign-in")}
           >
             Sign in
           </span>

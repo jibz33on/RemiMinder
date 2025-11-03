@@ -18,18 +18,32 @@ export default function CaregiverDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
+  const [caregiverProfile, setCaregiverProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadUser() {
-      const cachedDisplay = localStorage.getItem("display_name");
-      if (cachedDisplay) setDisplayName(cachedDisplay);
+      // 🟢 Step 1: Load cached caregiver profile
+      const profileRaw = localStorage.getItem("caregiverProfile");
+      if (profileRaw) {
+        try {
+          const parsed = JSON.parse(profileRaw);
+          setCaregiverProfile(parsed);
+          if (parsed.fullName) {
+            setDisplayName(parsed.fullName);
+            console.debug("Using cached caregiverProfile:", parsed);
+          }
+        } catch (err) {
+          console.warn("Error parsing caregiverProfile:", err);
+        }
+      }
 
+      // 🟢 Step 2: Load Supabase user (optional backup)
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
 
-        if (user) {
+        if (user && !displayName) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("display_name")
@@ -40,8 +54,6 @@ export default function CaregiverDashboard() {
             setDisplayName(profile.display_name);
             localStorage.setItem("display_name", profile.display_name);
           }
-        } else {
-          localStorage.removeItem("display_name");
         }
       } catch (err) {
         console.error("Error loading user:", err);
@@ -49,39 +61,33 @@ export default function CaregiverDashboard() {
         setLoading(false);
       }
     }
+
     loadUser();
   }, []);
 
+  // 🟢 Step 3: Verify onboarding completion
   useEffect(() => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-  
-        // If Supabase is optional, don't hard-fail on missing session
         const isOnboarded = localStorage.getItem("onboarding_complete");
-  
         if (!isOnboarded) {
           navigate("/consent/caregiver");
           return;
         }
-  
-        // Only redirect home if you're actually requiring auth
         if (session === null && !isOnboarded) {
           navigate("/");
           return;
         }
-  
       } catch (err) {
         console.error("Session check failed:", err);
       }
     };
-  
     checkSession();
-  }, [navigate]);  
+  }, [navigate]);
 
-  const goToSettings = () => {
-    navigate("/caregiver-settings");
-  };
+  // 🟢 Navigation
+  const goToSettings = () => navigate("/caregiver-settings");
   const goToReminders = () => {}; // disabled
   const goToMessages = () => {}; // disabled
   const goToManagePatients = () => {}; // disabled

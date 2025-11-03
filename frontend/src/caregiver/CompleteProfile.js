@@ -1,15 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabaseClient"; // make sure you import supabase
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
+  const [storedEmail, setStoredEmail] = useState(localStorage.getItem("caregiverEmail"));
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
-    email: 'john.doe@example.com', // Pre-filled from previous step
+    email: storedEmail || '', // initialize empty for now
     relationship: '',
     additionalNotes: ''
   });
+
+  useEffect(() => {
+    // If no local email, fetch from Supabase
+    if (!storedEmail) {
+      const fetchUser = async () => {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error fetching user:", error.message);
+          return;
+        }
+        if (user) {
+          setFormData(prev => ({ ...prev, email: user.email }));
+        }
+      };
+      fetchUser();
+    }
+  }, [storedEmail]);
 
   const [hoveredButton, setHoveredButton] = useState(null);
 
@@ -23,13 +42,17 @@ const CompleteProfile = () => {
 
   const handleComplete = () => {
     if (formData.fullName && formData.phoneNumber && formData.relationship) {
-      console.log('Profile completed:', formData);
-      // Navigate to dashboard or success page
+      console.log("Profile completed:", formData);
+  
+      // Save caregiver profile data locally
+      localStorage.setItem("caregiverProfile", JSON.stringify(formData));
       localStorage.setItem("onboarding_complete", "true");
+  
       navigate("/dashboard/caregiver");
-      // alert('Profile completed successfully! Welcome to MediMinder.');
+    } else {
+      alert("Please fill in all required fields before continuing.");
     }
-  };
+  };  
 
   const handlePhotoUpload = () => {
     console.log('Photo upload clicked');

@@ -20,6 +20,8 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [authMethod, setAuthMethod] = useState("email"); // "email" | "google" | etc.
+  const [resetSent, setResetSent] = useState(false);
 
   // --- Detect password recovery link ---
   useEffect(() => {
@@ -49,6 +51,12 @@ export default function SignIn() {
 
     return () => listener.subscription.unsubscribe();
   }, [navigate, role, recoveryMode]);
+
+  useEffect(() => {
+    const clearRecovery = () => setRecoveryMode(false);
+    window.addEventListener("beforeunload", clearRecovery);
+    return () => window.removeEventListener("beforeunload", clearRecovery);
+  }, []);  
 
   // --- Override Supabase "Sign up" link ---
   useEffect(() => {
@@ -96,24 +104,22 @@ export default function SignIn() {
   };
 
   // --- Password reset handler ---
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
+  const handlePasswordReset = async () => {
+    if (!email) {
+      alert("Please enter your email first.");
+      return;
+    }
 
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) throw updateError;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/sign-in`, // 👈 redirect after email link
+    });
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw signInError;
-
-      const currentRole = localStorage.getItem("role") || "patient";
-      navigate(`/dashboard/${currentRole}`);
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error("Password reset error:", error.message);
+      alert("Error sending password reset link. Please try again.");
+    } else {
+      setResetSent(true);
+      alert("Password reset email sent! Check your inbox.");
     }
   };
 
@@ -173,7 +179,29 @@ export default function SignIn() {
 
             {/* White card containing the form */}
             <div className={styles.formCard}>
-              <form onSubmit={handlePasswordReset} className={styles.form}>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoading(true);
+                  setMessage("");
+                  try {
+                    const { data, error } = await supabase.auth.updateUser({ password });
+                    if (error) throw error;
+                    setMessage("Password successfully updated! You can now sign in.");
+                    setTimeout(() => {
+                      const currentRole = localStorage.getItem("role") || "patient";
+                      setRecoveryMode(false);
+                      navigate(`/dashboard/${currentRole}`);
+                    }, 1500);                    
+                  } catch (err) {
+                    console.error("Password update error:", err.message);
+                    setMessage("Error updating password. Try again.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className={styles.form}
+              >
                 <label className={styles.label}>Email address</label>
                 <input
                   type="email"
@@ -208,7 +236,7 @@ export default function SignIn() {
                   }}
                   disabled={loading}
                 >
-                  {loading ? "Resetting..." : "Sign in"}
+                  {loading ? "Resetting..." : "Reset Password"}
                 </button>
 
                 {message && <p className={styles.errorMessage}>{message}</p>}
@@ -333,7 +361,7 @@ export default function SignIn() {
             </div>
           ) : (
             <div className={styles.formCard}>
-              <form className={styles.form}>
+              <form className={styles.form} onSubmit={handleEmailSignIn}>
                 <label className={styles.label}>Email address</label>
                 <input
                   type="email"
@@ -354,6 +382,29 @@ export default function SignIn() {
                   required
                 />
 
+                <div style={{ textAlign: "right", marginBottom: "16px" }}>
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#6B7280",
+                      fontSize: "14px",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                {resetSent && (
+                  <p style={{ color: "#00B881", fontSize: "14px" }}>
+                    Password reset link sent! Check your email.
+                  </p>
+                )}
+
                 <button
                   type="submit"
                   style={{
@@ -367,7 +418,6 @@ export default function SignIn() {
                     width: "100%",
                   }}
                   disabled={loading}
-                  onClick={handleEmailSignIn}
                 >
                   {loading ? "Signing in..." : "Sign in"}
                 </button>
@@ -376,6 +426,7 @@ export default function SignIn() {
               </form>
 
               <button
+                type="button"
                 onClick={() => {
                   setShowEmailForm(false);
                   setEmail("");

@@ -422,3 +422,31 @@
         gap: 0.75rem;
     }
 }
+
+/* Header text */
+.welcomeTextWhite {
+    color: #ffffff; /* white for welcome text */
+  }
+  
+  .subTextWhite {
+    color: #f3f4f6; /* lighter gray/white for subtitles */
+  }
+  
+  /* Info card headers */
+  .tipTitleWhite {
+    color: #ffffff; /* white for “Your Role” */
+  }
+  
+  .tipTextWhite {
+    color: #e5e7eb; /* light gray for description */
+  }
+  
+  /* Patient/visit names */
+  .listItem h4 {
+    color: #111827; /* dark gray for visit titles and patient names */
+  }
+  
+  .listItem p,
+  .visitMeta {
+    color: #374151; /* medium gray for details like doctor names and dates */
+  }
