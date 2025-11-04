@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -135,3 +135,188 @@ async def verify_invitation(token: str = Query(..., description="Unique invitati
         "caregiver_email": invitation_data["caregiver_email"],
         "status": invitation_data["status"]
     }
+
+class AcceptInvitationRequest(BaseModel):
+    token: str
+
+@router.post("/accept", status_code=status.HTTP_200_OK)
+async def accept_invitation(request: AcceptInvitationRequest):
+    """
+    Accept an invitation using a valid token.
+    Steps:
+    1. Validate token
+    2. Check if caregiver exists
+    3. If caregiver exists → mark invitation as accepted + link patient
+    4. If caregiver not found → return 'new_user' (registration required)
+    """
+    try:
+        token = request.token
+
+        # 1️⃣ Verify token validity
+        invitation_data = await verify_invitation_token(token)
+        if not invitation_data:
+            raise HTTPException(status_code=404, detail="Invalid or expired invitation token.")
+        
+        #debugging only
+        print("Invitation data:", invitation_data)
+
+        caregiver_email = invitation_data["caregiver_email"]
+        patient_id = invitation_data["patient_id"]
+
+        # Optional safety check (make sure token belongs to this email)
+        # if caregiver_email.lower() != email.lower():
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail="Email does not match the invitation token."
+        #     )
+
+        # 2️⃣ Check caregiver record in DB
+        caregiver_res = supabase.table("caregivers").select("id").eq("email", caregiver_email).execute()
+        caregiver = caregiver_res.data[0] if caregiver_res.data else None
+
+        #debugging only
+        print("Caregiver lookup result:", caregiver)
+
+        # 3️⃣ Handle new user case
+        if not caregiver:
+            return {
+                "status": "new_user",
+                "message": "Caregiver not registered yet. Please complete registration.",
+                "caregiver_email": caregiver_email,
+                "patient_id": patient_id,
+            }
+
+        caregiver_id = caregiver["id"]
+
+        # 4️⃣ Update invitation status to accepted
+        supabase.table("invitations").update({
+            "status": "accepted",
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("token", token).execute()
+
+        # 5️⃣ Link caregiver ↔ patient if not already linked
+        existing_link = supabase.table("patient_caregiver") \
+            .select("id") \
+            .eq("patient_id", patient_id) \
+            .eq("caregiver_id", caregiver_id) \
+            .execute()
+
+        if not existing_link.data:
+            supabase.table("patient_caregiver").insert({
+                "patient_id": patient_id,
+                "caregiver_id": caregiver_id,
+                "linked_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+
+        return {
+            "status": "accepted",
+            "message": "Invitation accepted successfully.",
+            "patient_id": patient_id,
+            "caregiver_id": caregiver_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+# --------------------------------------------------------------------
+
+
+class CompleteInvitationRequest(BaseModel):
+    token: str
+    full_name: str
+    phone_number: str
+    email: str #frontend should store it from verify token stage and send it back
+    relationship: str
+    notes: str | None = None
+
+
+@router.post("/complete", status_code=status.HTTP_201_CREATED)
+async def complete_invitation(request: CompleteInvitationRequest):
+    """
+    Step 2: After registration, mark invitation as accepted and link caregiver ↔ patient.
+    - Verifies the invitation token (securely fetches patient_id from backend)
+    - Creates caregiver record (if not exists)
+    - Updates invitation status
+    - Links caregiver ↔ patient
+    """
+    try:
+        token = request.token
+        email = request.email
+
+        # 1️⃣ Verify token validity (defensive check)
+        invitation_data = await verify_invitation_token(token)
+        if not invitation_data:
+            raise HTTPException(status_code=404, detail="Invalid or expired invitation token.")
+
+        caregiver_email = invitation_data["caregiver_email"]
+        patient_id = invitation_data["patient_id"]
+
+        #debugging only
+        print("Invitation data:", invitation_data)
+
+        # Optional safety check (make sure token belongs to this email)
+        if caregiver_email.lower() != email.lower():
+            raise HTTPException(
+                status_code=400,
+                detail="Email does not match the invitation token."
+            )
+
+        # 2️⃣ Check caregiver existence
+        caregiver_res = supabase.table("caregivers").select("id").eq("email", email).execute()
+        caregiver = caregiver_res.data[0] if caregiver_res.data else None
+
+        #debugging only
+        print("Caregiver lookup result:", caregiver)
+
+        # 3️⃣ Create caregiver record if not exists
+        if not caregiver:
+            insert_res = supabase.table("caregivers").insert({
+                "full_name": request.full_name,
+                "phone": request.phone_number,
+                "email": email,
+                "relationship": request.relationship,
+                "notes": request.notes,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+
+            if not insert_res.data:
+                raise HTTPException(status_code=500, detail="Failed to create caregiver record.")
+
+            caregiver_id = insert_res.data[0]["id"]
+        else:
+            caregiver_id = caregiver["id"]
+
+        # 4️⃣ Update invitation status → accepted
+        supabase.table("invitations").update({
+            "status": "accepted",
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("token", token).execute()
+
+        # 5️⃣ Link caregiver ↔ patient if not already linked
+        existing_link = supabase.table("patient_caregiver") \
+            .select("id") \
+            .eq("patient_id", patient_id) \
+            .eq("caregiver_id", caregiver_id) \
+            .execute()
+
+        if not existing_link.data:
+            supabase.table("patient_caregiver").insert({
+                "patient_id": patient_id,
+                "caregiver_id": caregiver_id,
+                "linked_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+
+        return {
+            "status": "completed",
+            "message": "Invitation accepted and caregiver linked to patient.",
+            "caregiver_id": caregiver_id,
+            "patient_id": patient_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
