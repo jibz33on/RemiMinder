@@ -264,14 +264,14 @@ async def complete_invitation(request: CompleteInvitationRequest):
                 detail="Email does not match the invitation token."
             )
 
-        # 2️⃣ Check caregiver existence
+        # 2️ Check caregiver existence
         caregiver_res = supabase.table("caregivers").select("id").eq("email", email).execute()
         caregiver = caregiver_res.data[0] if caregiver_res.data else None
 
         #debugging only
         print("Caregiver lookup result:", caregiver)
 
-        # 3️⃣ Create caregiver record if not exists
+        # 3️ Create caregiver record if not exists
         if not caregiver:
             insert_res = supabase.table("caregivers").insert({
                 "full_name": request.full_name,
@@ -289,13 +289,13 @@ async def complete_invitation(request: CompleteInvitationRequest):
         else:
             caregiver_id = caregiver["id"]
 
-        # 4️⃣ Update invitation status → accepted
+        # 4 Update invitation status → accepted
         supabase.table("invitations").update({
             "status": "accepted",
             "accepted_at": datetime.now(timezone.utc).isoformat(),
         }).eq("token", token).execute()
 
-        # 5️⃣ Link caregiver ↔ patient if not already linked
+        # 5️ Link caregiver ↔ patient if not already linked
         existing_link = supabase.table("patient_caregiver") \
             .select("id") \
             .eq("patient_id", patient_id) \
@@ -318,5 +318,60 @@ async def complete_invitation(request: CompleteInvitationRequest):
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
+# Handle Pending invite for logged in caregiver
+@router.get("/pending")
+async def get_pending_invitations(email: str = Query(...)):
+    """
+    Fetch all pending invitations for a caregiver who just signed in.
+    """
+    try:
+        result = supabase.table("invitations") \
+            .select("token, patient_id, status, expires_at") \
+            .eq("caregiver_email", email) \
+            .eq("status", "pending") \
+            .execute()
+
+        if not result.data:
+            return {
+                "status": "none",
+                "message": "No pending invitations."
+            }
+
+        # Get all valid (non-expired) invites
+        pending_invites = []
+        for invite in result.data:
+            expires_at = datetime.fromisoformat(invite["expires_at"])
+            if expires_at < datetime.now(timezone.utc):
+                continue
+
+            patient = supabase.table("users") \
+                .select("full_name") \
+                .eq("id", invite["patient_id"]) \
+                .execute()
+
+            patient_name = patient.data[0]["full_name"] if patient.data else None
+
+            pending_invites.append({
+                "token": invite["token"],
+                "patient_name": patient_name,
+                "patient_id": invite["patient_id"],
+                "expires_at": invite["expires_at"]
+            })
+
+        if not pending_invites:
+            return {
+                "status": "none",
+                "message": "All invitations expired."
+            }
+
+        return {
+            "status": "pending",
+            "count": len(pending_invites),
+            "invitations": pending_invites
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

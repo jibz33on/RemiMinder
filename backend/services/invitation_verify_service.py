@@ -16,7 +16,7 @@ async def verify_invitation_token(token: str):
     # 2. Check expiry
     # Converts the ISO string from Supabase to a datetime.
     # Returns None if the token is expired.
-    expires_at = datetime.fromisoformat(invitation["expires_at"])
+    expires_at = datetime.fromisoformat(invitation["expires_at"]) 
     if expires_at < datetime.now(timezone.utc):
         return None
 
@@ -28,7 +28,7 @@ async def verify_invitation_token(token: str):
     # 4. Get associated patient info for prefill
     # Pulls the patient’s name for pre-filling the invitation page.
     patient = supabase.table("users").select("id, full_name").eq("id", invitation["patient_id"]).execute()
-    patient_name = patient.data[0]["full_name"] if patient.data else None
+    patient_name = patient.data[0]["full_name"] if patient.data else None 
 
     return {
         "patient_id": invitation["patient_id"],
