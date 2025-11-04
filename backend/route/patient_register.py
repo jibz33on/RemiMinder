@@ -56,7 +56,7 @@ async def register_patient(
     insert_res = supabase.table("users").insert({
         "auth_uid": auth_uid,
         "full_name": request.full_name,
-        "date_of_birth": request.date_of_birth,
+        "date_of_birth": request.date_of_birth.isoformat() if isinstance(request.date_of_birth, date) else request.date_of_birth,
         "gender": request.gender,
         "phone": request.phone_number,
         "email": request.email,

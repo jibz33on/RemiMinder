@@ -3,6 +3,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 import jwt
 import os
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 security = HTTPBearer()
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
@@ -21,10 +24,21 @@ def get_current_user(credentials=Depends(security)):
         decoded_token = jwt.decode(
             token,
             SUPABASE_JWT_SECRET,
-            algorithms=["HS256"]
+            algorithms=["HS256"],
+            audience="authenticated" 
         )
         return decoded_token  # This will be current_user in endpoints
-    except Exception:
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
+    except jwt.InvalidAudienceError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token audience"
+        )
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
