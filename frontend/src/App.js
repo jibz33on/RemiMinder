@@ -15,6 +15,7 @@ import CaregiverDashboard from './caregiver/CaregiverDashboard';
 import CaregiverSettings from './caregiver/CaregiverSettings';
 
 import Consent from './caregiver/Consent';
+import PendingInvitations from './caregiver/PendingInvitations';
 
 // Patient pages
 import PatientAudioSetup from './patient/PatientAudioSetup';
@@ -82,6 +83,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
 
           <Route path="/visit-history" element={<VisitHistory onBack={() => window.history.back()} role="patient" />} />
+          <Route path="/caregiver/invitations" element={<PendingInvitations />} />
 
         </Routes>
       </div>

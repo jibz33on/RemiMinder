@@ -154,47 +154,47 @@ export default function PatientDashboard() {
   };  
 
   const visitHistory = [
-    {
-      id: 1,
-      date: "Oct 10, 2025",
-      title: "Annual Checkup",
-      doctor: "Dr. Sarah Johnson",
-      duration: "45 min",
-      status: "completed",
-    },
-    {
-      id: 2,
-      date: "Oct 5, 2025",
-      title: "Follow-up Visit",
-      doctor: "Dr. Michael Chen",
-      duration: "30 min",
-      status: "completed",
-    },
-    {
-      id: 3,
-      date: "Sep 28, 2025",
-      title: "Lab Results Review",
-      doctor: "Dr. Sarah Johnson",
-      duration: "20 min",
-      status: "completed",
-    },
+    // {
+    //   id: 1,
+    //   date: "Oct 10, 2025",
+    //   title: "Annual Checkup",
+    //   doctor: "Dr. Sarah Johnson",
+    //   duration: "45 min",
+    //   status: "completed",
+    // },
+    // {
+    //   id: 2,
+    //   date: "Oct 5, 2025",
+    //   title: "Follow-up Visit",
+    //   doctor: "Dr. Michael Chen",
+    //   duration: "30 min",
+    //   status: "completed",
+    // },
+    // {
+    //   id: 3,
+    //   date: "Sep 28, 2025",
+    //   title: "Lab Results Review",
+    //   doctor: "Dr. Sarah Johnson",
+    //   duration: "20 min",
+    //   status: "completed",
+    // },
   ];
 
   const caregivers = [
-    {
-      id: 1,
-      name: "Sarah Anderson",
-      relationship: "Spouse",
-      avatar:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
-    },
-    {
-      id: 2,
-      name: "Michael Anderson",
-      relationship: "Son",
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100",
-    },
+    // {
+    //   id: 1,
+    //   name: "Sarah Anderson",
+    //   relationship: "Spouse",
+    //   avatar:
+    //     "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
+    // },
+    // {
+    //   id: 2,
+    //   name: "Michael Anderson",
+    //   relationship: "Son",
+    //   avatar:
+    //     "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100",
+    // },
   ];
 
   // if (loading) return <p>Loading...</p>;
@@ -302,7 +302,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>Total Visits</p>
-              <h3>24</h3>
+              <h3>0</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.blueBg}`}>
               <Calendar size={20} className={styles.blueText} />
@@ -312,7 +312,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>This Month</p>
-              <h3>3</h3>
+              <h3>0</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.greenBg}`}>
               <TrendingUp size={20} className={styles.greenText} />
@@ -331,8 +331,8 @@ export default function PatientDashboard() {
 
           <div className={styles.statCard}>
             <div>
-              <p>Documents</p>
-              <h3>18</h3>
+              <p>Reminders</p>
+              <h3>0</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.orangeBg}`}>
               <FileText size={20} className={styles.orangeText} />

@@ -91,6 +91,10 @@
     border-radius: 0.5rem;
     font-size: 0.9rem;
   }
+
+  input {
+    text-indent: 1.5rem;
+  }
   
   textarea {
     padding-left: 0.75rem;

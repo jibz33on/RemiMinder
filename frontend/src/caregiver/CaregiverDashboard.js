@@ -90,55 +90,54 @@ export default function CaregiverDashboard() {
   const goToSettings = () => navigate("/caregiver-settings");
   const goToReminders = () => {}; // disabled
   const goToMessages = () => {}; // disabled
+  const goToInvitations = () => navigate("/caregiver/invitations"); // disabled
   const goToManagePatients = () => {}; // disabled
-  const goToAppointments = () => {}; // disabled
-  const goToVisitSummaries = () => {}; // disabled
 
   const patients = [
-    {
-      id: 1,
-      name: "Jane Doe",
-      lastVisit: "Oct 10, 2025",
-      nextAppointment: "Oct 20, 2025",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-    },
-    {
-      id: 2,
-      name: "Robert Anderson",
-      lastVisit: "Oct 8, 2025",
-      nextAppointment: "Nov 2, 2025",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-    },
+    // {
+    //   id: 1,
+    //   name: "Jane Doe",
+    //   lastVisit: "Oct 10, 2025",
+    //   nextAppointment: "Oct 20, 2025",
+    //   avatar:
+    //     "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
+    // },
+    // {
+    //   id: 2,
+    //   name: "Robert Anderson",
+    //   lastVisit: "Oct 8, 2025",
+    //   nextAppointment: "Nov 2, 2025",
+    //   avatar:
+    //     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+    // },
   ];
 
   const visits = [
-    {
-      id: 1,
-      patient: "Jane Doe",
-      title: "Annual Checkup",
-      doctor: "Dr. Sarah Johnson",
-      date: "Oct 10, 2025",
-      summary:
-        "Routine annual physical exam. All vitals within normal range. No concerns reported.",
-    },
-    {
-      id: 2,
-      patient: "Robert Anderson",
-      title: "Follow-up Visit",
-      doctor: "Dr. Michael Chen",
-      date: "Oct 5, 2025",
-      summary:
-        "Blood pressure under control. Medication regimen continues as prescribed.",
-    },
+    // {
+    //   id: 1,
+    //   patient: "Jane Doe",
+    //   title: "Annual Checkup",
+    //   doctor: "Dr. Sarah Johnson",
+    //   date: "Oct 10, 2025",
+    //   summary:
+    //     "Routine annual physical exam. All vitals within normal range. No concerns reported.",
+    // },
+    // {
+    //   id: 2,
+    //   patient: "Robert Anderson",
+    //   title: "Follow-up Visit",
+    //   doctor: "Dr. Michael Chen",
+    //   date: "Oct 5, 2025",
+    //   summary:
+    //     "Blood pressure under control. Medication regimen continues as prescribed.",
+    // },
   ];
 
   const profileImage =
     user?.user_metadata?.picture ||
     "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
 
-  if (loading) return <p>Loading...</p>;
+  // if (loading) return <p>Loading...</p>;
 
   return (
     <div className={`${styles.dashboardContainer} ${styles.fadeIn}`}>
@@ -205,9 +204,9 @@ export default function CaregiverDashboard() {
             <div className={styles.actionIconGreenLight}>
               <UserPlus size={22} />
             </div>
-            <h3>Invite Patient</h3>
-            <p>Connect with a patient on CareMinder</p>
-            <button className={styles.greenButton}>Send Invitation</button>
+            <h3>Patient Invitations</h3>
+            <p>Review and respond to patient access requests</p>
+            <button className={styles.greenButton} onClick={goToInvitations}>View Invitations</button>
           </div>
 
           <div className={styles.actionCard}>
