@@ -89,113 +89,36 @@ app.add_middleware(
 
 
 @app.post("/upload-audio/")
-async def create_upload_file(file: UploadFile = File(...), user_id: Optional[str] = None):
-    # local_file_path = "DoctorPatientRecord.wav"
-    user_id ="9957ecad-f983-4211-a1e1-41a67b0a0621"
+async def create_upload_file(file: UploadFile = File(...)):
+    local_file_path = f"./{file.filename}"
 
     try:
         # Save the uploaded file temporarily
-        # with open(local_file_path, "wb") as buffer:
-        #     shutil.copyfileobj(file.file, buffer)
+        with open(local_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
         
         # --- TRANSCRIPTION STEP using local Whisper pipeline ---
         try:
             # Transcribe the audio file using the local pipeline
-            # result = asr_pipeline(local_file_path)
-            # transcription = result['text']
+            result = asr_pipeline(local_file_path)
+            transcription = result['text']
 
-            # transcription = """
-            # [Doctor Chen]
-            # Hi Lisa, I understand you've been having some knee pain.
-            # Can you tell me when it started and what makes it worse?
-
-            # [Lisa]
-            # Yes, it started about two weeks ago.
-            # It hurts most when I climb stairs or get up from a chair.
-
-            # [Doctor Chen]
-            # That sounds like mild inflammation, possibly early arthritis or overuse.
-            # Does it swell or feel warm after activity?
-
-            # [Lisa]
-            # A little bit, yes — and it feels stiff in the mornings.
-
-            # [Doctor Chen]
-            # Alright. I recommend taking an anti-inflammatory like ibuprofen,
-            # using a knee brace when you're walking,
-            # and avoiding stairs when possible.
-            # Apply ice twice a day for 15 minutes.
-            # If it doesn't improve in a week, we'll schedule an X-ray.
-
-            # [Lisa]
-            # Okay, thank you doctor — I'll try that.
-
-            # [Doctor Chen]
-            # You're welcome, Lisa. Take care and rest that knee.
-            # """
-
-            transcription = """
-            [Dr. Libby]
-            Hi Lisa, I see your blood pressure readings from the last two weeks have improved quite a bit — now around 118 over 78.
-            How have you been feeling?
-
-            [Niall]
-            Pretty good, actually. I've been eating better and walking every morning.
-            I was wondering, do I still need to keep taking my medication?
-
-            [Dr. Libby]
-            That's great to hear, and I'm glad the numbers are down.
-            For now, keep taking your current dose of lisinopril until we review your next lab results.
-            If your pressure stays stable for another month, we can discuss lowering the dose.
-
-            [Niall]
-            Okay, so I'll continue the same tablets for now?
-
-            [Dr. Libby]
-            Yes, exactly — one tablet daily, same time each day.
-            Keep tracking your readings twice a week and bring them to our next visit.
-
-            [Niall]
-            Got it. Thank you, Doctor.
-            """
         except Exception as transcribe_error:
             raise Exception(f"Transcription failed: {transcribe_error}")
         # ----------------------------------------------------
         
         # Clean up the temporary audio file
-        # os.remove(local_file_path)
+        os.remove(local_file_path)
 
-        transcript_record = await insert_visit_transcript(transcription)
-        if not transcript_record:
-             raise HTTPException(status_code=500, detail="Failed to save transcript.")
-
-        transcript_id = transcript_record['transcript_id']
-
-        visit_record = await insert_initial_visit(user_id, transcript_record['transcript_id'])
-        if not visit_record:
-             raise HTTPException(status_code=500, detail="Failed to create visit record.")
-
-        visit_id = visit_record['id']
-
-        await update_transcript_visit_id(transcript_id, visit_id, user_id)
-
-        summary_result = await create_visit_summary(
-            visit_id=visit_record['id'],
-            user_id=user_id,
-            transcript_id=transcript_record["transcript_id"]
-        ) 
-        
         return {
-            "message": "Visit processed and summarized successfully!",
-            "visit_id": visit_record['id'],
-            "summary": summary_result['data']['summary']
+            "message": "Transcription successful!",
+            "transcription": transcription
         }
         
     except Exception as e:
-        logger.error(f"Error during full visit processing: {e}")
         # Ensure cleanup even on errors
-        # if os.path.exists(local_file_path):
-        #     os.remove(local_file_path)
+        if os.path.exists(local_file_path):
+            os.remove(local_file_path)
         return {"message": f"There was an error processing the audio: {e}"} 
     finally:
         # Ensure the uploaded file object is closed

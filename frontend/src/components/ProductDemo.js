@@ -58,7 +58,7 @@ export default function ProductDemo() {
 
   const formatTime = (t) =>
     `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-
+    
   return (
     <div className={styles.container}>
       {stage === "cover" && (
