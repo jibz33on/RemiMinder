@@ -60,7 +60,33 @@ export default function ProductDemo() {
   const formatTime = (t) =>
     `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 
-  const demoTranscript = "Patient has been feeling better recently."; // from your sample audio
+  const fullTranscription = `Hi, Ursula. I understand you've been having some knee pain. Can you tell me when it started and what makes it worse? Yes, it started about two weeks ago. It hurts most when I climb stairs or get up from a chair. That sounds like mild inflammation, possibly early arthritis or overuse. Does it swell or feel warm after activity? A little bit, yes, and it feels stiff in the mornings. All right, I recommend taking an anti-inflammatory like ibuprofen, using a knee brace when you're walking, and avoiding stairs when possible. Apply ice twice a day for 15 minutes. If it doesn't improve in a week, we'll schedule an x-ray. OK, thank you, doctor. I'll try that. You're welcome, Ursula. Take care and rest that knee.`;
+
+  // Split into sentences (regex keeps punctuation at the end)
+  const transcriptionSentences = fullTranscription.match(/[^.!?]+[.!?]+/g) || [];
+
+  // Get today's date
+  const today = new Date();
+
+  // Format date nicely (e.g. "Thursday, November 6, 2025")
+  const formattedToday = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Add 7 days
+  const xrayDate = new Date(today);
+  xrayDate.setDate(today.getDate() + 7);
+
+  // Format that one too
+  const formattedXrayDate = xrayDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   const fetchDemoSummary = async () => {
     try {
@@ -69,7 +95,7 @@ export default function ProductDemo() {
       const response = await fetch("http://localhost:8001/api/demo-summary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript_text: demoTranscript }),
+        body: JSON.stringify({ transcript_text: fullTranscription }),
       });
   
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -164,28 +190,25 @@ export default function ProductDemo() {
       {stage === "summary" && (
         <div className={styles.section}>
           <h3>Visit Summary</h3>
-          <p className={styles.date}>Saturday, November 1, 2025</p>
+          <p className={styles.date}>{formattedToday}</p>
 
           <div className={styles.summaryBlock}>
             <h4><FiCheck /> AI Summary</h4>
             <p>
-              The patient met with Dr. Smith for a follow-up consultation after routine lab results. No major health issues were detected. The doctor advised maintaining a balanced diet and continuing the prescribed blood pressure medication. A follow-up check is recommended in six months.
+              The patient presented with knee pain that started about two weeks ago, experiencing discomfort when climbing stairs, getting up from a chair, and noting morning stiffness with occasional swelling. The doctor suggested these symptoms might be due to mild inflammation, possibly early arthritis or overuse. The doctor recommended taking an anti-inflammatory medication like ibuprofen, using a knee brace when walking, avoiding stairs when possible, and applying ice to the knee twice daily.
             </p>
 
             <h4><FiFileText /> Full Transcription</h4>
             <div className={styles.transcriptionBox}>
-              <p><strong>Doctor:</strong> Hi, good morning! How have you been feeling since your last visit?</p>
-              <p><strong>Patient:</strong> Pretty good overall. I’ve been keeping up with my medication and walking most days.</p>
-              <p><strong>Doctor:</strong> That’s great. Your lab results look normal, blood pressure is steady, and everything seems in good shape. Let’s continue with your current regimen.</p>
-              <p><strong>Patient:</strong> Sounds good. Should I book another check-up soon?</p>
-              <p><strong>Doctor:</strong> Yes, let’s plan for six months from now unless anything changes.</p>
+              {transcriptionSentences.map((sentence, index) => (
+                <p key={index}>{sentence.trim()}</p>
+              ))}
             </div>
 
             <h4><FiClock /> Auto-Generated Reminders</h4>
-            <ul className={styles.remindersList}>
-                <li>Take blood pressure medication daily at 8:00 AM</li>
-                <li>Schedule next check-up: May 2026</li>
-            </ul>
+            <div className={styles.remindersList}>
+              <p>Schedule an X-ray on or after {formattedXrayDate}</p>
+            </div>
           </div>
 
           <div className={styles.actions}>
