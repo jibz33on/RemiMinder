@@ -13,6 +13,8 @@ import ProductDemo from "./ProductDemo";
 import { Maximize2 } from "lucide-react";
 
 const LandingPage = () => {
+  localStorage.setItem("onboarding_complete", true);
+  
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const navigate = useNavigate();

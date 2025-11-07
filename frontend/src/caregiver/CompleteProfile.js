@@ -47,55 +47,47 @@ const CompleteProfile = () => {
     }
   
     try {
-      // Get the token — try URL first, then localStorage fallback
       const params = new URLSearchParams(window.location.search);
-      let token = params.get("token");
+      const token = params.get("token") || localStorage.getItem("invitationToken");
+      const email = localStorage.getItem("caregiverEmail") || formData.email;
   
-      if (!token) {
-        token = localStorage.getItem("invitationToken");
-      }
-  
-      if (!token) {
-        alert("Missing invitation token. Please return to your invitation link.");
-        return;
-      }
-  
-      // Save caregiver profile data locally
+      // Save locally regardless of token (mock login)
       localStorage.setItem("caregiverProfile", JSON.stringify(formData));
       localStorage.setItem("onboarding_complete", "true");
   
-      // Call backend to complete the invitation
-      const invitationToken = localStorage.getItem("invitationToken"); // retrieve stored token
-      const email = localStorage.getItem("caregiverEmail"); // retrieve stored email (if stored earlier)
-
-      const response = await fetch("http://localhost:8000/api/invitations/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: invitationToken, // ✅ must match backend model field name
-          email: email, // ✅ new addition required by backend
-          full_name: formData.fullName,
-          phone_number: formData.phoneNumber,
-          relationship: formData.relationship,
-          notes: formData.additionalNotes,
-        }),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
-        console.error("Error completing invitation:", data);
-        alert(data.detail || "Error completing invitation.");
+      // If no token, skip API call — this is just a mock signup
+      if (!token) {
+        console.log("No invitation token — mock signup only");
+        navigate("/dashboard/caregiver");
         return;
       }
   
-      console.log("Invitation completed successfully:", data);
+      // Otherwise: complete the real invitation + create caregiver row
+      const res = await fetch("http://localhost:8000/api/invitations/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          email,
+          full_name: formData.fullName,
+          phone_number: formData.phoneNumber,
+          relationship: formData.relationship,
+          notes: formData.additionalNotes || "",
+        }),
+      });
   
-      // Navigate to caregiver dashboard
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Error completing invitation:", data);
+        alert(data.detail || "Error saving profile. Please try again.");
+        return;
+      }
+  
+      console.log("Profile saved successfully:", data);
       navigate("/dashboard/caregiver");
     } catch (error) {
       console.error("Error:", error);
-      alert("An error occurred while completing your profile. Please try again.");
+      alert("An unexpected error occurred. Please try again.");
     }
   };  
 

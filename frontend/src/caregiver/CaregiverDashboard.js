@@ -20,6 +20,9 @@ export default function CaregiverDashboard() {
   const [displayName, setDisplayName] = useState("");
   const [caregiverProfile, setCaregiverProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingInvitations, setPendingInvitations] = useState([]);
+  const pendingCount = pendingInvitations.length;
+  const hasPendingInvitations = pendingCount > 0;
 
   useEffect(() => {
     async function loadUser() {
@@ -85,6 +88,28 @@ export default function CaregiverDashboard() {
     };
     checkSession();
   }, [navigate]);
+
+  useEffect(() => {
+    async function fetchPendingInvitations() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) return;
+  
+        const { data, error } = await supabase
+          .from("invitations")
+          .select("id, status")
+          .eq("caregiver_email", user.email)
+          .eq("status", "pending");
+  
+        if (error) throw error;
+        setPendingInvitations(data || []);
+      } catch (err) {
+        console.error("Error fetching pending invitations:", err);
+      }
+    }
+  
+    fetchPendingInvitations();
+  }, []);  
 
   // 🟢 Navigation
   const goToSettings = () => navigate("/caregiver-settings");
@@ -200,13 +225,24 @@ export default function CaregiverDashboard() {
       <div className={styles.mainContent}>
         {/* QUICK ACTIONS */}
         <div className={styles.primaryActions}>
-          <div className={styles.actionCard}>
-            <div className={styles.actionIconGreenLight}>
+          {/* Patient Invitations (identical structure to Manage Patients, color toggled) */}
+          <div className={hasPendingInvitations ? styles.actionCardOrange : styles.actionCard}>
+            <div className={hasPendingInvitations ? styles.actionIconOrangeLight : styles.actionIconGreenLight}>
               <UserPlus size={22} />
             </div>
+
             <h3>Patient Invitations</h3>
             <p>Review and respond to patient access requests</p>
-            <button className={styles.greenButton} onClick={goToInvitations}>View Invitations</button>
+
+            <button
+              className={hasPendingInvitations ? styles.orangeButton : styles.greenButton}
+              onClick={goToInvitations}
+            >
+              <div className={styles.inviteButtonWrapper}>
+                View Invitations
+                {hasPendingInvitations && <span className={styles.badgeBubble}>{pendingCount}</span>}
+              </div>
+            </button>
           </div>
 
           <div className={styles.actionCard}>
