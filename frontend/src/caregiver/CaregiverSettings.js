@@ -67,6 +67,8 @@ export default function CaregiverSettings({ onBack, onLogout, role = "caregiver"
       localStorage.removeItem("role");
       localStorage.removeItem("caregiverProfile"); // 🧹 clear local profile
       localStorage.removeItem("display_name");
+      localStorage.removeItem("caregiverEmail");
+      localStorage.removeItem("invitationToken");
       setUser(null);
       navigate("/");
     } catch (err) {

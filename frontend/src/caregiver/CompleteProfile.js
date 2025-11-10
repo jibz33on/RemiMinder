@@ -40,17 +40,54 @@ const CompleteProfile = () => {
     }));
   };
 
-  const handleComplete = () => {
-    if (formData.fullName && formData.phoneNumber && formData.relationship) {
-      console.log("Profile completed:", formData);
+  const handleComplete = async () => {
+    if (!formData.fullName || !formData.phoneNumber || !formData.relationship) {
+      alert("Please fill in all required fields before continuing.");
+      return;
+    }
   
-      // Save caregiver profile data locally
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token") || localStorage.getItem("invitationToken");
+      const email = localStorage.getItem("caregiverEmail") || formData.email;
+  
+      // Save locally regardless of token (mock login)
       localStorage.setItem("caregiverProfile", JSON.stringify(formData));
       localStorage.setItem("onboarding_complete", "true");
   
+      // If no token, skip API call — this is just a mock signup
+      if (!token) {
+        console.log("No invitation token — mock signup only");
+        navigate("/dashboard/caregiver");
+        return;
+      }
+  
+      // Otherwise: complete the real invitation + create caregiver row
+      const res = await fetch("http://localhost:8000/api/invitations/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          email,
+          full_name: formData.fullName,
+          phone_number: formData.phoneNumber,
+          relationship: formData.relationship,
+          notes: formData.additionalNotes || "",
+        }),
+      });
+  
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Error completing invitation:", data);
+        alert(data.detail || "Error saving profile. Please try again.");
+        return;
+      }
+  
+      console.log("Profile saved successfully:", data);
       navigate("/dashboard/caregiver");
-    } else {
-      alert("Please fill in all required fields before continuing.");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An unexpected error occurred. Please try again.");
     }
   };  
 

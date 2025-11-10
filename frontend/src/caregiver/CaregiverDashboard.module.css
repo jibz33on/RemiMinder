@@ -450,3 +450,79 @@
   .visitMeta {
     color: #374151; /* medium gray for details like doctor names and dates */
   }
+
+  /* orange variant - keep shapes identical to green, only swap palette */
+.actionCardOrange {
+    /* copy of .actionCard but with light orange border */
+    background: white;
+    border: 1px solid #fcd34d; /* subtle light orange border */
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  
+  /* use same icon size/shape as green, but orange tint */
+  .actionIconOrangeLight {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  
+    /* match green's soft bg with orange tint */
+    background: rgba(251, 191, 36, 0.10); /* light orange wash */
+    color: #f59e0b; /* orange icon color */
+  }
+  
+  /* orange button mirrors green button but orange */
+  .orangeButton {
+    margin-top: 1rem;
+    width: 100%;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f59e0b; /* primary orange */
+    color: white;
+    border: none;
+    font-family: inherit;
+  }
+  .orangeButton:hover {
+    background: #d97706;
+  }
+  
+  /* badge color (small orange pill) */
+  .badgeBubble {
+    background-color: #f97316;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 999px;
+    margin-left: 8px;
+  }
+  
+  /* keep inviteButtonWrapper as-is; ensures inline layout between text and badge */
+  .inviteButtonWrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center; /* centers label + badge inside button (same as green) */
+  }
+  
+  .actionCardOrange h3 {
+    font-weight: 600;
+    color: #111827;
+    text-align: left;
+  }
+
+  .actionCardOrange p {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+    text-align: left;
+  }
