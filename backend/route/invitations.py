@@ -229,7 +229,6 @@ class CompleteInvitationRequest(BaseModel):
     full_name: str
     phone_number: str
     email: str #frontend should store it from verify token stage and send it back
-    relationship: str
     notes: str | None = None
 
 
@@ -277,7 +276,6 @@ async def complete_invitation(request: CompleteInvitationRequest):
                 "full_name": request.full_name,
                 "phone": request.phone_number,
                 "email": email,
-                "relationship": request.relationship,
                 "notes": request.notes,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }).execute()
