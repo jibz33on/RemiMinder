@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from route import invitations, patient_register
+from route import invitations, patient_register, caregiver_patient, caregivers
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -16,6 +16,10 @@ app.add_middleware(
 app.include_router(invitations.router)
 # route for patient registration
 app.include_router(patient_register.router)
+# route to display caregiver_patient linking
+app.include_router(caregiver_patient.router)
+#route to register caregiver (w/o invitation)
+app.include_router(caregivers.router)
 
 @app.get("/")
 def root():
