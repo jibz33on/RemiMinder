@@ -23,6 +23,8 @@ export default function CaregiverDashboard() {
   const [pendingInvitations, setPendingInvitations] = useState([]);
   const pendingCount = pendingInvitations.length;
   const hasPendingInvitations = pendingCount > 0;
+  const [linkedPatients, setLinkedPatients] = useState([]);
+  const [loadingPatients, setLoadingPatients] = useState(true);
 
   useEffect(() => {
     async function loadUser() {
@@ -109,6 +111,36 @@ export default function CaregiverDashboard() {
     }
   
     fetchPendingInvitations();
+  }, []);
+
+  // Fetch linked patients from your API
+  useEffect(() => {
+    async function fetchLinkedPatients() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.email) return;
+  
+        const response = await fetch(
+          `http://127.0.0.1:8000/api/linked/patients?email=${encodeURIComponent(user.email)}`
+        );        
+        if (!response.ok) throw new Error("Failed to fetch linked patients");
+  
+        const data = await response.json();
+        console.debug("Fetched linked patients:", data);
+  
+        // backend returns { caregiver_email, linked_patients: [...] }
+        setLinkedPatients(data.linked_patients || []);
+      } catch (err) {
+        console.error("Error fetching linked patients:", err);
+        setLinkedPatients([]);
+      } finally {
+        setLoadingPatients(false);
+      }
+    }
+  
+    fetchLinkedPatients();
   }, []);  
 
   // 🟢 Navigation
@@ -316,23 +348,55 @@ export default function CaregiverDashboard() {
           </div>
 
           <div className={styles.listContainer}>
-            {patients.map((p) => (
-              <div key={p.id} className={styles.listItem}>
-                <div className={styles.visitInfo}>
-                  <img
-                    src={p.avatar}
-                    alt={p.name}
-                    className={styles.listAvatar}
-                  />
-                  <div>
-                    <h4>{p.name}</h4>
-                    <p>Last Visit: {p.lastVisit}</p>
-                    <p>Next Appointment: {p.nextAppointment}</p>
+            {loadingPatients ? (
+              <p>Loading patients...</p>
+            ) : linkedPatients.length > 0 ? (
+              linkedPatients.map((p) => (
+                <div key={p.patient_id} className={styles.listItem}>
+                  <div className={styles.visitInfo}>
+                    {p.patient_picture ? (
+                      <img
+                        src={p.patient_picture}
+                        alt={p.patient_name}
+                        className={styles.listAvatar}
+                      />
+                    ) : (
+                      <div
+                        className={styles.avatar}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "#E5E7EB",
+                          borderRadius: "50%",
+                          width: 64,
+                          height: 64,
+                          fontSize: 24,
+                          fontWeight: 600,
+                          color: "#555",
+                        }}
+                      >
+                        {p.patient_name
+                          ? p.patient_name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                          : "?"}
+                      </div>
+                    )}
+                    <div>
+                      <h4>{p.patient_name}</h4>
+                      <p>Last Visit: N/A</p>
+                      <p>Next Appointment: N/A</p>
+                    </div>
                   </div>
+                  <span className={styles.badgePurple}>Active</span>
                 </div>
-                <span className={styles.badgePurple}>Active</span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p>No patients linked yet.</p>
+            )}
           </div>
         </div>
 

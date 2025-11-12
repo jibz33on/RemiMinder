@@ -136,6 +136,53 @@ export default function PatientDashboard() {
     return () => listener.subscription.unsubscribe();
   }, [navigate]);
 
+  const [linkedCaregiver, setLinkedCaregiver] = useState(null);
+  const [loadingCaregiver, setLoadingCaregiver] = useState(true);
+
+  const fetchLinkedCaregiver = async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error getting session:", error);
+        return;
+      }
+
+      const token = data?.session?.access_token;
+      if (!token) {
+        console.error("⚠️ No valid token found. User might not be logged in.");
+        return;
+      }
+
+      const response = await fetch("http://127.0.0.1:8000/api/linked/caregiver", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("❌ Failed:", errText);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("✅ Linked caregiver:", result);
+
+      // Update state for rendering
+      setLinkedCaregiver(result.caregiver || null);
+      
+
+    } catch (err) {
+      console.error("Error fetching caregiver:", err);
+    } finally {
+      setLoadingCaregiver(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLinkedCaregiver();
+  }, []);
+
   // ➕ New function for navigating to settings
   const goToSettings = () => {
     navigate("/patient-settings");
@@ -322,7 +369,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>Caregivers</p>
-              <h3>{caregivers.length}</h3>
+              <h3>{linkedCaregiver ? 1 : 0}</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.purpleBg}`}>
               <Heart size={20} className={styles.purpleText} />
@@ -380,22 +427,57 @@ export default function PatientDashboard() {
             <button className={styles.textButton}>Manage</button>
           </div>
           <div className={styles.caregiverList}>
-            {caregivers.map((cg) => (
-              <div key={cg.id} className={styles.caregiverItem}>
+            {loadingCaregiver ? (
+              <p>Loading...</p>
+            ) : linkedCaregiver ? (
+              <div key={linkedCaregiver.id} className={styles.caregiverItem}>
                 <div className={styles.visitInfo}>
-                  <img
-                    src={cg.avatar}
-                    alt={cg.name}
-                    className={styles.caregiverAvatar}
-                  />
+                  {linkedCaregiver.avatar ? (
+                    <img
+                      src={linkedCaregiver.avatar}
+                      alt={linkedCaregiver.full_name}
+                      className={styles.caregiverAvatar}
+                    />
+                  ) : (
+                    <div
+                      className={styles.avatar}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#E5E7EB",
+                        borderRadius: "50%",
+                        width: 64,
+                        height: 64,
+                        fontSize: 24,
+                        fontWeight: 600,
+                        color: "#555",
+                      }}
+                    >
+                      {linkedCaregiver.full_name
+                        ? linkedCaregiver.full_name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                        : "?"}
+                    </div>
+                  )}
                   <div>
-                    <h4>{cg.name}</h4>
-                    <p>{cg.relationship}</p>
+                    <h4>{linkedCaregiver.full_name}</h4>
+                    <p>
+                      {linkedCaregiver?.relationship
+                        ? linkedCaregiver.relationship.charAt(0).toUpperCase() +
+                          linkedCaregiver.relationship.slice(1)
+                        : "Primary Caregiver"}
+                    </p>
                   </div>
                 </div>
                 <span className={styles.badgePurple}>Active</span>
               </div>
-            ))}
+            ) : (
+              <p>No caregiver linked yet.</p>
+            )}
           </div>
         </div>
       </div>
