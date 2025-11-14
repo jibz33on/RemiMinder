@@ -14,10 +14,13 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from transformers import pipeline
 
-from backend.services.db_service import insert_visit_transcript, insert_initial_visit, update_transcript_visit_id
+from backend.services.db_service import insert_visit_transcript, insert_initial_visit, update_transcript_visit_id, insert_visit_summary
+from backend.services.ai_service import generate_ai_summary
 from backend.routes import visit_summary
 from backend.routes.product_demo import demo_router
 from backend.routes.visit_summary import create_visit_summary
+from utils import get_current_user
+from fastapi import Depends
 
 load_dotenv()
 
@@ -89,14 +92,25 @@ app.add_middleware(
 
 
 @app.post("/upload-audio/")
-async def create_upload_file(file: UploadFile = File(...)):
+async def create_upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
     local_file_path = f"./{file.filename}"
 
     try:
+        # Get auth_uid from auth
+        auth_uid = current_user["sub"]
+
+        # Get actual user_id from users table
+        from backend.services.db_service import get_supabase_client
+        supabase = get_supabase_client()
+        user_res = supabase.table("users").select("id").eq("auth_uid", auth_uid).execute()
+        if not user_res.data:
+            raise HTTPException(status_code=404, detail="User not found in database")
+        user_id = user_res.data[0]["id"]
+
         # Save the uploaded file temporarily
         with open(local_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
+
         # --- TRANSCRIPTION STEP using local Whisper pipeline ---
         try:
             # Transcribe the audio file using the local pipeline
@@ -106,20 +120,58 @@ async def create_upload_file(file: UploadFile = File(...)):
         except Exception as transcribe_error:
             raise Exception(f"Transcription failed: {transcribe_error}")
         # ----------------------------------------------------
-        
+
+        # --- STORE TRANSCRIPT IN SUPABASE ---
+        try:
+            transcript_record = await insert_visit_transcript(transcription)
+            if transcript_record:
+                transcript_id = transcript_record['transcript_id']
+                print("Inserted transcript:", transcript_record)
+
+                # Create initial visit
+                visit_record = await insert_initial_visit(user_id, transcript_id)
+                if visit_record:
+                    visit_id = visit_record['id']
+                    print("Created visit:", visit_record)
+
+                    # Update transcript with visit_id and user_id
+                    await update_transcript_visit_id(transcript_id, visit_id, user_id)
+                    print("Updated transcript with visit and user IDs")
+
+                    # Generate AI summary
+                    ai_output = await generate_ai_summary({
+                        "transcript": transcription,
+                        "visit_id": visit_id,
+                        "user_id": user_id,
+                        "transcript_id": transcript_id
+                    })
+                    print("Generated AI summary:", ai_output)
+
+                    # Insert visit summary
+                    await insert_visit_summary(visit_id, user_id, transcript_id, ai_output)
+                    print("Inserted visit summary")
+
+                else:
+                    print("Failed to create visit")
+            else:
+                print("Failed to insert transcript")
+        except Exception as db_error:
+            print(f"Database insert failed: {db_error}")
+        # ----------------------------------------------------
+
         # Clean up the temporary audio file
         os.remove(local_file_path)
 
         return {
-            "message": "Transcription successful!",
+            "message": "Transcription and summary generation successful!",
             "transcription": transcription
         }
-        
+
     except Exception as e:
         # Ensure cleanup even on errors
         if os.path.exists(local_file_path):
             os.remove(local_file_path)
-        return {"message": f"There was an error processing the audio: {e}"} 
+        return {"message": f"There was an error processing the audio: {e}"}
     finally:
         # Ensure the uploaded file object is closed
         if file and not file.file.closed:

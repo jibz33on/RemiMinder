@@ -50,14 +50,14 @@ export default function CaregiverDashboard() {
 
         if (user && !displayName) {
           const { data: profile } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", user.id)
+            .from("users")
+            .select("full_name")
+            .eq("auth_uid", user.id)
             .single();
 
-          if (profile?.display_name) {
-            setDisplayName(profile.display_name);
-            localStorage.setItem("display_name", profile.display_name);
+          if (profile?.full_name) {
+            setDisplayName(profile.full_name);
+            localStorage.setItem("display_name", profile.full_name);
           }
         }
       } catch (err) {

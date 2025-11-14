@@ -110,6 +110,9 @@ const RecordVisitPage = () => {
       const response = await fetch('http://localhost:8001/upload-audio/', {
         method: 'POST',
         body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.ok) {

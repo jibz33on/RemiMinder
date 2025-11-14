@@ -50,17 +50,17 @@ export default function PatientDashboard() {
   
         if (user) {
           const { data: profile, error } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", user.id)
+            .from("users")
+            .select("full_name")
+            .eq("auth_uid", user.id)
             .single();
   
-          if (!error && profile?.display_name) {
+          if (!error && profile?.full_name) {
             // If DB has a value and it's different, update state + cache
-            if (profile.display_name !== localStorage.getItem("display_name")) {
-              setDisplayName(profile.display_name);
-              localStorage.setItem("display_name", profile.display_name);
-              console.debug("Updated display_name from DB:", profile.display_name);
+            if (profile.full_name !== localStorage.getItem("display_name")) {
+              setDisplayName(profile.full_name);
+              localStorage.setItem("display_name", profile.full_name);
+              console.debug("Updated display_name from DB:", profile.full_name);
             }
           }
         } else {
