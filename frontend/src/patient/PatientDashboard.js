@@ -153,7 +153,7 @@ export default function PatientDashboard() {
         return;
       }
 
-      const mainBackendUrl = `${process.env.REACT_APP_MAIN_BACKEND_URL}/api/linked/caregiver`;
+      const mainBackendUrl = `${process.env.REACT_APP_MAIN_BACKEND_URL || 'http://localhost:8000'}/api/linked/caregiver`;
       const response = await fetch(mainBackendUrl, {
         headers: {
           Authorization: `Bearer ${token}`,

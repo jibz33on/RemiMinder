@@ -107,7 +107,7 @@ const RecordVisitPage = () => {
 
     try {
       // Send the POST request to your transcription backend
-      const transcriptionUrl = `${process.env.REACT_APP_TRANSCRIPTION_BACKEND_URL}/upload-audio/`;
+      const transcriptionUrl = `${process.env.REACT_APP_TRANSCRIPTION_BACKEND_URL || 'http://localhost:8001'}/upload-audio/`;
       const response = await fetch(transcriptionUrl, {
         method: 'POST',
         body: formData,
