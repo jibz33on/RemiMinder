@@ -106,8 +106,9 @@ const RecordVisitPage = () => {
     formData.append('user_id', userId);
 
     try {
-      // Send the POST request to your FastAPI backend
-      const response = await fetch('http://localhost:8001/upload-audio/', {
+      // Send the POST request to your transcription backend
+      const transcriptionUrl = `${process.env.REACT_APP_TRANSCRIPTION_BACKEND_URL}/upload-audio/`;
+      const response = await fetch(transcriptionUrl, {
         method: 'POST',
         body: formData,
         headers: {
