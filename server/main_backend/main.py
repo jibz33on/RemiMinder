@@ -1,3 +1,6 @@
+import sys
+sys.path.append('..')
+
 from fastapi import FastAPI
 from route import invitations, patient_register, caregiver_patient, caregivers, visit_summary
 from fastapi.middleware.cors import CORSMiddleware

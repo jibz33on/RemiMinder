@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from main_backend.services.db_reminders import (
+from services.db_reminders import (
     get_pending_reminders,
     create_recurring_reminder,
     update_reminder,
@@ -109,7 +109,7 @@ async def auto_skip_missed_reminders():
     This allows caregiver alerts for repeated skips.
     """
     try:
-        from main_backend.services.db_reminders import (
+        from services.db_reminders import (
             get_missed_reminders_for_auto_skip,
             update_reminder,
             log_reminder_action,

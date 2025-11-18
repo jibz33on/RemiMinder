@@ -28,7 +28,7 @@ const VisitHistory = () => {
           return;
         }
 
-        const response = await fetch(`${process.env.REACT_APP_MAIN_BACKEND_URL || 'http://localhost:8000'}/api/visit-summaries?user_id=${session.user.id}`, {
+        const response = await fetch(`${process.env.REACT_APP_MAIN_BACKEND_URL || 'http://localhost:8000'}/api/visit-summaries`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },

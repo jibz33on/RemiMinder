@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Body
 from typing import List, Optional
 import logging
 
-from main_backend.schemas.reminder_schemas import (
+from ..schemas.reminder_schemas import (
     ReminderCreate,
     ReminderUpdate,
     ReminderAction,
@@ -11,7 +11,7 @@ from main_backend.schemas.reminder_schemas import (
     CaregiverAlertResponse,
     CaregiverDashboardResponse
 )
-from main_backend.services.reminder_service import (
+from ..services.reminder_service import (
     create_new_reminder,
     get_reminder_by_id,
     list_patient_reminders,
@@ -22,7 +22,7 @@ from main_backend.services.reminder_service import (
     skip_reminder,
     get_caregiver_dashboard_data
 )
-from main_backend.services.db_reminders import (
+from ..services.db_reminders import (
     get_caregiver_alerts,
     mark_alert_as_read
 )

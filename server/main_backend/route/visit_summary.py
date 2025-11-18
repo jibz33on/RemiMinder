@@ -1,5 +1,5 @@
 #backend\route\visit_summary.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from main_backend.schemas.schemas import VisitSummary, VisitSummaryPayload
 from main_backend.services.db_service import (
     fetch_visit_transcript,
@@ -8,6 +8,8 @@ from main_backend.services.db_service import (
     fetch_all_visit_summaries,
 )
 from main_backend.services.ai_service import generate_ai_summary
+from services.db_service import get_supabase_client
+from utils.auth import get_current_user
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
@@ -43,23 +45,33 @@ async def get_visit_summary(visit_id: int, user_id: int):
     return row
 
 @router.get("/visit-summaries")
-async def get_all_summaries(user_id: str):
+async def get_all_summaries(current_user=Depends(get_current_user)):
     """Get all summaries for patient (for Visit History page)"""
+    # Get internal user_id from auth_uid
+    supabase = get_supabase_client()
+    auth_uid = current_user["sub"]
+
+    user_res = supabase.table("users").select("id").eq("auth_uid", auth_uid).execute()
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found in database")
+
+    user_id = user_res.data[0]["id"]
+
     summaries = await fetch_all_visit_summaries(user_id)
     formatted_summaries = []
     for item in summaries:
-        visit_data = item.get('visits', {}) 
-        
+        visit_data = item.get('visits', {})
+
         date_source = item.get('created_at')
-        
+
         if not date_source:
-            visit_dt = datetime.now() 
+            visit_dt = datetime.now()
         else:
-            visit_dt = datetime.fromisoformat(date_source.replace('Z', '+00:00')) 
+            visit_dt = datetime.fromisoformat(date_source.replace('Z', '+00:00'))
 
         formatted_summaries.append({
-            "id": item.get('visit_id'), 
-            "title": visit_data.get('title', 'Untitled Visit'), 
+            "id": item.get('visit_id'),
+            "title": visit_data.get('title', 'Untitled Visit'),
             "status": visit_data.get('status', 'Completed'),
             "doctor": visit_data.get('doctor', 'N/A'),
             "specialty": visit_data.get('specialty', 'General'),
@@ -70,5 +82,5 @@ async def get_all_summaries(user_id: str):
             # MAPPING: action_items (from DB) -> keyPoints (for Frontend)
             "keyPoints": item.get('action_items', '').split(', ') if item.get('action_items') else [],
         })
-    
+
     return formatted_summaries

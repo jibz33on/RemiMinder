@@ -115,6 +115,9 @@ async def insert_visit_summary(
 
     supabase = get_supabase_client()
     print("SUMMARY DATA", summary_data)
+
+    # Note: reminders are handled separately by insert_ai_reminders in ai_service.py
+    # so we don't store them again in visit_summaries
     data = {
         "visit_id": visit_id,
         "user_id": user_id,
@@ -124,7 +127,6 @@ async def insert_visit_summary(
         "questions_next_visit": _list_to_comma_separated(summary_data.get("questions_next_visit", [])),
         "key_diagnoses": _list_to_comma_separated(summary_data.get("key_diagnoses", [])),
         "medications": _list_to_comma_separated(summary_data.get("medications", [])),
-        "reminders": _list_to_comma_separated(summary_data.get("reminders", [])),
     }
 
     title = summary_data.get("title", "New Recorded Visit")
@@ -252,4 +254,3 @@ def get_prompt_text_supabase(category: str, limit: int = 2):
         base_prompt = ""
     
     return base_prompt, examples
-
