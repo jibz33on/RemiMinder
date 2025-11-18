@@ -8,8 +8,8 @@ from main_backend.services.db_service import (
     fetch_all_visit_summaries,
 )
 from main_backend.services.ai_service import generate_ai_summary
-from services.db_service import get_supabase_client
-from utils.auth import get_current_user
+from main_backend.services.db_service import get_supabase_client
+from main_backend.utils.auth import get_current_user
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 

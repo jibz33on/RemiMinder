@@ -1,4 +1,7 @@
 #server\server.py
+import sys
+sys.path.append('../')
+
 import uvicorn
 import shutil
 import os
