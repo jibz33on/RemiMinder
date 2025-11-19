@@ -58,7 +58,7 @@
     align-items: center;
     width: 5rem;
     height: 5rem;
-    background-color: rgba(58,123,213,0.1);
+    background-color: #f3e8ff;
     border-radius: 50%;
     margin-bottom: 1rem;
   }
@@ -66,7 +66,7 @@
   .headingIcon {
     width: 2.5rem;
     height: 2.5rem;
-    color: #3A7BD5;
+    color: #7c3aed;
   }
   
   .title {
@@ -88,7 +88,7 @@
   }
   
   .illustration {
-    background: linear-gradient(to bottom right, rgba(58,123,213,0.1), #E0F2FE);
+    background: linear-gradient(to bottom right, rgba(166, 58, 213, 0.1), #f3e8ff);
     border-radius: 1rem;
     padding: 2rem;
     display: flex;
@@ -114,7 +114,7 @@
   .micIcon {
     width: 4rem;
     height: 4rem;
-    color: #3A7BD5;
+    color: #7c3aed;
   }
   
   .checkBadge {
@@ -140,7 +140,7 @@
   .spinner {
     position: absolute;
     inset: 0;
-    border: 0.25rem solid #3A7BD5;
+    border: 0.25rem solid #7c3aed;
     border-top-color: transparent;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -189,15 +189,15 @@
     gap: 0.75rem;
     padding: 1rem;
     border-radius: 0.5rem;
-    background: linear-gradient(to bottom right, rgba(58,123,213,0.1), #E0F2FE);
-    border: 1px solid #BFDBFE;
+    background: linear-gradient(to bottom right, rgba(166, 58, 213, 0.1), #f3e8ff);
+    border: 1px solid #f3e8ff;
     align-items: flex-start;
   }
   
   .privacyIcon {
     width: 1.25rem;
     height: 1.25rem;
-    color: #1D4ED8;
+    color: #7c3aed;
     flex-shrink: 0;
     margin-top: 0.125rem;
   }
@@ -205,19 +205,19 @@
   .privacyTitle {
     margin: 0;
     font-weight: 400;
-    color: #1E40AF;
+    color: #7c3aed;
     text-align: left;
   }
   
   .privacyText {
     margin: 0;
-    color: #1D4ED8;
+    color: #7c3aed;
     text-align: left;
     margin-top: 0.5rem;
   }
   
   .grantBtn {
-    background-color: #3A7BD5;
+    background-color: #7c3aed;
     color: #fff;
     border-radius: 8px;
     border: none;
@@ -229,7 +229,7 @@
   }
   
   .grantBtn:hover {
-    background-color: rgba(58,123,213,0.9);
+    background-color: #8b5cf6;
   }
   
   .grantBtnIcon {

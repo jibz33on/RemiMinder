@@ -123,6 +123,7 @@ const RecordVisitPage = () => {
          
         setAudioURL('');
         setAudioBlob(null);
+        navigate('/visit-history');
       } else {
         const errorData = await response.json();
         console.error('Upload failed:', errorData);
@@ -138,26 +139,27 @@ const RecordVisitPage = () => {
   return (
     <div className={styles.container}>
       {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.logoGroup}>
-          <Menu className={styles.icon} />
-          <div>
-            <h1 className={styles.logoTitle}>MediMinderAI</h1>
-            <p className={styles.logoSubtitle}>MyMinder</p>
+      <div className={styles.header}>
+        <div className={styles.headerInner}>
+          <button className={styles.backButton} onClick={() => navigate('/patient-dashboard')}>
+            <ArrowLeft size={20} />
+          </button>
+          <div className={styles.headerText}>
+            <h2>Record Visit</h2>
+            <p>Tap to start recording your visit</p>
           </div>
         </div>
-
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className={styles.mainContent}>
-        <div className={styles.backButtonArea}>
+        {/* <div className={styles.backButtonArea}>
           <button className={styles.backButton} onClick={() => navigate('/patient-dashboard')}>
             <ArrowLeft className={styles.iconSmall} />
             <span className={styles.backButtonText}>Record Visit</span>
           </button>
           <p className={styles.backButtonSubtitle}>Tap to start recording your visit</p>
-        </div>
+        </div> */}
 
         {/* Recording Card */}
         <div className={`${styles.card} ${styles.recordingCard}`}>

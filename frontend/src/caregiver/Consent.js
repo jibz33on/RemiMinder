@@ -32,8 +32,8 @@ const Consent = () => {
       {/* Consent Section */}
       <main className={styles.main}>
         <div className={styles.pageHeader}>
-          <div className={styles.iconWrapper}>
-            <FaShieldAlt className={styles.iconMain} />
+          <div className={styles.iconWrapper2}>
+            <FaShieldAlt className={styles.iconMain2} />
           </div>
           <h1 className={styles.title}>Caregiver Consent Agreement</h1>
           <p className={styles.subtitle}>Please review the following information carefully</p>
@@ -134,7 +134,7 @@ const Consent = () => {
 
           {/* Button */}
           <button
-            className={styles.submitButton}
+            className={styles.submitButton2}
             onClick={handleConsent}
             disabled={!consented}
           >

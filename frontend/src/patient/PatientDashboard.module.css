@@ -376,9 +376,6 @@
   align-items: center;
   transition: background 0.2s;
 }
-.visitItem:hover {
-  background: #f9fafb;
-}
 .visitInfo {
   display: flex;
   align-items: center;

@@ -183,6 +183,63 @@ export default function PatientDashboard() {
   useEffect(() => {
     fetchLinkedCaregiver();
   }, []);
+  
+  const [visits, setVisits] = useState([]);
+  const [recentVisit, setRecentVisit] = useState(null);
+  const [totalVisits, setTotalVisits] = useState(0);
+  const [monthlyVisits, setMonthlyVisits] = useState(0);
+  
+  useEffect(() => {
+    const fetchVisitHistory = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${process.env.REACT_APP_MAIN_BACKEND_URL || 'http://localhost:8000'}/api/visit-summaries`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setVisits(data);
+          console.log(data);
+          // Get the most recent visit (assuming sorted)
+          setRecentVisit(data.length > 0 ? data[0] : null);
+
+          // Total visits
+          setTotalVisits(data.length);
+
+          // Visits this month
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+
+          const visitsThisMonth = data.filter((visit) => {
+            const visitDate = new Date(visit.date); // must match your schema (string → Date)
+            return (
+              visitDate.getMonth() === currentMonth &&
+              visitDate.getFullYear() === currentYear
+            );
+          });
+
+          setMonthlyVisits(visitsThisMonth.length);
+        } else {
+          console.error('Failed to fetch visit history');
+        }
+      } catch (error) {
+        console.error('Error fetching visit history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVisitHistory();
+  }, []);
 
   // ➕ New function for navigating to settings
   const goToSettings = () => {
@@ -350,7 +407,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>Total Visits</p>
-              <h3>0</h3>
+              <h3>{totalVisits}</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.blueBg}`}>
               <Calendar size={20} className={styles.blueText} />
@@ -360,7 +417,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>This Month</p>
-              <h3>0</h3>
+              <h3>{monthlyVisits}</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.greenBg}`}>
               <TrendingUp size={20} className={styles.greenText} />
@@ -395,26 +452,28 @@ export default function PatientDashboard() {
               <h3>Recent Visits</h3>
               <p>Your latest healthcare visits</p>
             </div>
-            <button className={styles.textButton}>View All</button>
+            <button className={styles.textButton} onClick={goToVisitHistory}>View All</button>
           </div>
           <div className={styles.visitList}>
-            {visitHistory.map((visit) => (
-              <div key={visit.id} className={styles.visitItem}>
+            {recentVisit ? (
+              <div key={recentVisit.id} className={styles.visitItem}>
                 <div className={styles.visitInfo}>
                   <div className={styles.visitIcon}>
                     <FileText size={20} className={styles.purpleText} />
                   </div>
                   <div>
-                    <h4>{visit.title}</h4>
-                    <p>{visit.doctor}</p>
+                    <h4>{recentVisit.title}</h4>
+                    <p>{recentVisit.doctor}</p>
                     <span className={styles.visitMeta}>
-                      {visit.date} • {visit.duration}
+                      {recentVisit.date} • {recentVisit.specialty}
                     </span>
                   </div>
                 </div>
                 <span className={styles.badgeGreen}>Completed</span>
               </div>
-            ))}
+            ) : (
+              <p className={styles.emptyState}>No visits yet.</p>
+            )}
           </div>
         </div>
 

@@ -88,7 +88,7 @@
     right: 0;
     width: 32px;
     height: 32px;
-    background-color: #3A7BD5;
+    background-color: #7c3aed;
     border-radius: 50%;
     border: none;
     display: flex;
@@ -243,7 +243,7 @@
   .confirmButton {
     width: 100%;
     margin-top: 3rem;
-    background-color: #3A7BD5;
+    background-color: #7c3aed;
     color: white;
     font-weight: 600;
     font-size: 0.9rem;
@@ -255,7 +255,7 @@
   }
   
   .confirmButton:hover {
-    background-color: rgba(58,123,213,0.9);
+    background-color: #8b5cf6;
   }
 
   .divider {

@@ -18,6 +18,8 @@ const VisitHistory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [totalVisits, setTotalVisits] = useState(0);
+  const [monthlyVisits, setMonthlyVisits] = useState(0);
 
   useEffect(() => {
     const fetchVisitHistory = async () => {
@@ -37,6 +39,22 @@ const VisitHistory = () => {
         if (response.ok) {
           const data = await response.json();
           setVisits(data);
+        
+          // ===== STATS =====
+        
+          // Total Visits
+          setTotalVisits(data.length);
+        
+          // This Month
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+        
+          const visitsThisMonth = data.filter((visit) => {
+            const d = new Date(visit.date);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          });
+          setMonthlyVisits(visitsThisMonth.length);
         } else {
           console.error('Failed to fetch visit history');
         }
@@ -150,7 +168,7 @@ const VisitHistory = () => {
             <div className={styles.statContent}>
             <div>
                 <div className={styles.statTitle}>Total Visits</div>
-                <div className={styles.statValue}>{visits.length}</div>
+                <div className={styles.statValue}>{totalVisits}</div>
             </div>
             <div className={`${styles.iconBox} ${styles.iconBlue}`}>
                 <FileText size={20} />
@@ -162,7 +180,7 @@ const VisitHistory = () => {
             <div className={styles.statContent}>
             <div>
                 <div className={styles.statTitle}>This Month</div>
-                <div className={styles.statValue}>0</div>
+                <div className={styles.statValue}>{monthlyVisits}</div>
             </div>
             <div className={`${styles.iconBox} ${styles.iconGreen}`}>
                 <Calendar size={20} />
@@ -203,7 +221,7 @@ const VisitHistory = () => {
                     <div className={styles.visitInfo}>
                     <h3 className={styles.titleRow}>
                       {visit.title}{" "}
-                      <span className={styles.statusBadge}>{visit.status}</span>
+                      <span className={styles.statusBadge}>Completed</span>
                     </h3>
                       <p className={styles.doctor}>
                         {visit.doctor} • {visit.specialty}
