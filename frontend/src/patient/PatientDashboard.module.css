@@ -81,9 +81,26 @@
   border-radius: 0.5rem;
   transition: background 0.2s;
   cursor: pointer;
+  position: relative;
 }
 .iconButton:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Orange highlight when a Today reminder is active */
+.activeReminder svg {
+  color: orange;
+}
+
+/* Small dot on top-right */
+.notificationDot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: orange;
+  border-radius: 50%;
 }
 
 .tipCard {

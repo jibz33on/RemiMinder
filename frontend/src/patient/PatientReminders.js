@@ -1,71 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, Activity, Pill, Link as LinkIcon, FileText, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import styles from './PatientReminders.module.css';
 import CreateReminderModal from './PatientReminderModal';
 
-const mockActiveReminders = [
-  { id: 2, type: 'Exercise', title: 'Morning Walk', time: '6:30 AM', frequency: 'Daily', details: '30 minutes', next: 'Tomorrow at 6:30 AM', enabled: true },
-  { id: 3, type: 'Lab', title: 'Fasting Lab Work', time: '8:00 AM', frequency: 'Once', details: 'No food 12 hours prior', next: 'Nov 2, 2025 at 8:00 AM', enabled: true },
+// Mock reminders
+const mockReminders = [
+  { id: 1, type: 'Medication', title: 'Take Blood Pressure Medication', time: '08:00', frequency: 'Daily', status: 'Active', details: 'After breakfast' },
+  { id: 2, type: 'Exercise', title: 'Morning Walk', time: '06:30', frequency: 'Daily', status: 'Pending', details: '30 minutes walk' },
+  { id: 3, type: 'Lab', title: 'Fasting Lab Work', time: '08:00', frequency: 'Once', status: 'Completed', details: 'No food 12 hours prior' },
 ];
-const mockDisabledReminders = [
-  { id: 4, type: 'Medication', title: 'Take Blood Pressure Medication', time: '8:00 AM', frequency: 'Daily', enabled: false },
-  { id: 1, type: 'Appointment', title: 'Annual Physical Exam', time: '10:00 AM', frequency: 'Once', details: 'Dr. Sarah Johnson', enabled: false },
-  { id: 5, type: 'Medication', title: 'Take Vitamin D', time: '12:00 PM', frequency: 'Daily', enabled: false },
-];
+
+// Helpers
+const getNextOccurrence = (reminder) => {
+  const now = new Date();
+  const [hours, minutes] = reminder.time.split(':').map(Number);
+  let next = new Date(now);
+  next.setHours(hours, minutes, 0, 0);
+
+  // If time already passed today, move to next day
+  if (next <= now) {
+    next.setDate(next.getDate() + 1);
+  }
+
+  return next;
+};
+
+const isUpcoming = (reminder) => {
+  const now = new Date();
+  const nextOccurrence = getNextOccurrence(reminder);
+  return nextOccurrence - now <= 24 * 60 * 60 * 1000;
+};
+
+const isActiveFromSnooze = (reminder) => {
+  if (reminder.status === 'Snoozed' && reminder.snoozeAt) {
+    return Date.now() - new Date(reminder.snoozeAt).getTime() >= 5 * 1000; // 5 seconds for testing
+  }
+  return false;
+};
 
 const RemindersListPage = () => {
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeReminders, setActiveReminders] = useState(mockActiveReminders);
-  const [disabledReminders, setDisabledReminders] = useState(mockDisabledReminders);
+  const [reminders, setReminders] = useState(() => {
+    const stored = localStorage.getItem('mockReminders');
+    return stored ? JSON.parse(stored) : mockReminders;
+  });
 
-  const totalReminders = activeReminders.length + disabledReminders.length;
-  const activeCount = activeReminders.length;
-  const disabledCount = disabledReminders.length;
+  // Inside PatientReminders.jsx or a setup file
+  useEffect(() => {
+    const stored = localStorage.getItem('mockReminders');
+    if (!stored) {
+      localStorage.setItem('mockReminders', JSON.stringify(mockReminders));
+    }
+  }, []);
 
-  // Handler for creating a new reminder (User Story 1)
+  const updateReminders = (newReminders) => {
+    setReminders(newReminders);
+    localStorage.setItem('mockReminders', JSON.stringify(newReminders));
+  };
+
+  // Auto-reactivate snoozed reminders
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setReminders(prev =>
+        prev.map(r =>
+          isActiveFromSnooze(r) ? { ...r, status: 'Active', snoozeAt: null } : r
+        )
+      );
+    }, 1000); // check every second for testing
+    return () => clearInterval(interval);
+  }, []);
+
   const handleCreateReminder = (formData) => {
-    console.log('New reminder to be created (call API here):', formData);
     const newReminder = {
       id: Math.random(),
-      ...formData,
-      enabled: true,
-      next: `Today at ${formData.time}`
+      title: formData.title,
+      type: formData.reminderType,
+      time: formData.time,
+      frequency: formData.frequency,
+      status: 'Pending',
+      details: formData.notes || '',
     };
-    setActiveReminders([newReminder, ...activeReminders]);
+    setReminders([newReminder, ...reminders]);
   };
 
-  // Handler for editing (toggling) a reminder (User Story 2)
-  const handleToggle = (id, listType) => {
-    console.log(`Toggle reminder ${id} from ${listType}`);
-    
-    if (listType === 'active') {
-      const reminderToMove = activeReminders.find(r => r.id === id);
-      if (reminderToMove) {
-        setActiveReminders(activeReminders.filter(r => r.id !== id));
-        setDisabledReminders([{ ...reminderToMove, enabled: false }, ...disabledReminders]);
-      }
-    } else {
-      const reminderToMove = disabledReminders.find(r => r.id === id);
-      if (reminderToMove) {
-        setDisabledReminders(disabledReminders.filter(r => r.id !== id));
-        setActiveReminders([{ ...reminderToMove, enabled: true }, ...activeReminders]);
-      }
-    }
+  const handleDelete = (id) => {
+    setReminders(reminders.filter(r => r.id !== id));
   };
 
-  const handleDelete = (id, listType) => {
-     console.log(`Delete reminder ${id} from ${listType}`);
-
-     if (listType === 'active') {
-        setActiveReminders(activeReminders.filter(r => r.id !== id));
-     } else {
-        setDisabledReminders(disabledReminders.filter(r => r.id !== id));
-     }
+  const handleSnooze = (id) => {
+    updateReminders(
+      reminders.map(r =>
+        r.id === id ? { ...r, status: 'Snoozed', snoozeAt: new Date() } : r
+      )
+    );
   };
 
-  // Helper functions for UI
+  const handleComplete = (id) => {
+    setReminders(reminders.map(r =>
+      r.id === id ? { ...r, status: 'Completed' } : r
+    ));
+  };
+
   const getIcon = (type) => {
     switch(type) {
       case 'Appointment': return <Calendar size={18} className={styles.iconAppointment} />;
@@ -84,7 +121,14 @@ const RemindersListPage = () => {
       case 'Lab': return styles.tagOrange;
       default: return styles.tagGray;
     }
-  }
+  };
+
+  // Categorize reminders
+  const sections = {
+    Today: reminders.filter(r => r.status === 'Active' || isActiveFromSnooze(r)),
+    Upcoming: reminders.filter(r => r.status === 'Pending' && isUpcoming(r)),
+    Past: reminders.filter(r => r.status === 'Completed' || r.status === 'Snoozed'),
+  };
 
   return (
     <div className={styles.pageContainer}>
@@ -110,82 +154,101 @@ const RemindersListPage = () => {
         <p className={styles.sectionSubtitle}>Quick snapshot of your reminders</p>
         <div className={styles.overviewBox}>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>{totalReminders}</span>
-            <span className={styles.statLabel}>Total Reminders</span>
+            <span className={styles.statValue}>{reminders.length}</span>
+            <span className={styles.statLabel}>Total</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>{activeCount}</span>
-            <span className={styles.statLabel}>Active</span>
+            <span className={styles.statValue}>{sections.Today.length}</span>
+            <span className={styles.statLabel}>Today</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>{disabledCount}</span>
-            <span className={styles.statLabel}>Disabled</span>
+            <span className={styles.statValue}>{sections.Upcoming.length}</span>
+            <span className={styles.statLabel}>Upcoming</span>
+          </div>
+          <div className={styles.statItem}>
+            <span className={styles.statValue}>{sections.Past.length}</span>
+            <span className={styles.statLabel}>Past</span>
           </div>
         </div>
       </section>
 
-      {/* Active Reminders */}
+      {/* Reminders */}
       <section className={styles.remindersSection}>
-        <h2 className={styles.sectionTitle}>Active Reminders</h2>
-        {activeReminders.map(reminder => (
-          <div key={reminder.id} className={styles.reminderCard}>
-            <div className={styles.reminderIcon}>{getIcon(reminder.type)}</div>
-            <div className={styles.reminderContent}>
-              <div className={styles.reminderHeader}>
-                <span className={styles.reminderTitle}>{reminder.title}</span>
-                <span className={`${styles.reminderTag} ${getTagColor(reminder.type)}`}>{reminder.type}</span>
-              </div>
-              <p className={styles.reminderDetails}>{reminder.time} • {reminder.frequency}</p>
-              {reminder.details && <p className={styles.reminderDetails}>{reminder.details}</p>}
-              <p className={styles.reminderNext}>Next: {reminder.next}</p>
-            </div>
-            <div className={styles.reminderActions}>
-              <label className={styles.toggleSwitch}>
-                <input type="checkbox" checked={reminder.enabled} onChange={() => handleToggle(reminder.id, 'active')} />
-                <span className={styles.slider}></span>
-              </label>
-              <button className={styles.deleteButton} onClick={() => handleDelete(reminder.id, 'active')}>
-                <Trash2 size={16} />
-              </button>
-            </div>
+        {Object.entries(sections).map(([sectionLabel, items]) => (
+          <div key={sectionLabel} className={styles.sectionGroup}>
+            <h2 className={styles.sectionTitle}>{sectionLabel}</h2>
+            {items.length === 0 ? (
+              <p className={styles.sectionEmpty}>No {sectionLabel.toLowerCase()} reminders.</p>
+            ) : (
+              items.map(reminder => (
+                <div
+                  key={reminder.id}
+                  className={`${styles.reminderCard} ${reminder.status === 'Completed' ? styles.disabledCard : ''}`}
+                >
+                  {/* Icon */}
+                  <div className={styles.reminderIcon}>{getIcon(reminder.type)}</div>
+
+                  {/* Content */}
+                  <div className={styles.reminderContent}>
+                    {/* Header: Title + Tag + Actions */}
+                    <div className={styles.reminderHeader}>
+                      <div className={styles.titleTag}>
+                        <span className={styles.reminderTitle}>{reminder.title}</span>
+                        <span className={`${styles.reminderTag} ${getTagColor(reminder.type)}`}>
+                          {reminder.type}
+                        </span>
+                      </div>
+
+                      <div className={styles.reminderActions}>
+                        {(reminder.status === 'Active' || isActiveFromSnooze(reminder)) && (
+                          <>
+                            <button
+                              className={styles.snoozeButton}
+                              onClick={() => handleSnooze(reminder.id)}
+                            >
+                              Snooze
+                            </button>
+                            <button
+                              className={styles.completeButton}
+                              onClick={() => handleComplete(reminder.id)}
+                            >
+                              Mark Completed
+                            </button>
+                          </>
+                        )}
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => handleDelete(reminder.id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Additional info below */}
+                    <p className={styles.reminderDetails}>
+                      {reminder.time} • {reminder.frequency}
+                    </p>
+                    {reminder.details && (
+                      <p className={styles.reminderDetails}>{reminder.details}</p>
+                    )}
+                    {/* Optional: status below */}
+                    {/* <p className={styles.reminderNext}>{reminder.status}</p> */}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ))}
       </section>
 
-      {/* Disabled Reminders */}
-      <section className={styles.remindersSection}>
-        <h2 className={styles.sectionTitle}>Disabled Reminders</h2>
-         {disabledReminders.map(reminder => (
-          <div key={reminder.id} className={`${styles.reminderCard} ${styles.disabledCard}`}>
-             <div className={styles.reminderIcon}>{getIcon(reminder.type)}</div>
-            <div className={styles.reminderContent}>
-              <div className={styles.reminderHeader}>
-                <span className={styles.reminderTitle}>{reminder.title}</span>
-                <span className={`${styles.reminderTag} ${getTagColor(reminder.type)}`}>{reminder.type}</span>
-              </div>
-              <p className={styles.reminderDetails}>{reminder.time} • {reminder.frequency}</p>
-               <p className={styles.reminderNext}>Disabled</p>
-            </div>
-            <div className={styles.reminderActions}>
-              <label className={styles.toggleSwitch}>
-                <input type="checkbox" checked={reminder.enabled} onChange={() => handleToggle(reminder.id, 'disabled')} />
-                <span className={styles.slider}></span>
-              </label>
-              <button className={styles.deleteButton} onClick={() => handleDelete(reminder.id, 'disabled')}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Modal is rendered here */}
-      {showCreateModal && 
+      {/* Create Modal */}
+      {showCreateModal && (
         <CreateReminderModal 
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateReminder}
         />
-      }
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,6 +20,32 @@ export default function PatientDashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState("");
+  const reminders = JSON.parse(localStorage.getItem('mockReminders') || '[]');
+  const [hasTodayReminder, setHasTodayReminder] = useState(false);
+  const audioRef = useRef(null);
+  
+  const todayReminders = reminders.filter(r =>
+    r.status === 'Active' || (r.status === 'Snoozed' && new Date() - new Date(r.snoozeAt) >= 5 * 1000)
+  );  
+
+  // Create the audio once
+  useEffect(() => {
+    audioRef.current = new Audio("/notification.mp3");
+    audioRef.current.volume = 0.5; // optional
+  }, []);
+
+  // Watch the reminders
+  useEffect(() => {
+    const activeToday = todayReminders.length > 0;
+
+    // Only play sound when changing from false → true
+    if (activeToday && !hasTodayReminder) {
+      audioRef.current?.play().catch(err => console.log("Audio play error:", err));
+    }
+
+    // Update state for next check
+    setHasTodayReminder(activeToday);
+  }, [todayReminders, hasTodayReminder]);
 
   useEffect(() => {
     async function loadUser() {
@@ -340,9 +366,13 @@ export default function PatientDashboard() {
             </div>
 
             <div className={styles.headerButtons}>
-              <button className={styles.iconButton} onClick={goToReminders}>
-                <Bell size={20} />
-              </button>
+            <button
+              className={`${styles.iconButton} ${todayReminders.length > 0 ? styles.activeReminder : ''}`}
+              onClick={goToReminders}
+            >
+              <Bell size={20} />
+              {todayReminders.length > 0 && <span className={styles.notificationDot}></span>}
+            </button>
               
               <button className={styles.iconButton}>
                 <MessageSquare size={20} />
@@ -437,7 +467,7 @@ export default function PatientDashboard() {
           <div className={styles.statCard}>
             <div>
               <p>Reminders</p>
-              <h3>0</h3>
+              <h3>{todayReminders.length}</h3>
             </div>
             <div className={`${styles.statIcon} ${styles.orangeBg}`}>
               <FileText size={20} className={styles.orangeText} />
