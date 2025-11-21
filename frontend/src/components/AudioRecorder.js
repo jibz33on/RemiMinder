@@ -61,7 +61,7 @@ const RecordVisitPage = () => {
       };
 
       mediaRecorder.onstop = () => {
-        const recordedBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const recordedBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(recordedBlob);
         setAudioURL(url);
         setAudioBlob(recordedBlob);
@@ -102,7 +102,7 @@ const RecordVisitPage = () => {
     // Create a FormData object to send the file
     const formData = new FormData();
     // 'file' is the name the FastAPI endpoint is expecting
-    formData.append('file', audioBlob, 'visit_recording.wav'); 
+    formData.append('file', audioBlob, 'visit_recording.webm'); 
     formData.append('user_id', userId);
 
     try {
