@@ -8,7 +8,7 @@ import os
 import platform
 import logging
 import subprocess
-from mangum import Mangum
+
 from openai import OpenAI
 
 from typing import List, Optional, Dict, Any
@@ -34,37 +34,6 @@ logger = logging.getLogger(__name__)
 OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPEN_API_KEY)
 
-def convert_audio_to_mp3(input_path: str, output_path: str = None) -> str:
-    """
-    Converts an audio file to MP3 format using FFmpeg.
-
-    Args:
-        input_path (str): Path to the input audio file (e.g., .webm, .wav, .m4a).
-        output_path (str, optional): Desired output path. If None, same directory with .mp3 extension.
-
-    Returns:
-        str: Path to the converted MP3 file.
-
-    Raises:
-        RuntimeError: If conversion fails.
-    """
-    if not output_path:
-        base, _ = os.path.splitext(input_path)
-        output_path = f"{base}.mp3"
-
-    try:
-        subprocess.run(
-            ['ffmpeg', '-y', '-i', input_path, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', output_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        print(f"[Audio Conversion] Successfully converted {input_path} → {output_path}")
-        return output_path
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Audio conversion failed: {e.stderr.decode()}") from e
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handles application startup (e.g., verifying services) and shutdown."""
@@ -72,7 +41,7 @@ async def lifespan(app: FastAPI):
     
     # === STARTUP LOGIC (Verifying SES configuration) ===
     try:
-        from backend.services.notification_service import verify_email_configuration
+        from main_backend.services.notification_service import verify_email_configuration
         ses_ok = await verify_email_configuration()
         if ses_ok:
             logger.info("AWS SES configured and verified")
@@ -122,8 +91,9 @@ app.add_middleware(
 
 @app.post("/upload-audio/")
 async def create_upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
-    local_file_path = f"./{file.filename}"
-
+    #local_file_path = f"./{file.filename}"
+    local_file_path = f"/tmp/{file.filename}"
+    
     try:
         # Get auth_uid from auth
         auth_uid = current_user["sub"]
@@ -141,7 +111,7 @@ async def create_upload_file(file: UploadFile = File(...), current_user=Depends(
             shutil.copyfileobj(file.file, buffer)
 
         # --- TRANSCRIPTION STEP using local Whisper pipeline ---
-        mp3_file_path = convert_audio_to_mp3(local_file_path)
+        
         try:
             with open(mp3_file_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
@@ -228,4 +198,3 @@ app.include_router(reminders.router)
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8001)
 
-handler = Mangum(app)
