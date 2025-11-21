@@ -57,6 +57,13 @@ build/
 ehthumbs.db
 Thumbs.db
 
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+myvenv/
+venv/
 # Byte-code files
 *.pyc
 __pycache__/
