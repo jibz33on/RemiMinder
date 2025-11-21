@@ -8,7 +8,7 @@ import os
 import platform
 import logging
 import subprocess
-
+from mangum import Mangum
 from openai import OpenAI
 
 from typing import List, Optional, Dict, Any
@@ -105,8 +105,8 @@ origins = [
 
     "https://www.remiminderai.com/", 
     "https://remiminderai.com/",
-    
-    DYNAMIC_VERCEL_ORIGIN,
+    "https://*.vercel.app",   
+    DYNAMIC_VERCEL_ORIGIN,,
 ]
 
 origins = [o for o in origins if o is not None] 
@@ -227,3 +227,5 @@ app.include_router(reminders.router)
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8001)
+
+handler = Mangum(app)
