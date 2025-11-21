@@ -90,7 +90,6 @@ const CreateReminderModal = ({ onClose, onCreate }) => {
               <option value="Once">Once</option>
               <option value="Daily">Daily</option>
               <option value="Weekly">Weekly</option>
-              <option value="Monthly">Monthly</option>
             </select>
           </div>
 

@@ -485,12 +485,22 @@ const snoozeReminder = async (id, minutes = 30) => {
                 {(() => {
                   try {
                     const dt = reminder.scheduled_time ? new Date(reminder.scheduled_time) : null;
-                    return dt
-                      ? dt.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }) + (reminder.recurrence ? ` • ${reminder.recurrence}` : "")
-                      : "";
+
+                    if (!dt) return "";
+
+                    const dateStr = dt.toLocaleDateString([], {
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    const timeStr = dt.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+
+                    return `${dateStr} • ${timeStr}${
+                      reminder.recurrence ? ` • ${reminder.recurrence}` : ""
+                    }`;
                   } catch {
                     return "";
                   }
