@@ -9,8 +9,12 @@ from typing import Dict
 from .db_service import log_ai_usage
 from .db_reminders import insert_ai_reminders
 
+
+import logging
+logger = logging.getLogger(__name__)
+
 async def generate_ai_summary(data: dict) -> Dict:
-    
+    logger.info(f"AI Service started for visit: {data.get('visit_id')}")
     api_key = os.getenv("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
 
@@ -74,7 +78,7 @@ async def generate_ai_summary(data: dict) -> Dict:
         start_time = time.time()
         response = model.generate_content(prompt)
         latency = time.time() - start_time
-
+        
         # print("\nAI Response:", response)
 
         input_tokens = response.usage_metadata.prompt_token_count
@@ -106,7 +110,8 @@ async def generate_ai_summary(data: dict) -> Dict:
         print(f"Tokens: {input_tokens} in, {output_tokens} out")
         print(f"Input Tokens Cost: ${input_cost:.6f}, Output Tokens Cost: ${output_cost:.6f}")
         print(f"Total Cost: ${total_cost:.6f}")
-        
+
+        logger.info("AI Summary generated successfully")
         result = {
             "summary": json_output.get("summary", f"AI Processing error:{transcript}"),
             "action_items": json_output.get("action_items", []),
@@ -133,6 +138,7 @@ async def generate_ai_summary(data: dict) -> Dict:
         
     except json.JSONDecodeError as e:
         print(f"JSON parsing failed: {e}")
+        logger.error(f"AI Service JSON parsing failed: {str(e)}")
         return {
             "summary": f"Error processing visit summary. Please contact support:{transcript}",
             "action_items": ["Review visit recording"],
@@ -142,5 +148,6 @@ async def generate_ai_summary(data: dict) -> Dict:
             "reminders": [], "title": ""
         }
     except Exception as e:
+        logger.error(f"AI Service Failed: {str(e)}")
         print(f"Gemini API error: {e}")
         raise Exception(f"AI service failed: {str(e)}")

@@ -3,6 +3,7 @@ import { FaCamera, FaUser} from 'react-icons/fa';
 import styles from './PatientProfileSetup.module.css';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import API_BASE_URL from '../config';
 
 const PatientProfileSetup = () => {
   const [fullName, setFullName] = useState('');
@@ -64,7 +65,7 @@ const PatientProfileSetup = () => {
       };
   
       // Call register API
-      const response = await fetch("/api/patient/register", {
+      const response = await fetch(`${API_BASE_URL}/api/patient/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -14,6 +14,7 @@ import {
   Bell,
 } from "lucide-react";
 import styles from "./PatientDashboard.module.css";
+import API_BASE_URL from '../config';
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export default function PatientDashboard() {
   
         const headers = await getAuthHeaders();
   
-        const url = new URL(`/api/reminders`);
+        const url = new URL(`${API_BASE_URL}/api/reminders`);
         url.searchParams.set("user_id", session.user.id);
   
         const res = await fetch(url.toString(), {
@@ -251,7 +252,7 @@ export default function PatientDashboard() {
         return;
       }
 
-      const mainBackendUrl = `/api/linked/caregiver`;
+      const mainBackendUrl = `${API_BASE_URL}/api/linked/caregiver`;
       const response = await fetch(mainBackendUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -296,7 +297,7 @@ export default function PatientDashboard() {
           return;
         }
 
-        const response = await fetch(`/api/visit-summaries`, {
+        const response = await fetch(`${API_BASE_URL}/api/visit-summaries`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },

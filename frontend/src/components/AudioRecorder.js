@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Menu, ArrowLeft, Mic, CheckCircle2, Square, Upload } from 'lucide-react';
 import styles from './AudioRecorder.module.css'; // Import the CSS module
+import API_BASE_URL from '../config';
 
 const RecordVisitPage = () => {
   const navigate = useNavigate();
@@ -57,10 +58,11 @@ const RecordVisitPage = () => {
       setAudioBlob(null);
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        audioChunksRef.current.push(event.data);av
       };
 
       mediaRecorder.onstop = () => {
+        const recordedBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const recordedBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(recordedBlob);
         setAudioURL(url);
@@ -103,11 +105,12 @@ const RecordVisitPage = () => {
     const formData = new FormData();
     // 'file' is the name the FastAPI endpoint is expecting
     formData.append('file', audioBlob, 'visit_recording.webm'); 
+    formData.append('file', audioBlob, 'visit_recording.webm'); 
     formData.append('user_id', userId);
 
     try {
       // Send the POST request to your transcription backend
-      const transcriptionUrl = `/upload-audio/`;
+      const transcriptionUrl = `${API_BASE_URL}/upload-audio/`;
       const response = await fetch(transcriptionUrl, {
         method: 'POST',
         body: formData,

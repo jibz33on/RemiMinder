@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import API_BASE_URL from '../config';
 
 const VisitHistory = () => {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const VisitHistory = () => {
           return;
         }
 
-        const response = await fetch(`/api/visit-summaries`, {
+        const response = await fetch(`${API_BASE_URL}/api/visit-summaries`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
@@ -89,7 +90,7 @@ const VisitHistory = () => {
         return;
       }
 
-      const response = await fetch(`/api/visit-summaries/${visitId}?user_id=${session.user.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/visit-summaries/${visitId}?user_id=${session.user.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${session.access_token}`,

@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient"; // make sure this path is correct
 import styles from "./PatientReminders.module.css";
 import CreateReminderModal from "./PatientReminderModal";
+import API_BASE_URL from '../config';
 
 export default function PatientReminders() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function PatientReminders() {
       const userId = session?.user?.id;
       if (!userId) throw new Error("Cannot fetch reminders: user not authenticated");
   
-      const url = new URL(`/api/reminders`);
+      const url = new URL(`${API_BASE_URL}/api/reminders`);
       url.searchParams.set("user_id", userId);
   
       const res = await fetch(url.toString(), {
@@ -247,7 +248,7 @@ export default function PatientReminders() {
       // Submit to backend
       // ------------------------------------------
   
-      const res = await fetch(`/api/reminders`, {
+      const res = await fetch(`${API_BASE_URL}/api/reminders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -306,7 +307,7 @@ const snoozeReminder = async (id, minutes = 30) => {
 
     if (!userId) throw new Error("User not authenticated");
 
-    const url = new URL(`/api/reminders/${id}/snooze`);
+    const url = new URL(`${API_BASE_URL}/api/reminders/${id}/snooze`);
     url.searchParams.set("user_id", userId);
     url.searchParams.set("snooze_minutes", String(minutes));
 
@@ -342,7 +343,7 @@ const snoozeReminder = async (id, minutes = 30) => {
       } = await supabase.auth.getSession();
       const userId = session?.user?.id;
 
-      const url = new URL(`/api/reminders/${id}/complete`);
+      const url = new URL(`${API_BASE_URL}/api/reminders/${id}/complete`);
       if (userId) url.searchParams.set("user_id", userId);
 
       const res = await fetch(url.toString(), {
@@ -375,7 +376,7 @@ const snoozeReminder = async (id, minutes = 30) => {
         data: { session },
       } = await supabase.auth.getSession();
       const userId = session?.user?.id;
-      const url = new URL(`/api/reminders/${id}`);
+      const url = new URL(`${API_BASE_URL}/api/reminders/${id}`);
       if (userId) url.searchParams.set("user_id", userId);
 
       const res = await fetch(url.toString(), {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser } from "react-icons/fa";
+import API_BASE_URL from '../config';
 
 const CaregiverInvite = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const CaregiverInvite = () => {
     const verifyInvitation = async () => {
       try {
         const res = await fetch(
-          `/api/invitations/verify?token=${inviteToken}`
+          `${API_BASE_URL}/api/invitations/verify?token=${inviteToken}`
         );
         if (!res.ok) throw new Error("Invalid or expired");
         const data = await res.json();
@@ -37,7 +38,7 @@ const CaregiverInvite = () => {
 
   const handleAcceptInvitation = async () => {
     try {
-      const res = await fetch("/api/invitations/accept", {
+      const res = await fetch(`${API_BASE_URL}/api/invitations/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),

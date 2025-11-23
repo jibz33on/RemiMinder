@@ -7,11 +7,15 @@ def get_supabase_client() -> Client:
     SUPABASE_SERVICE_ROLE_KEY=os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+import logging
+logger = logging.getLogger(__name__)
+
 async def get_doctor() -> Optional[Dict[str, Any]]:
     supabase = get_supabase_client()
     response = supabase.table("doctors").select("name, specialty").execute()
     
     if not response.data:
+        logger.info("Error fetching doctor details.")
         print("Error fetching doctor details.", response)
         return None
 
@@ -114,7 +118,7 @@ async def insert_visit_summary(
 ) -> Optional[Dict[str, Any]]:
 
     supabase = get_supabase_client()
-    print("SUMMARY DATA", summary_data)
+    # print("SUMMARY DATA", summary_data)
 
     # Note: reminders are handled separately by insert_ai_reminders in ai_service.py
     # so we don't store them again in visit_summaries
@@ -133,6 +137,7 @@ async def insert_visit_summary(
     await update_visit_title(visit_id, user_id, title)
 
     response = supabase.table("visit_summaries").insert(data).execute()
+    logger.info("Insert Visit Summary - Successful.")
     return response.data if response.data else None
 
 
@@ -179,6 +184,7 @@ async def update_visit_title(visit_id: str, user_id: str, new_title: str) -> Opt
 
     if response.data:
         print(f"Updated visit {visit_id} title to: {new_title}")
+        logger.info(f"Updated visit {visit_id} title to: {new_title}")
         return response.data[0]
 
     print(f"No visit found with id {visit_id}")
@@ -198,6 +204,7 @@ async def update_transcript_visit_id(transcript_id: str, visit_id: str, user_id:
         )
         return response.data[0] if response.data else None
     except Exception as e:
+        logger.info(f"Error updating transcript visit_id: {e}")
         print(f"Error updating transcript visit_id: {e}")
         return None
 
