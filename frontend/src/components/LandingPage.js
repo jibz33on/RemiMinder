@@ -312,7 +312,7 @@ const LandingPage = () => {
 
                 {/* Caregiver Card */}
                 <button
-                  onClick={() => navigate("/invitation")}
+                  onClick={() => navigate("/create-account")}
                   className={`${styles.ctaUserCard} ${styles.caregiverCard}`}
                 >
                   <div className={styles.iconBox}>

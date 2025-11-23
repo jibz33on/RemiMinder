@@ -59,6 +59,9 @@ app = FastAPI(
     lifespan=lifespan # Attach the startup/shutdown logic
 )
 
+VERCEL_URL = os.getenv("VERCEL_URL")
+DYNAMIC_VERCEL_ORIGIN = f"https://{VERCEL_URL}/" if VERCEL_URL else None
+
 # Allow Frontend URLs (Localhost + Vercel)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "") # e.g., https://remiminderai.vercel.app
 
@@ -116,14 +119,15 @@ async def trigger_reminders(
 
 @app.post("/upload-audio/")
 async def create_upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
-    local_file_path = f"./{file.filename}"
-
+    #local_file_path = f"./{file.filename}"
+    local_file_path = f"/tmp/{file.filename}"
+    
     try:
         # Get auth_uid from auth
         auth_uid = current_user["sub"]
 
         # Get actual user_id from users table
-        from backend.services.db_service import get_supabase_client
+        from main_backend.services.db_service import get_supabase_client
         supabase = get_supabase_client()
         user_res = supabase.table("users").select("id").eq("auth_uid", auth_uid).execute()
         if not user_res.data:
@@ -218,5 +222,6 @@ app.include_router(visit_summary.router)
 app.include_router(demo_router)
 app.include_router(reminders.router)
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8001)
+
