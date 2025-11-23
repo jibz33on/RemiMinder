@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import cast, Dict
 from main_backend.services.supabase_client import supabase
 
-router = APIRouter(prefix="/api/caregiver")
+router = APIRouter(prefix="/api/caregivers", tags=["Caregivers"]) 
 
 @router.get("/check")
 async def check_caregiver_exists(email: str = Query(..., description="Caregiver email to check")):
