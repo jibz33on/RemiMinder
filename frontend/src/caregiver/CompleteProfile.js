@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient"; // make sure you import supabase
 import styles from '../patient/PatientConsent.module.css';
+import API_BASE_URL from '../config'; 
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
@@ -60,7 +61,8 @@ const CompleteProfile = () => {
   
       if (token) {
         // ✅ Scenario 1: Caregiver accepts invitation
-        res = await fetch("http://localhost:8000/api/invitations/complete", {
+        
+        res = await fetch(`${API_BASE_URL}/api/invitations/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -74,7 +76,7 @@ const CompleteProfile = () => {
         });
       } else {
         // ✅ Scenario 2: Direct registration (no invitation)
-        res = await fetch("http://localhost:8000/api/caregiver/register", {
+        res = await fetch(`${API_BASE_URL}/api/caregiver/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

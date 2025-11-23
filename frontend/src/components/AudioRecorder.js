@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Menu, ArrowLeft, Mic, CheckCircle2, Square, Upload } from 'lucide-react';
 import styles from './AudioRecorder.module.css'; // Import the CSS module
+import API_BASE_URL from '../config';
 
 const RecordVisitPage = () => {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ const RecordVisitPage = () => {
 
     try {
       // Send the POST request to your transcription backend
-      const transcriptionUrl = `${process.env.REACT_APP_TRANSCRIPTION_BACKEND_URL || 'http://localhost:8001'}/upload-audio/`;
+      const transcriptionUrl = `${API_BASE_URL}/upload-audio/`;
       const response = await fetch(transcriptionUrl, {
         method: 'POST',
         body: formData,

@@ -3,6 +3,7 @@ import { ArrowLeft, Mail, Send, Check, Phone, User } from "lucide-react";
 import styles from "./PatientInvitation.module.css";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import API_BASE_URL from '../config';
 
 export default function PatientInvitation({ onBack }) {
   const [caregiverName, setCaregiverName] = useState("");
@@ -38,7 +39,7 @@ export default function PatientInvitation({ onBack }) {
         caregiver_name: caregiverName || "Your Caregiver",
       };
   
-      const res = await fetch("http://localhost:8000/api/invitations/send", {
+      const res = await fetch(`${API_BASE_URL}/api/invitations/send`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

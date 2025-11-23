@@ -3,6 +3,7 @@ import styles from "./ProductDemo.module.css";
 import { useNavigate } from "react-router-dom";
 import { FiMic, FiStopCircle, FiDownload, FiShare2, FiCheck, FiClock, FiFileText } from "react-icons/fi";
 import demoAudio from "../assets/sample.mp3";
+import API_BASE_URL from '../config';
 
 export default function ProductDemo() {
   const [stage, setStage] = useState("cover");
@@ -92,7 +93,7 @@ export default function ProductDemo() {
     try {
       setStage("processing");
   
-      const response = await fetch("http://localhost:8001/api/demo-summary", {
+      const response = await fetch(`${API_BASE_URL}/api/demo-summary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript_text: fullTranscription }),

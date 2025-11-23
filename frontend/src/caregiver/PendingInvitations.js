@@ -10,6 +10,7 @@ import {
 import styles from "./PendingInvitations.module.css";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import API_BASE_URL from '../config';
 
 const PendingInvitations = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,7 +79,7 @@ const PendingInvitations = () => {
 
   const handleAccept = async (inv) => {
     try {
-      const res = await fetch("http://localhost:8000/api/invitations/accept", {
+      const res = await fetch(`${API_BASE_URL}/api/invitations/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: inv.token }),
@@ -98,7 +99,7 @@ const PendingInvitations = () => {
   
   const handleReject = async (inv) => {
     try {
-      const res = await fetch("http://localhost:8000/api/invitations/complete", {
+      const res = await fetch(`${API_BASE_URL}/api/invitations/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: inv.token, status: "declined" }),
