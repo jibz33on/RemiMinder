@@ -69,8 +69,8 @@ origins = [
     "http://localhost:3001",
     "http://localhost:5173", # Vite default
     FRONTEND_URL,
-    "https://www.remiminderai.com/", 
-    "https://remiminderai.com/"
+    "https://www.remiminderai.com", 
+    "https://remiminderai.com"
 ]
 
 # Remove empty strings if ENV is missing
