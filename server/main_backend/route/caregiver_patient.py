@@ -3,9 +3,9 @@ from typing import cast, Dict
 from main_backend.services.supabase_client import supabase
 from main_backend.utils.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/api/linked", tags=["Caregiver-Patient Linkage"])
 
-@router.get("/api/linked/patients", status_code=status.HTTP_200_OK)
+@router.get("/patients", status_code=status.HTTP_200_OK)
 async def get_linked_patients(email: str = Query(..., description="Caregiver's email")):
     """
     Get all patients linked to a given caregiver.
@@ -56,7 +56,7 @@ async def get_linked_patients(email: str = Query(..., description="Caregiver's e
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     
 
-@router.get("/api/linked/caregiver", status_code=status.HTTP_200_OK)
+@router.get("/caregiver", status_code=status.HTTP_200_OK)
 async def get_linked_caregiver(current_user=Depends(get_current_user)):
     """
     Fetch the linked caregiver for the logged-in patient.
