@@ -17,6 +17,8 @@ from main_backend.route import visit_summary, reminders
 from main_backend.route.product_demo import demo_router
 from main_backend.utils.auth import get_current_user
 from reminder_scheduler import run_scheduler
+from main_backend.route import invitations, patient_register, caregiver_patient, caregivers
+
 
 # sys.path.append('../')
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -218,6 +220,15 @@ async def health():
 app.include_router(visit_summary.router)
 app.include_router(demo_router)
 app.include_router(reminders.router)
+
+# route for caregiver invitation
+app.include_router(invitations.router)
+# route for patient registration
+app.include_router(patient_register.router)
+# route to display caregiver_patient linking
+app.include_router(caregiver_patient.router)
+#route to register caregiver (w/o invitation)
+app.include_router(caregivers.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
