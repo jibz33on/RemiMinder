@@ -1,14 +1,15 @@
-import asyncio
+# reminder_scheduler.py
+# import asyncio
 import logging
 from datetime import datetime, timezone
-from services.db_reminders import (
+from main_backend.services.db_reminders import (
     get_pending_reminders,
     create_recurring_reminder,
     update_reminder,
     log_reminder_action,
     get_patient_info
 )
-from services.notification_service import send_reminder_email, verify_email_configuration
+from main_backend.services.notification_service import send_reminder_email, verify_email_configuration
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -109,7 +110,7 @@ async def auto_skip_missed_reminders():
     This allows caregiver alerts for repeated skips.
     """
     try:
-        from services.db_reminders import (
+        from main_backend.services.db_reminders import (
             get_missed_reminders_for_auto_skip,
             update_reminder,
             log_reminder_action,
@@ -230,5 +231,5 @@ async def main():
         logger.error(f"Scheduler error: {str(e)}")
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())

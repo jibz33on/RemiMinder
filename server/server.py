@@ -1,22 +1,14 @@
 #server\server.py
 import sys
-sys.path.append('../')
-
 import uvicorn
 import shutil
 import os
-import platform
 import logging
-import subprocess
 
 from openai import OpenAI
-
-from typing import List, Optional, Dict, Any
-
 from contextlib import asynccontextmanager
-
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 
 from main_backend.services.db_service import insert_visit_transcript, insert_initial_visit, update_transcript_visit_id, insert_visit_summary
@@ -24,46 +16,18 @@ from main_backend.services.ai_service import generate_ai_summary
 from main_backend.route import visit_summary, reminders
 from main_backend.route.product_demo import demo_router
 from main_backend.utils.auth import get_current_user
-from fastapi import Depends
+from reminder_scheduler import run_scheduler
+
+# sys.path.append('../')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("RemiMinderAPI")
 
 OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPEN_API_KEY)
-
-def convert_audio_to_mp3(input_path: str, output_path: str = None) -> str:
-    """
-    Converts an audio file to MP3 format using FFmpeg.
-
-    Args:
-        input_path (str): Path to the input audio file (e.g., .webm, .wav, .m4a).
-        output_path (str, optional): Desired output path. If None, same directory with .mp3 extension.
-
-    Returns:
-        str: Path to the converted MP3 file.
-
-    Raises:
-        RuntimeError: If conversion fails.
-    """
-    if not output_path:
-        base, _ = os.path.splitext(input_path)
-        output_path = f"{base}.mp3"
-
-    try:
-        subprocess.run(
-            ['ffmpeg', '-y', '-i', input_path, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', output_path],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        print(f"[Audio Conversion] Successfully converted {input_path} → {output_path}")
-        return output_path
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Audio conversion failed: {e.stderr.decode()}") from e
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -72,7 +36,7 @@ async def lifespan(app: FastAPI):
     
     # === STARTUP LOGIC (Verifying SES configuration) ===
     try:
-        from backend.services.notification_service import verify_email_configuration
+        from main_backend.services.notification_service import verify_email_configuration
         ses_ok = await verify_email_configuration()
         if ses_ok:
             logger.info("AWS SES configured and verified")
@@ -85,7 +49,7 @@ async def lifespan(app: FastAPI):
     yield # API begins accepting requests here
     
     # === SHUTDOWN LOGIC ===
-    logger.info("RemeMinder API shutting down.")
+    logger.info("RemiMinder API shutting down.")
 
 
 app = FastAPI(
@@ -95,11 +59,21 @@ app = FastAPI(
     lifespan=lifespan # Attach the startup/shutdown logic
 )
 
-# (Keep your CORS middleware setup exactly as it is)
+# Allow Frontend URLs (Localhost + Vercel)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "") # e.g., https://remiminderai.vercel.app
+
 origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:5173", # Vite default
+    FRONTEND_URL,
+    "https://www.remiminderai.com/", 
+    "https://remiminderai.com/"
 ]
+
+# Remove empty strings if ENV is missing
+origins = [o for o in origins if o]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -108,6 +82,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger.info(f"CORS allowed origins: {origins}")
+
+# === CRON JOB ENDPOINT (SECURE) ===
+@app.get("/api/cron/trigger-reminders")
+async def trigger_reminders(
+    background_tasks: BackgroundTasks,
+    x_cron_secret: str = Header(None) # Read from Header, not Query Param
+):
+    """
+    Triggered by cron-job.org every minute.
+    Protected by a secret key in the header.
+    """
+    logger.info("Cron trigger received.")
+
+    EXPECTED_SECRET = os.getenv("CRON_SECRET")
+    
+    # Security Check
+    if not EXPECTED_SECRET:
+        logger.error("CRON_SECRET not set on server.")
+        raise HTTPException(status_code=500, detail="Server misconfiguration")
+
+    if x_cron_secret != EXPECTED_SECRET:
+        logger.warning(f"Unauthorized cron attempt. Received header: {x_cron_secret}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    # Run scheduler in background so endpoint returns immediately
+    background_tasks.add_task(run_scheduler)
+    
+    return {"message": "Scheduler triggered successfully"}
+
+# === AUDIO UPLOAD ENDPOINT ===
 
 @app.post("/upload-audio/")
 async def create_upload_file(file: UploadFile = File(...), current_user=Depends(get_current_user)):
@@ -130,9 +135,8 @@ async def create_upload_file(file: UploadFile = File(...), current_user=Depends(
             shutil.copyfileobj(file.file, buffer)
 
         # --- TRANSCRIPTION STEP using local Whisper pipeline ---
-        mp3_file_path = convert_audio_to_mp3(local_file_path)
         try:
-            with open(mp3_file_path, "rb") as audio_file:
+            with open(local_file_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
                     model="gpt-4o-transcribe",
                     file=audio_file,
@@ -201,15 +205,15 @@ async def create_upload_file(file: UploadFile = File(...), current_user=Depends(
         if file and not file.file.closed:
              file.file.close()
 
-# (Keep your @app.get("/") and if __name__ == "__main__": blocks)
 @app.get("/")
 def read_root():
-    return {"message": "MediMinder FastAPI server is running", "status": "running"}
+    return {"message": "RemiMinder Backend is Live", "status": "active"}
 
 @app.get("/health")
 async def health():
     return {"status":"healthy"}
 
+# === API ROUTES ===
 app.include_router(visit_summary.router)
 app.include_router(demo_router)
 app.include_router(reminders.router)
