@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone
 from typing import cast, Dict
-from services.supabase_client import supabase
+from main_backend.services.supabase_client import supabase
 
 router = APIRouter(prefix="/api/caregiver")
 

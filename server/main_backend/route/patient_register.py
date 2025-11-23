@@ -3,8 +3,8 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone, date
 import uuid
 from typing import cast, Dict
-from services.supabase_client import supabase
-from utils.auth import get_current_user
+from main_backend.services.supabase_client import supabase
+from main_backend.utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/patient")
 

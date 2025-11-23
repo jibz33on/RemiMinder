@@ -3,10 +3,10 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta, timezone
 import uuid
 from typing import cast, Dict
-from services.supabase_client import supabase
-from utils.auth import get_current_user
-from services.invitation_email_service import send_invite_email
-from services.invitation_verify_service import verify_invitation_token
+from main_backend.services.supabase_client import supabase
+from main_backend.utils.auth import get_current_user
+from main_backend.services.invitation_email_service import send_invite_email
+from main_backend.services.invitation_verify_service import verify_invitation_token
 
 #router = APIRouter()
 router = APIRouter(prefix="/api/invitations", tags=["Invitations"])
