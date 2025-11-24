@@ -44,9 +44,7 @@ export default function PatientDashboard() {
   // helper to get auth header
   async function getAuthHeaders() {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSessionWithRetry();
+      const session = await getSessionWithRetry();
       const token = session?.access_token;
       return token ? { Authorization: `Bearer ${token}` } : {};
     } catch (err) {
@@ -195,21 +193,16 @@ export default function PatientDashboard() {
     const isRecovery = url.includes("type=recovery");
 
     const getUser = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSessionWithRetry();
-      if (error) {
-        console.error(error);
-        return;
-      }
+      try {
+        const session = await getSessionWithRetry(); 
+        const currentUser = session?.user;
 
       if (isRecovery) {
         setLoading(false);
         return;
       }
 
-      const currentUser = session?.user;
+      //const currentUser = session?.user;
       const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
       const supabaseOnboardingComplete = currentUser?.user_metadata?.onboarding_complete;
 
@@ -228,7 +221,11 @@ export default function PatientDashboard() {
 
       setUser(currentUser);
       setLoading(false);
-    };
+    } catch (err) {
+      console.error("Could not get supabase session:", err);
+      setLoading(false);
+    }
+  };
 
     getUser();
 
