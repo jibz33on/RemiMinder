@@ -19,7 +19,7 @@ const RecordVisitPage = () => {
       const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
 
       if (!session && !onboardingComplete) {
-        navigate('/patient-dashboard');
+        navigate('/dashboard/patient');
       }
     };
     checkAccess();
@@ -142,7 +142,7 @@ const RecordVisitPage = () => {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerInner}>
-          <button className={styles.backButton} onClick={() => navigate('/patient-dashboard')}>
+          <button className={styles.backButton} onClick={() => navigate('/dashboard/patient')}>
             <ArrowLeft size={20} />
           </button>
           <div className={styles.headerText}>
@@ -154,14 +154,7 @@ const RecordVisitPage = () => {
 
       {/* Main Content */}
       <main className={styles.mainContent}>
-        {/* <div className={styles.backButtonArea}>
-          <button className={styles.backButton} onClick={() => navigate('/patient-dashboard')}>
-            <ArrowLeft className={styles.iconSmall} />
-            <span className={styles.backButtonText}>Record Visit</span>
-          </button>
-          <p className={styles.backButtonSubtitle}>Tap to start recording your visit</p>
-        </div> */}
-
+        
         {/* Recording Card */}
         <div className={`${styles.card} ${styles.recordingCard}`}>
           <div className={`${styles.micButton} ${isRecording ? styles.micButtonRecording : ''}`}>

@@ -55,7 +55,7 @@ export function PatientAudioSetup() {
       await completeOnboarding();
 
       // Navigate to dashboard after short delay
-      setTimeout(() => navigate("/patient-dashboard"), 1000);
+      setTimeout(() => navigate("/dashboard/patient"), 1000);
     } catch (err) {
       console.error("Microphone permission denied", err);
       setPermissionStatus("denied");
@@ -65,7 +65,7 @@ export function PatientAudioSetup() {
   const handleSkip = async () => {
     setPermissionStatus("idle");
     await completeOnboarding(); // mark onboarding complete even if skipped
-    navigate("/patient-dashboard");
+    navigate("/dashboard/patient");
   };
 
   return (

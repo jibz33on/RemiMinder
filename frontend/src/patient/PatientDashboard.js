@@ -215,7 +215,7 @@ export default function PatientDashboard() {
       }
 
       if (session && !onboardingComplete) {
-        navigate("/patient-audio-setup");
+        navigate("/patient-consent");
         return;
       }
 

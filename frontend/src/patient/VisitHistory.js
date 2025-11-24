@@ -119,7 +119,7 @@ const VisitHistory = () => {
             <div className={styles.headerLeft}>
                 <button
                 className={styles.backButton}
-                onClick={() => navigate("/patient-dashboard")}
+                onClick={() => navigate("/dashboard/patient")}
                 >
                     <ArrowLeft size={18} />
                 </button>

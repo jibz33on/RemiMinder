@@ -78,7 +78,7 @@ export default function CaregiverDashboard() {
         const { data: { session } } = await supabase.auth.getSession();
         const isOnboarded = localStorage.getItem("onboarding_complete");
         if (!isOnboarded) {
-          navigate("/consent/caregiver");
+          navigate("/consent");
           return;
         }
         if (session === null && !isOnboarded) {

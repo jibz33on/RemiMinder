@@ -70,7 +70,6 @@ function App() {
           <Route path="/patient-profile-setup" element={<PatientProfileSetup />} />
           <Route path="/patient-audio-setup" element={<PatientAudioSetup />} />
           <Route path="/patient-consent" element={<PatientConsent />} />
-          <Route path="/patient-dashboard" element={<PatientDashboard />} />
           <Route path="/patient-reminders" element={<PatientReminders />} />
           <Route path="/patient-settings" element={<PatientSettings />} />
 

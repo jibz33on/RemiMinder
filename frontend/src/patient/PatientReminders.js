@@ -521,7 +521,7 @@ const snoozeReminder = async (id, minutes = 30) => {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <button className={styles.backButton} onClick={() => navigate("/patient-dashboard")}>
+          <button className={styles.backButton} onClick={() => navigate("/dashboard/patient")}>
             <ArrowLeft size={20} />
           </button>
           <div>
