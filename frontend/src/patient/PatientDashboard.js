@@ -197,37 +197,39 @@ export default function PatientDashboard() {
         const session = await getSessionWithRetry(); 
         const currentUser = session?.user;
 
-      if (isRecovery) {
+        // coming from "Forgot Password?" (deprecated feature, we can ignore this for now) -----------------------
+        if (isRecovery) {
+          setLoading(false);
+          return;
+        }
+
+        // coming from "Sign In" -> entered correct password or used Google OAuth --------------------------------
+        
+        const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+        const supabaseOnboardingComplete = currentUser?.user_metadata?.onboarding_complete;
+
+        // Allow access if either onboarding flag is set (localStorage is primary, Supabase metadata is backup)
+        const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
+
+        if (!session && !onboardingComplete) {
+          console.log("There is no session and onboarding was not completed");
+          navigate("/");
+          return;
+        }
+
+        if (session && !onboardingComplete) {
+          console.log("There is an active session, but onboarding was not completed");
+          navigate("/patient-consent");
+          return;
+        }
+
+        setUser(currentUser);
         setLoading(false);
-        return;
+      } catch (err) {
+        console.error("Could not get supabase session:", err);
+        setLoading(false);
       }
-
-      //const currentUser = session?.user;
-      const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
-      const supabaseOnboardingComplete = currentUser?.user_metadata?.onboarding_complete;
-
-      // Allow access if either onboarding flag is set (localStorage is primary, Supabase metadata is backup)
-      const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
-
-      if (!session && !onboardingComplete) {
-        console.log("There is no session and onboarding was not completed");
-        navigate("/");
-        return;
-      }
-
-      if (session && !onboardingComplete) {
-        console.log("There is an active session, but onboarding was not completed");
-        navigate("/patient-consent");
-        return;
-      }
-
-      setUser(currentUser);
-      setLoading(false);
-    } catch (err) {
-      console.error("Could not get supabase session:", err);
-      setLoading(false);
-    }
-  };
+    };
 
     getUser();
 
@@ -242,7 +244,7 @@ export default function PatientDashboard() {
           navigate("/");
         } else if (session && !localOnboardingComplete) {
           console.log("There is an active session, but onboarding was not completed");
-          navigate("/consent");
+          navigate("/patient-consent");
         } else if (session || localOnboardingComplete) {
           console.log("There is an active session and onboarding was completed");
           setUser(session?.user || null);
