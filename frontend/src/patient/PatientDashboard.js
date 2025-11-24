@@ -25,12 +25,28 @@ export default function PatientDashboard() {
   const [todayReminders, setTodayReminders] = useState([]);
   const audioRef = useRef(null);
 
+  // function to add delay in session check
+  async function getSessionWithRetry(maxRetries = 5, delayMs = 200) {
+  let retries = 0;
+  while (retries < maxRetries) {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Supabase getSession error:", error);
+      return null;
+    }
+    if (session) return session; // session is available
+    await new Promise(res => setTimeout(res, delayMs)); // wait a bit
+    retries++;
+  }
+  return null; // session still null after retries
+}
+
   // helper to get auth header
   async function getAuthHeaders() {
     try {
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSessionWithRetry();
       const token = session?.access_token;
       return token ? { Authorization: `Bearer ${token}` } : {};
     } catch (err) {
@@ -182,7 +198,7 @@ export default function PatientDashboard() {
       const {
         data: { session },
         error,
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSessionWithRetry();
       if (error) {
         console.error(error);
         return;
