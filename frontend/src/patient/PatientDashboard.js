@@ -210,11 +210,13 @@ export default function PatientDashboard() {
       const onboardingComplete = localOnboardingComplete || supabaseOnboardingComplete;
 
       if (!session && !onboardingComplete) {
+        console.log("There is no session and onboarding was not completed");
         navigate("/");
         return;
       }
 
       if (session && !onboardingComplete) {
+        console.log("There is an active session, but onboarding was not completed");
         navigate("/patient-consent");
         return;
       }
@@ -236,10 +238,13 @@ export default function PatientDashboard() {
         const localOnboardingComplete = localStorage.getItem("onboarding_complete") === "true";
 
         if (!session && !localOnboardingComplete) {
+          console.log("There is no session and onboarding was not completed");
           navigate("/");
         } else if (session && !localOnboardingComplete) {
-          navigate("/patient-audio-setup");
+          console.log("There is an active session, but onboarding was not completed");
+          navigate("/consent");
         } else if (session || localOnboardingComplete) {
+          console.log("There is an active session and onboarding was completed");
           setUser(session?.user || null);
         }
       }
