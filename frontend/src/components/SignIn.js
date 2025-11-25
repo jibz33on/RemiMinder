@@ -5,7 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import { AiOutlineMail } from "react-icons/ai";
 import { FaApple, FaTimes, FaUser, FaUserFriends } from "react-icons/fa";
 import styles from "./SignIn.module.css";
-import FRONTEND_URL from "../config";
+import { FRONTEND_URL } from "../config";
 
 export default function SignIn() {
   const navigate = useNavigate();
