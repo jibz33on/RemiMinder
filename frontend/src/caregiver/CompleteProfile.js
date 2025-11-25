@@ -76,7 +76,7 @@ const CompleteProfile = () => {
         });
       } else {
         // ✅ Scenario 2: Direct registration (no invitation)
-        res = await fetch(`${API_BASE_URL}/api/caregiver/register`, {
+        res = await fetch(`${API_BASE_URL}/api/caregivers/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
