@@ -9,7 +9,7 @@ GMAIL_USER = os.getenv("GMAIL_USER")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 GMAIL_NAME = os.getenv("GMAIL_NAME")
 
-FRONTEND_BASE_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_BASE_URL = os.getenv("REACT_APP_FRONTEND_URL", "http://localhost:3000")
 
 async def send_invite_email(to_email: str, invite_token: str, patient_name: str):
     invite_link = f"{FRONTEND_BASE_URL}/invitation?token={invite_token}"
