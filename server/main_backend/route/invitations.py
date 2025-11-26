@@ -7,6 +7,7 @@ from main_backend.services.supabase_client import supabase
 from main_backend.utils.auth import get_current_user
 from main_backend.services.invitation_email_service import send_invite_email
 from main_backend.services.invitation_verify_service import verify_invitation_token
+import asyncio
 
 #router = APIRouter()
 router = APIRouter(prefix="/api/invitations", tags=["Invitations"])
@@ -78,7 +79,8 @@ async def send_invitation(
 
             # send email with new token
             try:
-                await send_invite_email(
+                await asyncio.to_thread(
+                    send_invite_email,
                     to_email=request_data.caregiver_email,
                     invite_token=invite_token,
                     patient_name=patient_name
@@ -109,7 +111,8 @@ async def send_invitation(
 
     # 5️ Send email with token link
     try:
-        await send_invite_email(
+        await asyncio.to_thread(
+            send_invite_email,
             to_email=request_data.caregiver_email,
             invite_token=invite_token,
             patient_name=patient_name

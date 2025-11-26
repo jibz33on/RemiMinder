@@ -1,17 +1,32 @@
 import os
-import aiosmtplib
-from email.message import EmailMessage
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+# import aiosmtplib
+# from email.message import EmailMessage
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-GMAIL_NAME = os.getenv("GMAIL_NAME")
+# GMAIL_USER = os.getenv("GMAIL_USER")
+# GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+# GMAIL_NAME = os.getenv("GMAIL_NAME")
+
+# Brevo API key from environment variables
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+
+if not BREVO_API_KEY:
+    raise ValueError("BREVO_API_KEY not found in environment variables!")
 
 FRONTEND_BASE_URL = os.getenv("REACT_APP_FRONTEND_URL", "http://localhost:3000")
 
-async def send_invite_email(to_email: str, invite_token: str, patient_name: str):
+# Initialize Brevo API client
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = BREVO_API_KEY
+api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+    sib_api_v3_sdk.ApiClient(configuration)
+)
+
+def send_invite_email(to_email: str, invite_token: str, patient_name: str):
     invite_link = f"{FRONTEND_BASE_URL}/invitation?token={invite_token}"
 
     #print("DEBUG: Invite link being sent:", invite_link)
@@ -56,19 +71,17 @@ If you didn’t expect this, you can safely ignore this email.
 </html>
 """
 
-    message = EmailMessage()
-    message["From"] = f"{GMAIL_NAME} <{GMAIL_USER}>"
-    message["To"] = to_email
-    message["Subject"] = f"{patient_name} invited you to join RemiMinderAI"
-    message.set_content(plain_content)
-    message.add_alternative(html_content, subtype='html')
-
-    await aiosmtplib.send(
-        message,
-        hostname="smtp.gmail.com",
-        port=587,
-        start_tls=True,
-        username=GMAIL_USER,
-        password=GMAIL_APP_PASSWORD
+    # Brevo email object
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        sender={"name": "RemiMinderAI", "email": "remiminderai@gmail.com"},
+        to=[{"email": to_email}],
+        subject=f"{patient_name} invited you to join RemiMinderAI",
+        html_content=html_content,
+        text_content=plain_content
     )
-    print(f"Email sent to {to_email}")
+
+    try:
+        api_instance.send_transac_email(send_smtp_email)
+        print(f"Email sent to {to_email}")
+    except ApiException as e:
+        print(f"Error sending Brevo email to {to_email}: {e}")
