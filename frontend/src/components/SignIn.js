@@ -142,11 +142,8 @@ export default function SignIn() {
       });
   
       if (error) {
-        console.warn("Supabase login failed, demo bypass activated:", error.message);
-        // DEMO: allow navigation anyway
-        const currentRole = role || localStorage.getItem("role") || "patient";
-        navigate(`/dashboard/${currentRole}`);
-        setMessage("Warning: This is a demo login — credentials not verified.");
+        console.error("Supabase login error:", error.message);
+        setMessage("Incorrect email or password.");
         return;
       }
   

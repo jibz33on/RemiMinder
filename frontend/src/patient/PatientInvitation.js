@@ -13,13 +13,15 @@ export default function PatientInvitation({ onBack }) {
   const [apiMessage, setApiMessage] = useState(""); // for success/error messages
   const [sent, setSent] = useState(false);
   const navigate = useNavigate();
+  const [isSending, setIsSending] = useState(false);
 
   const handleSendInvite = async () => {
     if (!email) {
       alert("Please provide the caregiver's email.");
       return;
     }
-  
+
+    setIsSending(true);  // NEW: lock the button
     setSent(false); // ensure confirmation screen is hidden while loading
     setApiMessage(""); // reset message
   
@@ -30,6 +32,7 @@ export default function PatientInvitation({ onBack }) {
   
       if (!token) {
         alert("You must be logged in to send an invitation.");
+        setIsSending(false); // unlock
         return;
       }
   
@@ -65,6 +68,8 @@ export default function PatientInvitation({ onBack }) {
       setApiMessage("Network error. Please try again.");
       alert(apiMessage)
     }
+
+    setIsSending(false); // NEW: unlock when done
   };  
 
   const handleBack = () => {
@@ -203,9 +208,24 @@ export default function PatientInvitation({ onBack }) {
           >
             Cancel
           </button>
-          <button className={styles.button} onClick={handleSendInvite}>
-            <Send size={16} style={{ marginRight: "6px" }} />
-            Send Invitation
+          <button
+            className={styles.button}
+            onClick={handleSendInvite}
+            disabled={isSending}
+            style={{
+              opacity: isSending ? 0.6 : 1,
+              cursor: isSending ? "not-allowed" : "pointer",
+              pointerEvents: isSending ? "none" : "auto",
+            }}
+          >
+            {isSending ? (
+              "Sending..."
+            ) : (
+              <>
+                <Send size={16} style={{ marginRight: "6px" }} />
+                Send Invitation
+              </>
+            )}
           </button>
         </div>
       </main>
