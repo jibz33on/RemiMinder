@@ -1,8 +1,20 @@
 {
-  "dependencies": {
-    "@supabase/auth-ui-react": "^0.4.7",
-    "@supabase/auth-ui-shared": "^0.1.8",
-    "@supabase/supabase-js": "^2.78.0",
-    "react-router-dom": "^7.9.4"
+  "name": "mediminder-monorepo",
+  "version": "2.0.0",
+  "description": "MediMinder - AI Healthcare Companion Monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/mobile"
+  ],
+  "scripts": {
+    "web": "npm run --workspace=apps/web start",
+    "mobile": "cd apps/mobile && flutter run",
+    "backend": "cd apps/backend && python main.py",
+    "dev": "docker-compose up",
+    "build": "docker-compose build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
   }
 }

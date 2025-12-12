@@ -19,28 +19,52 @@ MediMinder is an AI-powered healthcare app that helps patients manage medication
 
 ## Quick Start
 
-### Mobile App
+### Local Development (Recommended)
 ```bash
-cd mobile
+# Start all services
+docker-compose up
+
+# Or run individually:
+```
+
+### Web App (Phase 1)
+```bash
+cd apps/web
+npm install
+npm start
+```
+
+### Mobile App (Phase 2)
+```bash
+cd apps/mobile
 flutter pub get
 flutter run
 ```
 
-### Backend
+### Backend (Phase 2)
 ```bash
-cd backend
+cd apps/backend
 pip install -r requirements.txt
 python main.py
 ```
 
 ## Project Structure
 
-- `mobile/` - Flutter mobile application
-- `backend/` - FastAPI backend services
-- `shared/` - Common constants and utilities
-- `phase1/` - Archived React web app
-- `deployment/` - GCP deployment configurations
-- `docs/` - Development documentation (local only)
+```
+MediMinder/
+├── apps/                    # Application code
+│   ├── web/                # React web app (Phase 1)
+│   ├── mobile/             # Flutter mobile app (Phase 2)
+│   └── backend/            # FastAPI backend (Phase 2)
+├── packages/               # Shared/reusable packages
+│   └── shared/             # Cross-platform utilities
+├── infrastructure/         # Infrastructure & deployment
+│   └── deployment/         # GCP deployment configs
+├── phase1/                 # Archived Phase 1 code
+│   └── backend/            # Phase 1 FastAPI backend
+├── docs/                   # Local development docs (gitignored)
+└── docker-compose.yml      # Local development setup
+```
 
 ## Key Features
 

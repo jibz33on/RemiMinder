@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Phase 2 Backend (FastAPI)
+  backend:
+    build: ./apps/backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - DEBUG=True
+    volumes:
+      - ./apps/backend:/app
+    networks:
+      - mediminder-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mediminder_db
+      POSTGRES_USER: mediminder
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mediminder-network
+
+  # Phase 1 Web App (React)
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - mediminder-network
+
+volumes:
+  postgres_data:
+
+networks:
+  mediminder-network:
+    driver: bridge
