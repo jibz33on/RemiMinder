@@ -1,2 +1,0 @@
-This is a test file to learn git commands.
-Learning git step by step!

@@ -70,3 +70,7 @@ docs/
 # Temporary files
 *.tmp
 *.temp
+
+# Personal learning files (local development only)
+learning-git.txt
+test-git-learning.txt
