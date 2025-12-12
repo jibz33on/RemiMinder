@@ -1,74 +1,70 @@
-# MediMinder
+# MediMinder - AI Healthcare Companion
 
-MediMinderAI is a React-based application that helps healthcare providers record and manage patient visits using audio recording technology. The app features a clean, intuitive interface for recording patient interactions and integrates with a backend API for data storage and processing.
+MediMinder is an AI-powered healthcare app that helps patients manage medications and allows caregivers to monitor loved ones through intelligent visit recording and smart reminders.
 
-## Getting Started
+## Current Status
 
-### Prerequisites
+- **Phase 1**: React web app (archived in `phase1/` folder)
+- **Phase 2**: Flutter mobile app with GCP backend (actively developing)
 
-- Node.js (version 16 or higher)
-- npm or yarn
+## Tech Stack
 
-### Installation
+- **Mobile**: Flutter (iOS/Android) with Google ML Kit (OCR)
+- **Backend**: FastAPI (Python)
+- **Database**: Google Cloud SQL (PostgreSQL)
+- **Authentication**: Firebase Auth
+- **AI**: Google Gemini (visit transcription)
+- **Deployment**: Google Cloud Run
+- **Storage**: Google Cloud Storage
 
-1. Clone the repository:
+## Quick Start
+
+### Mobile App
 ```bash
-git clone https://github.com/malakapn/MediMinder.git
-cd MediMinder
+cd mobile
+flutter pub get
+flutter run
 ```
 
-2. Install frontend dependencies:
+### Backend
 ```bash
-cd frontend
-npm install
+cd backend
+pip install -r requirements.txt
+python main.py
 ```
 
-3. Install server dependencies:
-```bash
-cd ../server
-npm install
-```
+## Project Structure
 
-### Key Dependencies
+- `mobile/` - Flutter mobile application
+- `backend/` - FastAPI backend services
+- `shared/` - Common constants and utilities
+- `phase1/` - Archived React web app
+- `deployment/` - GCP deployment configurations
+- `docs/` - Development documentation (local only)
 
-**Frontend Dependencies:**
-- React 19.2.0 - UI library
-- React Router DOM 7.9.4 - Client-side routing
-- Lucide React 0.546.0 - Icon library
-- Tailwind CSS - Utility-first CSS framework (built-in with Create React App)
+## Key Features
 
-**Server Dependencies:**
-- Express 5.1.0 - Web application framework
+### For Patients
+- **Audio Visit Recording**: Record doctor-patient conversations with AI transcription
+- **Smart Medication Reminders**: Intelligent scheduling with snooze and skip options
+- **RemiScan**: AI-powered scanner for prescriptions, pill bottles, and lab reports - extracts data, generates summaries, and creates smart reminders
+- **Health Dashboard**: Track visits, medications, and adherence patterns
+- **Visit Summaries**: AI-generated plain-language summaries of medical visits
 
-### Running the Application
+### For Caregivers
+- **Multi-Patient Monitoring**: Manage multiple patients with real-time alerts
+- **Adherence Tracking**: Monitor medication compliance and receive alerts
+- **Visit Access**: View patient visit recordings and AI-generated summaries
+- **Emergency Connections**: Quick access to healthcare providers
 
-1. Start the backend server:
-```bash
-cd server
-node server.js
-```
-The server will run on http://localhost:3001
+### AI-Powered Features
+- **Intelligent Reminders**: AI extracts and creates medication/appointment reminders
+- **Natural Language Processing**: Friendly, jargon-free communication
+- **Smart Scheduling**: Optimal timing for medication reminders
+- **Voice Recording**: High-quality audio capture with background processing
 
-2. Start the frontend application:
-```bash
-cd frontend
-npm start
-```
-The frontend will run on http://localhost:3000
+## Documentation
 
-### Features
-
-- **Audio Recording**: Record patient visits with real-time timer display
-- **Audio Playback**: Review recorded audio before uploading
-- **Responsive Design**: Works on desktop and mobile devices
-- **Clean UI**: Modern interface with intuitive controls
-- **Backend Integration**: Ready for API integration for data storage
-
-### Usage
-
-1. Navigate to the main page at http://localhost:3000
-2. Click on the Record Visit section or navigate to /record
-3. Click "Start Recording" to begin recording audio
-4. Click "Stop Recording" when finished
-5. Play back your recording if needed
-6. Upload the recording for processing (backend integration required)
+- [Technical Architecture](./ARCHITECTURE.md)
+- [Migration from Phase 1](./MIGRATION.md)
+- [Phase 1 Archive](./phase1/README.md)

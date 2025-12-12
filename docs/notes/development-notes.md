@@ -23,17 +23,12 @@
 - Phase 1 code preserved in `phase1/` for backward compatibility
 - Flutter for mobile development
 - FastAPI + GCP Cloud Run for backend
-- Supabase for authentication (continued from Phase 1)
+- Firebase Auth + Cloud SQL for authentication and database
 - Local `docs/` folder for development reference only
 
 ## Development Environment Setup
 - Backend: Python 3.8+, FastAPI, Uvicorn
 - Mobile: Flutter 3.0+, Dart
-- Database: Supabase (existing)
-- Deployment: GCP Cloud Run (planned)
-
-## Code Organization
-- Feature-based structure in mobile app
-- Service-oriented architecture in backend
-- Shared constants in `shared/` directory
-- Local docs in `docs/` (ignored by git)
+- Database: Google Cloud SQL (PostgreSQL)
+- Authentication: Firebase Auth
+- AI: Google Gemini API
