@@ -31,8 +31,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -41,6 +39,13 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Python virtual environments
+lib/
+lib64/
+
+# But don't ignore our Flutter lib directory
+!apps/mobile/lib/
 
 # Environment variables
 .env
