@@ -9,10 +9,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _rememberMe = false;
   String? _userRole;
 
   @override
@@ -25,8 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -49,231 +43,294 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 40),
 
-              // Title
-              Text(
-                'Welcome Back',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+              // Logo Section - No circular container, bigger logo
+              Image.asset(
+                'assets/images/RemiMinder_logo.png',
+                width: 140, // Made bigger without container
+                height: 140,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.medical_services,
+                  color: Color(0xff1B4E59),
+                  size: 80, // Larger fallback icon
+                ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
 
-              // Subtitle
+              // Brand Name
               Text(
-                _userRole == 'caregiver'
-                    ? 'Sign in to manage your patients'
-                    : 'Sign in to continue to RemiMinder',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 18,
-                    ),
+                'RemiMinder.ai',
+                style: const TextStyle(
+                  fontFamily: 'Merriweather', // Merriweather-Bold font
+                  fontWeight: FontWeight.w700, // Bold weight
+                  fontSize: 28, // Increased size for more prominence
+                  color: Color(0xFF1B4E59), // Dark teal
+                  letterSpacing: -0.5, // Better spacing for serif font
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // Tagline
+              Text(
+                'Smart AI for Health & Care Coordination',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Poppins', // Poppins-Regular
+                  fontWeight: FontWeight.w400, // Regular
+                  fontSize: 13, // 13-14sp
+                  color: Color(0xFF5A5A5A), // Gray
+                ),
               ),
 
               const SizedBox(height: 48),
 
-              // Social Login Buttons
-              _SocialLoginButton(
-                icon: Icons.g_mobiledata, // Google icon placeholder
-                label: 'Continue with Google',
-                onPressed: _signInWithGoogle,
-              ),
-
-              const SizedBox(height: 16),
-
-              _SocialLoginButton(
-                icon: Icons.apple,
-                label: 'Continue with Apple',
-                onPressed: _signInWithApple,
-              ),
-
-              const SizedBox(height: 32),
-
-              // Divider
-              Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.3),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'or',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Divider(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.3),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Email Field
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
-                  prefixIcon: Icon(
-                    Icons.email_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+              // Heading - "Login"
+              Text(
+                'Login',
+                style: const TextStyle(
+                  fontFamily:
+                      'Merriweather', // Merriweather-Bold for consistency
+                  fontWeight: FontWeight.w700, // Bold weight
+                  fontSize: 28, // Reduced size for better hierarchy
+                  color: Color(0xFF1A4D4D), // Dark teal
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 48),
 
-              // Password Field
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Remember Me & Forgot Password
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _rememberMe,
-                        onChanged: (value) {
-                          setState(() {
-                            _rememberMe = value ?? false;
-                          });
-                        },
-                        activeColor: Theme.of(context).colorScheme.primary,
-                      ),
-                      Text(
-                        'Remember me',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/forgot-password'),
-                    child: Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Sign In Button
-              SizedBox(
+              // Google Button
+              Container(
                 width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white, // White background
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.withOpacity(0.3), // Gray border
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
-                  onPressed: _signInWithEmail,
+                  onPressed: _signInWithGoogle,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation:
+                        0, // Remove default elevation since we have shadow
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Google logo (currently JPEG - replace with SVG for better quality)
+                      Image.asset(
+                        'assets/images/google_logo.svg', // Currently a JPEG file
+                        width: 22,
+                        height: 22,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 22,
+                          height: 22,
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.g_mobiledata,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Apple Button
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.black, // Black background
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _signInWithApple,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation:
+                        0, // Remove default elevation since we have shadow
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Apple logo placeholder (add SVG file for real logo)
+                      Container(
+                        width: 20,
+                        height: 24,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.apple,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Continue with Apple',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Email Button
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B4E59), // Teal background
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {}, // Will scroll to email form
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1B4E59),
+                    foregroundColor: Colors.white,
+                    elevation:
+                        0, // Remove default elevation since we have shadow
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.email,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Continue with Email',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // Sign Up Link
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Don't have an account? ",
+              // Create Account Link
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go('/register'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Create an Account',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Color(0xFF1B4E59), // Teal
+                      decoration: TextDecoration.underline, // Underlined
+                      decorationColor: Color(0xFF1B4E59),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () => context.go('/register'),
-                    child: Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Bottom indicator dots
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _IndicatorDot(isActive: false),
-                  const SizedBox(width: 8),
-                  _IndicatorDot(isActive: false),
-                  const SizedBox(width: 8),
-                  _IndicatorDot(isActive: true),
-                  const SizedBox(width: 8),
-                  _IndicatorDot(isActive: false),
-                ],
+                ),
               ),
 
               const SizedBox(height: 16),
+
+              // Forgot Password Link
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go('/forgot-password'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Color(0xFF1B4E59), // Teal
+                      decoration: TextDecoration.underline, // Underlined
+                      decorationColor: Color(0xFF1B4E59),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -292,104 +349,6 @@ class _LoginScreenState extends State<LoginScreen> {
     // TODO: Implement Apple Sign In
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Apple Sign In - Coming Soon!')),
-    );
-  }
-
-  void _signInWithEmail() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    // TODO: Implement email sign in
-    // For now, simulate successful login and navigate to home
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Login Successful!')),
-    );
-
-    // Navigate to appropriate home screen based on role
-    if (_userRole == 'patient') {
-      context.go('/patient/home');
-    } else if (_userRole == 'caregiver') {
-      context.go('/caregiver/home');
-    } else {
-      // Default to patient home if no role specified
-      context.go('/patient/home');
-    }
-  }
-}
-
-class _SocialLoginButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const _SocialLoginButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IndicatorDot extends StatelessWidget {
-  final bool isActive;
-
-  const _IndicatorDot({required this.isActive});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: isActive
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.primary.withOpacity(0.3),
-        shape: BoxShape.circle,
-      ),
     );
   }
 }

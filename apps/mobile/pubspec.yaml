@@ -1,4 +1,4 @@
-name: mediminder
+name: RemiMinder
 description: A healthcare companion app for patients and caregivers
 
 version: 1.0.0+1
@@ -30,11 +30,43 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
-    - assets/icons/
-    - assets/fonts/
+    - assets/icon.png
+    # Logo assets for authentication (currently JPEG, ideally SVG)
+    - assets/images/google_logo.svg  # Currently a JPEG file
+    # - assets/images/apple_logo.svg
+
+  fonts:
+    - family: Merriweather
+      fonts:
+        - asset: assets/fonts/Merriweather-Bold.ttf
+          weight: 700
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        # TODO: Add these Poppins weights when downloaded:
+        # - asset: assets/fonts/Poppins-Medium.ttf
+        #   weight: 500
+        # - asset: assets/fonts/Poppins-SemiBold.ttf
+        #   weight: 600
+
+  # Add flutter_svg package for logo SVGs
+  # flutter_svg: ^2.0.9
+
+# App Icon Configuration
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon.png"  # Standard location
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/icon.png"  # Standard location
+    background_color: "#F8F4E8"
+    theme_color: "#1B4E59"
