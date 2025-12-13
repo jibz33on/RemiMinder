@@ -18,14 +18,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
       if (mounted) {
         context.go('/welcome');
       }
-      // Navigator.pushReplacementNamed(context, '/welcome');
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF8F4E8), // Warm off-white background
+      backgroundColor: Theme.of(context)
+          .scaffoldBackgroundColor, // Consistent with all other screens
 
       body: Center(
         child: Column(
@@ -33,32 +33,34 @@ class _LoadingScreenState extends State<LoadingScreen> {
           children: [
             // Logo
             Image.asset(
-              'assets/images/remiminder_logo.png',
+              'assets/images/RemiMinder_logo.png',
               width: 160,
               height: 160,
             ),
 
             const SizedBox(height: 20),
 
-            // App Name
+            // App Name - PM specs: Serif (Merriweather), Bold, primaryGreen
             const Text(
               "RemiMinder.ai",
               style: TextStyle(
-                fontSize: 36, // Increased from 28 to match logo prominence
-                fontWeight: FontWeight.bold,
-                color: Color(0xff1B4E59),
+                fontFamily: 'Merriweather', // Serif typeface as requested
+                fontSize: 36,
+                fontWeight: FontWeight.w700, // Bold weight
+                color: Color(0xff1B4E59), // primaryGreen (primaryColor)
                 letterSpacing: 0.5,
               ),
             ),
 
             const SizedBox(height: 6),
 
-            // Tagline
+            // Tagline - PM specs: Sans-serif (Poppins), small size, textSecondary
             const Text(
               "Smart AI for Health & Care Coordination",
               style: TextStyle(
-                fontSize: 14,
-                color: Color(0xff557A7F),
+                fontFamily: 'Poppins', // Sans-serif as requested
+                fontSize: 12, // Small size (~12-14sp) as requested
+                color: Color(0xff557A7F), // textSecondary (accentColor)
               ),
             ),
 

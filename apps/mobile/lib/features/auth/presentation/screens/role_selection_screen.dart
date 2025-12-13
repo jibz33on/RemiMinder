@@ -37,7 +37,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 'Choose Your Role',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight
+                          .w700, // Explicit bold weight for Merriweather
                     ),
               ),
               const SizedBox(height: 12),

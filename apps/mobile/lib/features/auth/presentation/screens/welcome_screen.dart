@@ -37,7 +37,7 @@ class WelcomeScreen extends StatelessWidget {
                   children: [
                     // App Logo
                     Image.asset(
-                      'assets/images/remiminder_logo.png',
+                      'assets/images/RemiMinder_logo.png',
                       width: 120,
                       height: 120,
                     ),

@@ -48,134 +48,157 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Form(
       key: _formKey,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
-
-          // Title
-          Text(
-            'Forgot Password?',
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Subtitle
-          Text(
-            'No worries! Enter your email and we\'ll send you reset instructions.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontSize: 18,
-                  height: 1.4,
-                ),
-          ),
-
-          const SizedBox(height: 48),
-
-          // Email Field
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            enabled: !_isLoading,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              hintText: 'Enter your email address',
-              prefixIcon: Icon(
-                Icons.email_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your email';
-              }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 32),
-
-          // Send Reset Instructions Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _sendResetInstructions,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'Send Reset Instructions',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Back to Login Link
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Remember your password? ',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              TextButton(
-                onPressed: () => context.go('/login'),
-                child: Text(
-                  'Back to Login',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+          // Top section with title and form
+          Expanded(
+            flex: 1,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Text(
+                  'Forgot Password?',
+                  style: const TextStyle(
+                    fontFamily:
+                        'Merriweather', // Consistent with other auth screens
+                    fontWeight: FontWeight.w700, // Bold weight
+                    fontSize: 32,
+                    color: Color(0xFF1A4D4D), // Dark teal for consistency
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 12),
+
+                // Subtitle
+                Text(
+                  'No worries! Enter your email and we\'ll send you reset instructions.',
+                  style: const TextStyle(
+                    fontFamily:
+                        'Poppins', // Consistent sans-serif for body text
+                    fontWeight: FontWeight.w400, // Regular weight
+                    fontSize: 16, // Slightly smaller for better hierarchy
+                    color: Color(0xFF5A5A5A), // Consistent secondary color
+                    height: 1.4, // Better readability
+                  ),
+                ),
+
+                const SizedBox(height: 48),
+
+                // Email Field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !_isLoading,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter your email address',
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Send Reset Instructions Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _sendResetInstructions,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Send Reset Instructions',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          const Spacer(),
-
-          // Bottom indicator dots
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _IndicatorDot(isActive: false),
-              const SizedBox(width: 8),
-              _IndicatorDot(isActive: false),
-              const SizedBox(width: 8),
-              _IndicatorDot(isActive: false),
-              const SizedBox(width: 8),
-              _IndicatorDot(isActive: false),
-              const SizedBox(width: 8),
-              _IndicatorDot(isActive: true),
-            ],
+          // Centered "Remember your password?" text
+          Text(
+            'Remember your password?',
+            style: const TextStyle(
+              fontFamily: 'Poppins', // Consistent typography
+              fontWeight: FontWeight.w400, // Regular weight
+              fontSize: 14,
+              color: Color(0xFF5A5A5A), // Consistent secondary color
+              decoration: TextDecoration.underline,
+            ),
+            textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 16),
+          // Bottom section with Back to Login button
+          Expanded(
+            flex: 1,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Back to Login Button at bottom
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => context.go('/login'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size(double.infinity, 56),
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                      side: const BorderSide(
+                        color: Color(
+                            0xFF1A4D4D), // Consistent primary color for border
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: Text(
+                      'Back to Login',
+                      style: const TextStyle(
+                        fontFamily: 'Poppins', // Consistent typography
+                        fontWeight: FontWeight.w600, // SemiBold for buttons
+                        fontSize: 16,
+                        color: Color(0xFF1A4D4D), // Consistent primary color
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -204,11 +227,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         // Success Title
         Text(
           'Check Your Email',
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+          style: const TextStyle(
+            fontFamily: 'Merriweather', // Consistent typography
+            fontWeight: FontWeight.w700, // Bold weight
+            fontSize: 28,
+            color: Color(0xFF1A4D4D), // Consistent dark teal
+          ),
           textAlign: TextAlign.center,
         ),
 
@@ -217,11 +241,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         // Success Message
         Text(
           'We\'ve sent password reset instructions to ${_emailController.text}',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
-                fontSize: 16,
-                height: 1.4,
-              ),
+          style: const TextStyle(
+            fontFamily: 'Poppins', // Consistent sans-serif for body text
+            fontWeight: FontWeight.w400, // Regular weight
+            fontSize: 16,
+            color: Color(0xFF5A5A5A), // Consistent secondary color
+            height: 1.4, // Better readability
+          ),
           textAlign: TextAlign.center,
         ),
 
@@ -312,26 +338,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Reset email sent again!')),
-    );
-  }
-}
-
-class _IndicatorDot extends StatelessWidget {
-  final bool isActive;
-
-  const _IndicatorDot({required this.isActive});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: isActive
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.primary.withOpacity(0.3),
-        shape: BoxShape.circle,
-      ),
     );
   }
 }

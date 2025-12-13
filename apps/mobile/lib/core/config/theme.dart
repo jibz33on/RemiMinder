@@ -67,24 +67,61 @@ class AppTheme {
         ),
         labelStyle: TextStyle(color: accentColor),
       ),
+      // PM-specified typography: Merriweather for headings, Poppins for body text
+      fontFamily: 'Poppins', // Default font for body text and UI elements
       textTheme: TextTheme(
+        // Main headings use Merriweather (serif)
         headlineLarge: TextStyle(
           color: primaryColor,
           fontSize: 32,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w700, // Bold
+          fontFamily: 'Merriweather', // Serif for headings
+          letterSpacing: -0.5, // Tighter for elegance
         ),
         headlineMedium: TextStyle(
           color: primaryColor,
           fontSize: 24,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700, // Bold
+          fontFamily: 'Merriweather', // Serif for headings
+          letterSpacing: -0.5,
         ),
+        headlineSmall: TextStyle(
+          color: primaryColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold, // Use available weight
+          fontFamily: 'Merriweather', // Serif for headings
+        ),
+        // Body text uses Poppins (sans-serif)
         bodyLarge: TextStyle(
           color: accentColor,
           fontSize: 16,
+          fontFamily: 'Poppins', // Sans-serif for body text
+          height: 1.5, // Better readability
         ),
         bodyMedium: TextStyle(
           color: accentColor,
           fontSize: 14,
+          fontFamily: 'Poppins', // Sans-serif for body text
+          height: 1.4, // Better readability
+        ),
+        bodySmall: TextStyle(
+          color: accentColor,
+          fontSize: 12,
+          fontFamily: 'Poppins', // Sans-serif for body text
+          height: 1.4,
+        ),
+        // UI labels and buttons
+        labelLarge: TextStyle(
+          color: primaryColor,
+          fontSize: 16,
+          fontWeight: FontWeight.bold, // Use available weight
+          fontFamily: 'Poppins',
+        ),
+        labelMedium: TextStyle(
+          color: primaryColor,
+          fontSize: 14,
+          fontWeight: FontWeight.normal, // Use available weight
+          fontFamily: 'Poppins',
         ),
       ),
     );
