@@ -25,6 +25,14 @@ dependencies:
 
   # Utils
   intl: ^0.19.0
+  flutter_svg: ^2.0.9
+
+  # Permissions & Media
+  permission_handler: ^11.3.0
+  camera: ^0.10.5+9
+  # record: ^5.1.2  # Temporarily disabled due to build issues
+  image_picker: ^1.1.1
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:
@@ -41,6 +49,9 @@ flutter:
     # Logo assets for authentication (currently JPEG, ideally SVG)
     - assets/images/google_logo.svg  # Currently a JPEG file
     # - assets/images/apple_logo.svg
+    # Custom role icons
+    - assets/images/patient_icon.svg
+    - assets/images/caregiver_icon.svg
 
   fonts:
     - family: Merriweather
@@ -55,9 +66,6 @@ flutter:
         #   weight: 500
         # - asset: assets/fonts/Poppins-SemiBold.ttf
         #   weight: 600
-
-  # Add flutter_svg package for logo SVGs
-  # flutter_svg: ^2.0.9
 
 # App Icon Configuration
 flutter_launcher_icons:

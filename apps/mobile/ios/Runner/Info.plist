@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Camera and Microphone Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan pill bottles, lab reports, and other medical documents.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access to record healthcare conversations and consultations.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select and upload medical images and documents.</string>
 </dict>
 </plist>

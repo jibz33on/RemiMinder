@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
@@ -57,7 +58,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       title: 'Patient',
                       description:
                           'Manage your own medications, appointments, and health records',
-                      icon: Icons.person,
+                      iconPath: 'assets/images/patient_icon.svg',
                       isSelected: _selectedRole == 'patient',
                       onTap: () => setState(() => _selectedRole = 'patient'),
                     ),
@@ -66,7 +67,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       title: 'Caregiver',
                       description:
                           'Help manage medications and care for family members or patients',
-                      icon: Icons.favorite,
+                      iconPath: 'assets/images/caregiver_icon.svg',
                       isSelected: _selectedRole == 'caregiver',
                       onTap: () => setState(() => _selectedRole = 'caregiver'),
                     ),
@@ -81,7 +82,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(25),
                     ),
                     backgroundColor: _selectedRole != null
                         ? Theme.of(context).colorScheme.primary
@@ -127,14 +128,14 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 class _RoleCard extends StatelessWidget {
   final String title;
   final String description;
-  final IconData icon;
+  final String iconPath;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _RoleCard({
     required this.title,
     required this.description,
-    required this.icon,
+    required this.iconPath,
     required this.isSelected,
     required this.onTap,
   });
@@ -144,46 +145,111 @@ class _RoleCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(isSelected ? 1.02 : 1.0),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                    Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : LinearGradient(
+                  colors: [
+                    Colors.white,
+                    Color(0xffF8F4E8).withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            width: isSelected ? 2 : 1,
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+                : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            width: isSelected ? 2.5 : 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
                     color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                        Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                    spreadRadius: 1,
+                  ),
+                  BoxShadow(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 2),
                   ),
                 ]
-              : null,
+              : [
+                  BoxShadow(
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context)
+                              .colorScheme
+                              .secondary
+                              .withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : LinearGradient(
+                        colors: [
+                          Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.15),
+                          Theme.of(context)
+                              .colorScheme
+                              .secondary
+                              .withOpacity(0.08),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
               ),
-              child: Icon(
-                icon,
-                color: isSelected
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.primary,
-                size: 24,
+              child: SvgPicture.asset(
+                iconPath,
+                width: 32,
+                height: 32,
               ),
             ),
             const SizedBox(width: 16),
@@ -194,18 +260,27 @@ class _RoleCard extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Merriweather',
                       color: Theme.of(context).colorScheme.primary,
+                      letterSpacing: -0.3,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.secondary,
-                      height: 1.4,
+                      fontSize: 15,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w400,
+                      color: isSelected
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.8)
+                          : Theme.of(context).colorScheme.secondary,
+                      height: 1.5,
                     ),
                   ),
                 ],
