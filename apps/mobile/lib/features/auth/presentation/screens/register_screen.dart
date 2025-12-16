@@ -1,15 +1,20 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class RegisterScreen extends StatefulWidget {
+import '../../../../core/models/user.dart';
+import '../providers/auth_provider.dart';
+import '../../data/models/auth_state.dart';
+
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -502,11 +507,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _registerWithGoogle() {
-    // TODO: Implement Google Registration
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google Registration - Coming Soon!')),
-    );
+  Future<void> _registerWithGoogle() async {
+    try {
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+
+      // Check auth state after registration attempt
+      final authState = ref.read(authNotifierProvider);
+
+      if (authState.status == AuthStatus.authenticated) {
+        // Navigate to appropriate home screen based on role
+        final user = authState.user;
+        if (user?.isPatient ?? false) {
+          context.go('/patient/home');
+        } else if (user?.isCaregiver ?? false) {
+          context.go('/caregiver/home');
+        } else {
+          context.go('/welcome'); // Fallback
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Registration failed: ${e.toString()}')),
+      );
+    }
   }
 
   void _registerWithApple() {
@@ -582,7 +605,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _registerWithEmail() {
+  Future<void> _registerWithEmail() async {
     if (_formKey.currentState?.validate() ?? false) {
       if (!_acceptTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -592,13 +615,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      // TODO: Implement email registration
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account Created Successfully!')),
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+      final fullName = '$firstName $lastName'.trim();
 
-      // Navigate to patient home (registration flow - we can improve role handling later)
-      context.go('/patient/home');
+      // Get selected role from provider
+      final selectedRole = ref.read(selectedRoleProvider);
+      if (selectedRole == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a role first')),
+        );
+        return;
+      }
+
+      try {
+        await ref.read(authNotifierProvider.notifier).signUp(
+              email: email,
+              password: password,
+              role: selectedRole,
+              fullName: fullName,
+            );
+
+        // Show success dialog and navigate to login
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Account Created!'),
+                content: const Text(
+                  'Your account has been created successfully. '
+                  'You can now sign in with your email and password.'
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      // Navigate back to login screen
+                      final selectedRole = ref.read(selectedRoleProvider);
+                      final roleParam = selectedRole == UserRole.patient ? 'patient' : 'caregiver';
+                      context.go('/login?role=$roleParam');
+                    },
+                    child: const Text('Go to Sign In'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString())),
+          );
+        }
+      }
     }
   }
 }

@@ -1,24 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class LoadingScreen extends StatefulWidget {
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/data/models/auth_state.dart';
+
+class LoadingScreen extends ConsumerStatefulWidget {
   const LoadingScreen({super.key});
 
   @override
-  State<LoadingScreen> createState() => _LoadingScreenState();
+  ConsumerState<LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _LoadingScreenState extends State<LoadingScreen> {
+class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeApp();
+  }
 
-    // Simulate loading, then navigate to welcome
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
+  Future<void> _initializeApp() async {
+    // Wait for authentication check to complete
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      final authState = ref.read(authNotifierProvider);
+
+      if (authState.status == AuthStatus.authenticated) {
+        // Navigate to appropriate home screen based on role
+        final user = authState.user;
+        if (user?.isPatient ?? false) {
+          context.go('/patient/home');
+        } else if (user?.isCaregiver ?? false) {
+          context.go('/caregiver/home');
+        } else {
+          context.go('/welcome'); // Fallback
+        }
+      } else {
+        // Go to welcome/onboarding flow
         context.go('/welcome');
       }
-    });
+    }
   }
 
   @override

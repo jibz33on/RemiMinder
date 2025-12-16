@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class LoginScreen extends StatefulWidget {
+import '../providers/auth_provider.dart';
+import '../../data/models/auth_state.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
   String? _userRole;
 
   @override
@@ -21,7 +28,130 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    print('🔐 Login: _signIn method called');
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    print('🔐 Login: Email: "$email", Password length: ${password.length}');
+
+    if (email.isEmpty || password.isEmpty) {
+      print('🔐 Login: Email or password is empty - showing validation error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    print('🔐 Login: Validation passed, calling auth provider...');
+
+    try {
+      print('🔐 Login: Starting sign in process...');
+      await ref.read(authNotifierProvider.notifier).signIn(email, password);
+      print('🔐 Login: Auth provider call completed');
+
+      // Check auth state after login attempt
+      final authState = ref.read(authNotifierProvider);
+      print('🔐 Login: Auth state - isAuthenticated: ${authState.isAuthenticated}');
+
+      if (authState.isAuthenticated) {
+        final user = authState.user;
+        print('🔐 Login: User data - email: ${user?.email}, role: ${user?.role}, isPatient: ${user?.isPatient}, isCaregiver: ${user?.isCaregiver}');
+
+        if (user?.isPatient ?? false) {
+          print('🔐 Login: Navigating to patient home...');
+          if (mounted) {
+            context.go('/patient/home');
+            print('🔐 Login: Navigation to /patient/home completed');
+          } else {
+            print('🔐 Login: Widget not mounted, cannot navigate');
+          }
+        } else if (user?.isCaregiver ?? false) {
+          print('🔐 Login: Navigating to caregiver home...');
+          if (mounted) {
+            context.go('/caregiver/home');
+            print('🔐 Login: Navigation to /caregiver/home completed');
+          } else {
+            print('🔐 Login: Widget not mounted, cannot navigate');
+          }
+        } else {
+          print('🔐 Login: User role not recognized or null - staying on login screen');
+        }
+      } else {
+        print('🔐 Login: Authentication failed or auth state not set');
+      }
+    } catch (e) {
+      print('🔐 Login: Exception caught: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  void _navigateToEmailForm() {
+    // For now, show a simple dialog with email form
+    // In a real app, you might want to scroll to a form section
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign in with Email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'Enter your email',
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                hintText: 'Enter your password',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
+              ),
+              obscureText: !_isPasswordVisible,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _signIn();
+            },
+            child: const Text('Sign In'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -242,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {}, // Will scroll to email form
+                  onPressed: _navigateToEmailForm,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B4E59),
                     foregroundColor: Colors.white,
@@ -338,15 +468,33 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _signInWithGoogle() {
-    // TODO: Implement Google Sign In
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google Sign In - Coming Soon!')),
-    );
+  Future<void> _signInWithGoogle() async {
+    try {
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+
+      // Check auth state after login attempt
+      final authState = ref.read(authNotifierProvider);
+
+      if (authState.status == AuthStatus.authenticated) {
+        // Navigate to appropriate home screen based on role
+        final user = authState.user;
+        if (user?.isPatient ?? false) {
+          context.go('/patient/home');
+        } else if (user?.isCaregiver ?? false) {
+          context.go('/caregiver/home');
+        } else {
+          context.go('/welcome'); // Fallback
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign In failed: ${e.toString()}')),
+      );
+    }
   }
 
   void _signInWithApple() {
-    // TODO: Implement Apple Sign In
+    // TODO: Implement Apple Sign In with Supabase
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Apple Sign In - Coming Soon!')),
     );

@@ -17,15 +17,23 @@ dependencies:
   # Navigation
   go_router: ^13.0.0
 
-  # Networking (for future backend integration)
+  # Networking & Authentication
   http: ^1.1.0
+  supabase_flutter: ^2.0.0
+  flutter_dotenv: ^5.1.0
+  google_sign_in: ^6.2.1
 
-  # Local Storage (for future offline support)
+  # Secure Storage (for JWT tokens)
+  flutter_secure_storage: ^9.0.0
+
+  # Local Storage (for app preferences)
   shared_preferences: ^2.2.2
 
   # Utils
   intl: ^0.19.0
   flutter_svg: ^2.0.9
+  jwt_decoder: ^2.0.1
+  equatable: ^2.0.5
 
   # Permissions & Media
   permission_handler: ^11.3.0
