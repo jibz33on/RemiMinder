@@ -2,8 +2,13 @@ import sys
 sys.path.append('..')
 
 from fastapi import FastAPI
-from route import invitations, patient_register, caregiver_patient, caregivers, visit_summary, reminders
+from route import invitations, patient_register, caregiver_patient, caregivers, visit_summary, reminders, users
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file in project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 app = FastAPI()
 
@@ -27,6 +32,8 @@ app.include_router(caregivers.router)
 app.include_router(visit_summary.router)
 # route for reminders
 app.include_router(reminders.router)
+# route for user authentication
+app.include_router(users.router)
 
 @app.get("/")
 def root():

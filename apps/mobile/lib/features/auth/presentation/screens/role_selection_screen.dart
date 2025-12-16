@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class RoleSelectionScreen extends StatefulWidget {
+import '../../../../core/models/user.dart';
+import '../providers/auth_provider.dart';
+
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedRole = ref.watch(selectedRoleProvider);
 
-class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
-  String? _selectedRole;
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -59,8 +58,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       description:
                           'Manage your own medications, appointments, and health records',
                       iconPath: 'assets/images/patient_icon.svg',
-                      isSelected: _selectedRole == 'patient',
-                      onTap: () => setState(() => _selectedRole = 'patient'),
+                      isSelected: selectedRole == UserRole.patient,
+                      onTap: () => ref
+                          .read(selectedRoleProvider.notifier)
+                          .selectRole(UserRole.patient),
                     ),
                     const SizedBox(height: 24),
                     _RoleCard(
@@ -68,8 +69,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       description:
                           'Help manage medications and care for family members or patients',
                       iconPath: 'assets/images/caregiver_icon.svg',
-                      isSelected: _selectedRole == 'caregiver',
-                      onTap: () => setState(() => _selectedRole = 'caregiver'),
+                      isSelected: selectedRole == UserRole.caregiver,
+                      onTap: () => ref
+                          .read(selectedRoleProvider.notifier)
+                          .selectRole(UserRole.caregiver),
                     ),
                   ],
                 ),
@@ -78,13 +81,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _selectedRole != null ? _onContinue : null,
+                  onPressed: selectedRole != null
+                      ? () => _onContinue(context, ref, selectedRole)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
-                    backgroundColor: _selectedRole != null
+                    backgroundColor: selectedRole != null
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(context).disabledColor,
                   ),
@@ -116,12 +121,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     );
   }
 
-  void _onContinue() {
-    if (_selectedRole == 'patient') {
-      context.go('/login?role=patient'); // Navigate to login for patients
-    } else if (_selectedRole == 'caregiver') {
-      context.go('/login?role=caregiver'); // Navigate to login for caregivers
-    }
+  void _onContinue(BuildContext context, WidgetRef ref, UserRole selectedRole) {
+    // Pass the selected role to the login/register screens
+    final roleParam =
+        selectedRole == UserRole.patient ? 'patient' : 'caregiver';
+    context.go('/login?role=$roleParam');
   }
 }
 
