@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class CaregiverHomeScreen extends StatefulWidget {
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../shared/utilities/greeting_utils.dart';
+
+class CaregiverHomeScreen extends ConsumerStatefulWidget {
   const CaregiverHomeScreen({super.key});
 
   @override
-  State<CaregiverHomeScreen> createState() => _CaregiverHomeScreenState();
+  ConsumerState<CaregiverHomeScreen> createState() =>
+      _CaregiverHomeScreenState();
 }
 
-class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
+class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState.user;
+    final userName = user?.displayName ?? 'Caregiver';
+    final greeting = GreetingUtils.getWelcomeBackGreeting(userName);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -46,7 +56,7 @@ class _CaregiverHomeScreenState extends State<CaregiverHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good morning, Sarah! 👋',
+                    greeting,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 18,

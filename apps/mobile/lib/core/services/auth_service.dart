@@ -94,8 +94,11 @@ class AuthService {
   }
 
   /// Sign in with email and password
-  Future<User> signIn(String email, String password) async {
-    print('🔐 AuthService: Starting sign in process for $email');
+  Future<User> signIn(String email, String password,
+      {UserRole? selectedRole}) async {
+    print(
+        '🔐 AuthService: Starting sign in process for $email, selectedRole: $selectedRole');
+    print('🔐 AuthService: selectedRole is null: ${selectedRole == null}');
 
     // Check if Supabase is available
     if (_supabase == null) {
@@ -143,6 +146,23 @@ class AuthService {
       final user = await _getUserProfile();
       print(
           '🔐 AuthService: Backend profile fetched: ${user.email}, role: ${user.role}');
+
+      // If a role was selected and it differs from the current role, update it
+      print(
+          '🔐 AuthService: Checking role update - selectedRole: $selectedRole, user.role: ${user.role}');
+      if (selectedRole != null && user.role != selectedRole) {
+        print(
+            '🔐 AuthService: Selected role ($selectedRole) differs from user role (${user.role}), updating...');
+        final updatedUser = await _updateUserRole(user.id, selectedRole);
+        print('🔐 AuthService: User role updated to: ${updatedUser.role}');
+        return updatedUser;
+      } else if (selectedRole != null) {
+        print(
+            '🔐 AuthService: Selected role ($selectedRole) matches user role (${user.role}), no update needed');
+      } else {
+        print(
+            '🔐 AuthService: No selectedRole provided, using stored role (${user.role})');
+      }
 
       return user;
     } catch (e) {
@@ -344,7 +364,41 @@ class AuthService {
     final response = await http.get(url, headers: headers);
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to get user profile');
+      switch (response.statusCode) {
+        case 401:
+          throw Exception(
+              'Invalid email or password. Please check your credentials.');
+        case 404:
+          throw Exception(
+              'Account not found. Please check your email or register first.');
+        case 500:
+          throw Exception('Server error. Please try again later.');
+        default:
+          throw Exception('Authentication failed. Please try again.');
+      }
+    }
+
+    final userJson = json.decode(response.body);
+    return User.fromJson(userJson);
+  }
+
+  Future<User> _updateUserRole(String userId, UserRole newRole) async {
+    print('🔐 AuthService: Updating user role for $userId to $newRole');
+    final headers = await getAuthHeaders();
+    final url = Uri.parse('${Environment.apiBaseUrl}/api/users/${userId}/role');
+    print('🔐 AuthService: Role update URL: $url');
+
+    final response = await http.put(
+      url,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'role': newRole.name}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update user role');
     }
 
     final userJson = json.decode(response.body);

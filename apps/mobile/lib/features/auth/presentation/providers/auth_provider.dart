@@ -93,13 +93,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Sign in with email and password
-  Future<void> signIn(String email, String password) async {
-    print('🔐 AuthProvider: Starting sign in for email: $email');
+  Future<void> signIn(String email, String password, {UserRole? selectedRole}) async {
+    print('🔐 AuthProvider: Starting sign in for email: $email, selectedRole: $selectedRole');
     state = AuthState.loading();
 
     try {
       print('🔐 AuthProvider: Calling auth repository signIn...');
-      final user = await _authRepository.signIn(email, password);
+      final user = await _authRepository.signIn(email, password, selectedRole: selectedRole);
       print(
           '🔐 AuthProvider: Sign in successful, user: ${user.email}, role: ${user.role}');
       state = AuthState.authenticated(user);

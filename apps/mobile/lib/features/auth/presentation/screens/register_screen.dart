@@ -26,6 +26,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
 
+  /// Convert technical errors to user-friendly messages
+  String _getUserFriendlyErrorMessage(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    // Authentication errors
+    if (errorString.contains('user already registered') ||
+        errorString.contains('account with this email already exists')) {
+      return 'An account with this email already exists. Please sign in instead.';
+    }
+
+    if (errorString.contains('weak password') ||
+        errorString.contains('password')) {
+      return 'Password is too weak. Please use at least 8 characters with letters and numbers.';
+    }
+
+    if (errorString.contains('invalid email')) {
+      return 'Please enter a valid email address.';
+    }
+
+    // Network/API errors
+    if (errorString.contains('connection refused') ||
+        errorString.contains('network')) {
+      return 'Connection error. Please check your internet connection and try again.';
+    }
+
+    if (errorString.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    // Generic fallback
+    return 'Registration failed. Please try again or contact support if the problem persists.';
+  }
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -646,17 +679,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             builder: (BuildContext context) {
               return AlertDialog(
                 title: const Text('Account Created!'),
-                content: const Text(
-                  'Your account has been created successfully. '
-                  'You can now sign in with your email and password.'
-                ),
+                content:
+                    const Text('Your account has been created successfully. '
+                        'You can now sign in with your email and password.'),
                 actions: [
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // Close dialog
                       // Navigate back to login screen
                       final selectedRole = ref.read(selectedRoleProvider);
-                      final roleParam = selectedRole == UserRole.patient ? 'patient' : 'caregiver';
+                      final roleParam = selectedRole == UserRole.patient
+                          ? 'patient'
+                          : 'caregiver';
                       context.go('/login?role=$roleParam');
                     },
                     child: const Text('Go to Sign In'),
@@ -668,8 +702,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         }
       } catch (e) {
         if (mounted) {
+          final errorMessage = _getUserFriendlyErrorMessage(e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString())),
+            SnackBar(content: Text(errorMessage)),
           );
         }
       }

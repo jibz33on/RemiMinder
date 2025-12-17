@@ -12,6 +12,9 @@ class SecureStorage {
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
 
+  // User preference keys
+  static const String _rememberMeKey = 'remember_me';
+
   /// Save authentication tokens
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     print(
@@ -41,6 +44,20 @@ class SecureStorage {
   Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+  }
+
+  /// Save remember me preference
+  Future<void> saveRememberMe(bool rememberMe) async {
+    await _storage.write(key: _rememberMeKey, value: rememberMe.toString());
+    print('🔐 SecureStorage: Remember me preference saved: $rememberMe');
+  }
+
+  /// Get remember me preference
+  Future<bool> getRememberMe() async {
+    final value = await _storage.read(key: _rememberMeKey);
+    final rememberMe = value == 'true';
+    print('🔐 SecureStorage: Remember me preference read: $rememberMe');
+    return rememberMe;
   }
 
   /// Clear all stored data

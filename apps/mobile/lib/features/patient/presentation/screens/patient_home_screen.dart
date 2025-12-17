@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class PatientHomeScreen extends StatefulWidget {
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../shared/utilities/greeting_utils.dart';
+
+class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
 
   @override
-  State<PatientHomeScreen> createState() => _PatientHomeScreenState();
+  ConsumerState<PatientHomeScreen> createState() => _PatientHomeScreenState();
 }
 
-class _PatientHomeScreenState extends State<PatientHomeScreen> {
+class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState.user;
+    final userName = user?.displayName ?? 'Patient';
+    final greeting = GreetingUtils.getPersonalizedGreetingWithEmoji(userName);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -48,7 +57,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good morning, John! 👋',
+                    greeting,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 18,
