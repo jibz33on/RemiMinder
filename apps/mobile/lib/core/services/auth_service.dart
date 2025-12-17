@@ -94,8 +94,8 @@ class AuthService {
   }
 
   /// Sign in with email and password
-  Future<User> signIn(String email, String password) async {
-    print('🔐 AuthService: Starting sign in process for $email');
+  Future<User> signIn(String email, String password, {UserRole? selectedRole}) async {
+    print('🔐 AuthService: Starting sign in process for $email, selectedRole: $selectedRole');
 
     // Check if Supabase is available
     if (_supabase == null) {
@@ -143,6 +143,14 @@ class AuthService {
       final user = await _getUserProfile();
       print(
           '🔐 AuthService: Backend profile fetched: ${user.email}, role: ${user.role}');
+
+      // If a role was selected and it differs from the current role, update it
+      if (selectedRole != null && user.role != selectedRole) {
+        print('🔐 AuthService: Selected role ($selectedRole) differs from user role (${user.role}), updating...');
+        final updatedUser = await _updateUserRole(user.id, selectedRole);
+        print('🔐 AuthService: User role updated to: ${updatedUser.role}');
+        return updatedUser;
+      }
 
       return user;
     } catch (e) {
@@ -345,6 +353,27 @@ class AuthService {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to get user profile');
+    }
+
+    final userJson = json.decode(response.body);
+    return User.fromJson(userJson);
+  }
+
+  Future<User> _updateUserRole(String userId, UserRole newRole) async {
+    final headers = await getAuthHeaders();
+    final url = Uri.parse('${Environment.apiBaseUrl}/api/users/${userId}/role');
+
+    final response = await http.put(
+      url,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'role': newRole.name}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update user role');
     }
 
     final userJson = json.decode(response.body);

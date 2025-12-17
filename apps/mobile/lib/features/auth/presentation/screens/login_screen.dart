@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/user.dart';
 import '../providers/auth_provider.dart';
 import '../../data/models/auth_state.dart';
 
@@ -53,7 +54,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       print('🔐 Login: Starting sign in process...');
-      await ref.read(authNotifierProvider.notifier).signIn(email, password);
+      // Convert string role to UserRole enum
+      UserRole? selectedRole;
+      if (_userRole != null) {
+        selectedRole = _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
+      }
+      await ref.read(authNotifierProvider.notifier).signIn(email, password, selectedRole: selectedRole);
       print('🔐 Login: Auth provider call completed');
 
       // Check auth state after login attempt

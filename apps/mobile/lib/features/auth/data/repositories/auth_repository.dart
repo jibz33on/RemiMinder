@@ -24,10 +24,10 @@ class AuthRepository {
   }
 
   /// Sign in with email and password
-  Future<User> signIn(String email, String password) async {
-    print('🔐 AuthRepository: Calling auth service signIn...');
-    final user = await _authService.signIn(email, password);
-    print('🔐 AuthRepository: Auth service returned user: ${user.email}');
+  Future<User> signIn(String email, String password, {UserRole? selectedRole}) async {
+    print('🔐 AuthRepository: Calling auth service signIn with selectedRole: $selectedRole...');
+    final user = await _authService.signIn(email, password, selectedRole: selectedRole);
+    print('🔐 AuthRepository: Auth service returned user: ${user.email}, role: ${user.role}');
     return user;
   }
 
