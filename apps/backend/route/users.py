@@ -89,8 +89,11 @@ def create_user_profile(request: CreateUserRequest):
 @router.put("/{user_id}/role")
 def update_user_role(user_id: str, request: UpdateRoleRequest, current_user: str = Depends(get_current_user)):
     """Update user role - only allow users to update their own role"""
+    print(f"BACKEND: Role update requested - user_id: {user_id}, current_user: {current_user}, new_role: {request.role}")
+
     # Check if users table exists
     if not check_table_exists("users"):
+        print("BACKEND: Users table doesn't exist")
         raise HTTPException(
             500,
             "Database setup incomplete: Please create the 'users' table in Supabase."
@@ -98,15 +101,22 @@ def update_user_role(user_id: str, request: UpdateRoleRequest, current_user: str
 
     # Only allow users to update their own role
     if current_user != user_id:
+        print(f"BACKEND: Permission denied - current_user ({current_user}) != user_id ({user_id})")
         raise HTTPException(403, "You can only update your own role")
 
-    # Validate role
+    print("BACKEND: Permission check passed, proceeding with role update")
+
+    # Validate role and map 'patient' to 'user' for database compatibility
     if request.role not in ["patient", "caregiver"]:
         raise HTTPException(400, "Invalid role. Must be 'patient' or 'caregiver'")
 
+    # Map patient to user for database storage (database constraint only allows 'user', 'caregiver')
+    db_role = "user" if request.role == "patient" else request.role
+    print(f"BACKEND: Mapping role '{request.role}' to database role '{db_role}'")
+
     try:
         # Update user role
-        result = supabase.table("users").update({"role": request.role}).eq("id", user_id).execute()
+        result = supabase.table("users").update({"role": db_role}).eq("id", user_id).execute()
 
         if not result.data:
             raise HTTPException(404, "User not found")

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/secure_storage.dart';
 import '../providers/auth_provider.dart';
 import '../../data/models/auth_state.dart';
 
@@ -16,8 +17,45 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
+  bool _isPasswordVisible =
+      false; // false = password hidden, true = password visible
+  bool _rememberMe = false; // Remember me checkbox state
   String? _userRole;
+
+  /// Convert technical errors to user-friendly messages
+  String _getUserFriendlyErrorMessage(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+
+    // Authentication errors
+    if (errorString.contains('invalid email or password') ||
+        errorString.contains('invalid_credentials')) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+
+    if (errorString.contains('email not confirmed') ||
+        errorString.contains('email_not_confirmed')) {
+      return 'Please check your email and confirm your account before signing in.';
+    }
+
+    if (errorString.contains('user not found') ||
+        errorString.contains('user_not_found')) {
+      return 'No account found with this email address.';
+    }
+
+    // Network/API errors
+    if (errorString.contains('connection refused') ||
+        errorString.contains('network') ||
+        errorString.contains('failed to get user profile')) {
+      return 'Connection error. Please check your internet connection and try again.';
+    }
+
+    if (errorString.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+
+    // Generic fallback
+    return 'Sign in failed. Please try again or contact support if the problem persists.';
+  }
 
   @override
   void didChangeDependencies() {
@@ -25,6 +63,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Get role from navigation parameters
     final uri = Uri.parse(GoRouterState.of(context).uri.toString());
     _userRole = uri.queryParameters['role'];
+    // Load remember me preference
+    _loadRememberMePreference();
+  }
+
+  Future<void> _loadRememberMePreference() async {
+    final rememberMe = await SecureStorage().getRememberMe();
+    if (mounted) {
+      setState(() {
+        _rememberMe = rememberMe;
+      });
+    }
   }
 
   @override
@@ -57,18 +106,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Convert string role to UserRole enum
       UserRole? selectedRole;
       if (_userRole != null) {
-        selectedRole = _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
+        selectedRole =
+            _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
+        print(
+            '🔐 Login: URL role parameter: $_userRole, converted to selectedRole: $selectedRole');
+      } else {
+        print('🔐 Login: No role parameter in URL, selectedRole is null');
       }
-      await ref.read(authNotifierProvider.notifier).signIn(email, password, selectedRole: selectedRole);
+      await ref
+          .read(authNotifierProvider.notifier)
+          .signIn(email, password, selectedRole: selectedRole);
       print('🔐 Login: Auth provider call completed');
 
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
-      print('🔐 Login: Auth state - isAuthenticated: ${authState.isAuthenticated}');
+      print(
+          '🔐 Login: Auth state - status: ${authState.status}, isAuthenticated: ${authState.isAuthenticated}, hasError: ${authState.hasError}');
+
+      if (authState.hasError) {
+        print(
+            '🔐 Login: Authentication error detected: ${authState.errorMessage}');
+        if (mounted) {
+          final errorMessage = _getUserFriendlyErrorMessage(
+              authState.errorMessage ?? 'Authentication failed');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
+          );
+        }
+        return;
+      }
 
       if (authState.isAuthenticated) {
         final user = authState.user;
-        print('🔐 Login: User data - email: ${user?.email}, role: ${user?.role}, isPatient: ${user?.isPatient}, isCaregiver: ${user?.isCaregiver}');
+        print(
+            '🔐 Login: User data - email: ${user?.email}, role: ${user?.role}, isPatient: ${user?.isPatient}, isCaregiver: ${user?.isCaregiver}');
+
+        // Save remember me preference
+        await SecureStorage().saveRememberMe(_rememberMe);
+        print('🔐 Login: Remember me preference saved: $_rememberMe');
 
         if (user?.isPatient ?? false) {
           print('🔐 Login: Navigating to patient home...');
@@ -87,16 +162,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             print('🔐 Login: Widget not mounted, cannot navigate');
           }
         } else {
-          print('🔐 Login: User role not recognized or null - staying on login screen');
+          print(
+              '🔐 Login: User role not recognized or null - staying on login screen');
         }
       } else {
         print('🔐 Login: Authentication failed or auth state not set');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Authentication failed. Please try again.')),
+          );
+        }
       }
     } catch (e) {
-      print('🔐 Login: Exception caught: $e');
+      print('🔐 Login: Unexpected exception caught: $e');
       if (mounted) {
+        final errorMessage = _getUserFriendlyErrorMessage(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     }
@@ -107,55 +190,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // In a real app, you might want to scroll to a form section
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sign in with Email'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'Enter your email',
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                hintText: 'Enter your password',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
-                  },
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Sign in with Email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter your email',
                 ),
+                keyboardType: TextInputType.emailAddress,
               ),
-              obscureText: !_isPasswordVisible,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                        print(
+                            '🔐 Password visibility toggled: $_isPasswordVisible');
+                      });
+                    },
+                  ),
+                ),
+                obscureText: !_isPasswordVisible,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: (value) {
+                      setState(() {
+                        _rememberMe = value ?? false;
+                        print('🔐 Remember me toggled: $_rememberMe');
+                      });
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Remember me',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _signIn();
+              },
+              child: const Text('Sign In'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _signIn();
-            },
-            child: const Text('Sign In'),
-          ),
-        ],
       ),
     );
   }
