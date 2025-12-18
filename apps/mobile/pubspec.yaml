@@ -54,6 +54,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icon.png
+    # Environment configuration
+    - .env
     # Logo assets for authentication (currently JPEG, ideally SVG)
     - assets/images/google_logo.svg  # Currently a JPEG file
     # - assets/images/apple_logo.svg

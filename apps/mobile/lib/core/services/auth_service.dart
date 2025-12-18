@@ -26,7 +26,34 @@ class AuthService {
     if (_supabase == null) {
       print(
           'AuthService: Supabase not initialized - authentication will not work');
+    } else {
+      // Initialize auth state change listener for debugging
+      _initializeAuthStateListener();
     }
+  }
+
+  /// Initialize auth state change listener for debugging
+  void _initializeAuthStateListener() {
+    print('🔐 AuthService: Initializing auth state change listener...');
+
+    // Add auth state change listener for debugging
+    _supabase!.auth.onAuthStateChange.listen((event) {
+      print(
+          '🔐 AuthService: Auth state change - Event: ${event.event}, Session: ${event.session != null ? 'present' : 'null'}');
+      print(
+          '🔐 AuthService: Current user: ${_supabase!.auth.currentUser?.email ?? 'null'}');
+      print(
+          '🔐 AuthService: Current session: ${_supabase!.auth.currentSession != null ? 'present' : 'null'}');
+
+      if (event.session != null) {
+        print(
+            '🔐 AuthService: Session details - User ID: ${event.session!.user.id}');
+        print(
+            '🔐 AuthService: Session details - Access token: ${event.session!.accessToken.substring(0, 20)}...');
+      }
+    });
+
+    print('🔐 AuthService: Auth state change listener initialized');
   }
 
   /// Sign up a new user
@@ -173,19 +200,27 @@ class AuthService {
 
   /// Sign in with Google OAuth
   Future<User> signInWithGoogle() async {
+    print('🔐 AuthService: Starting Google Sign-In process...');
+
     // Check if Supabase is available
     if (_supabase == null) {
+      print('🔐 AuthService: Supabase not available');
       throw Exception(
           'Authentication not available. Please configure Supabase in your .env file.');
     }
 
     try {
+      print('🔐 AuthService: Getting Google authentication credentials...');
       // Get Google authentication credentials
       final googleAuth = await GoogleSignInService.signInWithGoogle();
 
       if (googleAuth == null) {
+        print('🔐 AuthService: Google sign in was cancelled by user');
         throw Exception('Google sign in was cancelled');
       }
+
+      print(
+          '🔐 AuthService: Got Google credentials, signing in with Supabase...');
 
       // Sign in with Supabase using Google OAuth
       final response = await _supabase!.auth.signInWithIdToken(
@@ -194,14 +229,22 @@ class AuthService {
         accessToken: googleAuth.accessToken,
       );
 
+      print('🔐 AuthService: Supabase response received');
+
       if (response.session == null) {
+        print('🔐 AuthService: No session in Supabase response');
         throw Exception('Google sign in failed');
       }
 
+      print('🔐 AuthService: Supabase session created successfully');
+      print(
+          '🔐 AuthService: Session details - User: ${response.session!.user.email}, ID: ${response.session!.user.id}');
+
       // Get user profile from backend
-      print('Google signin successful, fetching backend profile...');
+      print(
+          '🔐 AuthService: Google signin successful, fetching backend profile...');
       final user = await _getUserProfile();
-      print('Backend profile fetched successfully');
+      print('🔐 AuthService: Backend profile fetched successfully');
 
       // Save tokens
       print(
@@ -385,7 +428,7 @@ class AuthService {
   Future<User> _updateUserRole(String userId, UserRole newRole) async {
     print('🔐 AuthService: Updating user role for $userId to $newRole');
     final headers = await getAuthHeaders();
-    final url = Uri.parse('${Environment.apiBaseUrl}/api/users/${userId}/role');
+    final url = Uri.parse('${Environment.apiBaseUrl}/api/users/$userId/role');
     print('🔐 AuthService: Role update URL: $url');
 
     final response = await http.put(

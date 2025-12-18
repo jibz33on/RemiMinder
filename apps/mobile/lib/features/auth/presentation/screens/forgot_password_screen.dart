@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+import '../../../../core/config/supabase_config.dart';
+
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
@@ -240,10 +244,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
         // Success Message
         Text(
-          'We\'ve sent password reset instructions to ${_emailController.text}',
+          'Password reset email sent!',
           style: const TextStyle(
             fontFamily: 'Poppins', // Consistent sans-serif for body text
-            fontWeight: FontWeight.w400, // Regular weight
+            fontWeight: FontWeight.w500, // Medium weight for emphasis
             fontSize: 16,
             color: Color(0xFF5A5A5A), // Consistent secondary color
             height: 1.4, // Better readability
@@ -254,9 +258,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 8),
 
         Text(
-          'Please check your email and follow the instructions to reset your password.',
+          'We\'ve sent instructions to ${_emailController.text} on how to reset your password.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.secondary,
+                height: 1.4,
+              ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(
+          'Check your email and follow the link to create a new password.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
                 height: 1.4,
               ),
           textAlign: TextAlign.center,
@@ -311,16 +326,52 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _isLoading = true;
       });
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        // Check if Supabase is available
+        final supabaseClient = SupabaseConfig.client;
+        if (supabaseClient == null) {
+          throw Exception(
+              'Authentication service not available. Please try again later.');
+        }
 
-      setState(() {
-        _isLoading = false;
-        _emailSent = true;
-      });
+        // Send password reset email via Supabase
+        await supabaseClient.auth.resetPasswordForEmail(
+          _emailController.text.trim(),
+          redirectTo:
+              null, // Will use default redirect URL configured in Supabase
+        );
 
-      // TODO: Implement actual password reset API call
-      // For now, just show success state
+        print('Password reset email sent to: ${_emailController.text}');
+
+        setState(() {
+          _isLoading = false;
+          _emailSent = true;
+        });
+      } catch (e) {
+        print('Password reset failed: $e');
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Show error message to user
+        String errorMessage = 'Failed to send reset email. Please try again.';
+        if (e.toString().contains('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection.';
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -329,15 +380,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _isLoading = true;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Check if Supabase is available
+      final supabaseClient = SupabaseConfig.client;
+      if (supabaseClient == null) {
+        throw Exception(
+            'Authentication service not available. Please try again later.');
+      }
 
-    setState(() {
-      _isLoading = false;
-    });
+      // Resend password reset email via Supabase
+      await supabaseClient.auth.resetPasswordForEmail(
+        _emailController.text.trim(),
+        redirectTo: null,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reset email sent again!')),
-    );
+      print('Password reset email resent to: ${_emailController.text}');
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reset email sent again!')),
+        );
+      }
+    } catch (e) {
+      print('Password reset resend failed: $e');
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to resend reset email. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
