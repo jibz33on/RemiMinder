@@ -582,24 +582,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    print('🔐 Login: Starting Google Sign-In process...');
     try {
+      print('🔐 Login: Calling auth provider signInWithGoogle...');
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
 
+      print('🔐 Login: Auth provider call completed, checking auth state...');
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
 
+      print('🔐 Login: Auth state after Google sign-in: ${authState.status}');
+
       if (authState.status == AuthStatus.authenticated) {
+        print('🔐 Login: User authenticated, navigating to home screen...');
         // Navigate to appropriate home screen based on role
         final user = authState.user;
+        print(
+            '🔐 Login: User details - email: ${user?.email}, role: ${user?.role}, fullName: ${user?.fullName}');
+        print(
+            '🔐 Login: isPatient: ${user?.isPatient}, isCaregiver: ${user?.isCaregiver}');
+
         if (user?.isPatient ?? false) {
-          context.go('/patient/home');
+          print('🔐 Login: Navigating to patient home...');
+          if (mounted) {
+            context.go('/patient/home');
+            print('🔐 Login: Navigation to /patient/home completed');
+          } else {
+            print('🔐 Login: Widget not mounted, cannot navigate');
+          }
         } else if (user?.isCaregiver ?? false) {
-          context.go('/caregiver/home');
+          print('🔐 Login: Navigating to caregiver home...');
+          if (mounted) {
+            context.go('/caregiver/home');
+            print('🔐 Login: Navigation to /caregiver/home completed');
+          } else {
+            print('🔐 Login: Widget not mounted, cannot navigate');
+          }
         } else {
-          context.go('/welcome'); // Fallback
+          print('🔐 Login: No role found, navigating to welcome...');
+          print(
+              '🔐 Login: User role enum: ${user?.role}, displayName: ${user?.role.displayName}');
+          if (mounted) {
+            context.go('/welcome'); // Fallback
+            print('🔐 Login: Navigation to /welcome completed');
+          } else {
+            print('🔐 Login: Widget not mounted, cannot navigate');
+          }
         }
+      } else {
+        print('🔐 Login: User not authenticated after Google sign-in');
+        print('🔐 Login: Auth state details: ${authState.toString()}');
       }
     } catch (e) {
+      print('🔐 Login: Google Sign-In failed with error: $e');
+      print('🔐 Login: Error type: ${e.runtimeType}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google Sign In failed: ${e.toString()}')),
       );

@@ -20,23 +20,34 @@ class GoogleSignInService {
   /// Sign in with Google and return authentication credentials
   static Future<GoogleSignInAuthentication?> signInWithGoogle() async {
     try {
+      print('🔐 GoogleSignInService: Starting Google Sign-In process...');
+
       // Sign out first to ensure clean state
+      print('🔐 GoogleSignInService: Signing out previous sessions...');
       await _googleSignIn.signOut();
 
       // Start the sign-in process
+      print('🔐 GoogleSignInService: Showing Google Sign-In prompt...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
         // User cancelled the sign-in
+        print('🔐 GoogleSignInService: User cancelled Google Sign-In');
         return null;
       }
 
+      print('🔐 GoogleSignInService: Google user selected: ${googleUser.email}');
+
       // Get authentication credentials
+      print('🔐 GoogleSignInService: Getting authentication credentials...');
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      print('🔐 GoogleSignInService: Got credentials - idToken: ${googleAuth.idToken != null ? "present" : "null"}, accessToken: ${googleAuth.accessToken != null ? "present" : "null"}');
 
       return googleAuth;
     } catch (error) {
-      print('Google Sign In error: $error');
+      print('🔐 GoogleSignInService: Google Sign In error: $error');
+      print('🔐 GoogleSignInService: Error type: ${error.runtimeType}');
       rethrow;
     }
   }

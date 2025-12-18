@@ -28,6 +28,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Google Sign-In Configuration
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.googleusercontent.apps.421545279021-r44bjf3i1i9r9ou95qirvfk1jj1vrff9"
     }
 
     buildTypes {

@@ -20,26 +20,36 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   }
 
   Future<void> _initializeApp() async {
+    print('🔄 LoadingScreen: Initializing app, waiting for auth check...');
     // Wait for authentication check to complete
     await Future.delayed(const Duration(seconds: 2));
 
     if (mounted) {
       final authState = ref.read(authNotifierProvider);
+      print('🔄 LoadingScreen: Auth state check - Status: ${authState.status}');
+      print('🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
 
       if (authState.status == AuthStatus.authenticated) {
+        print('🔄 LoadingScreen: User authenticated, navigating to home screen...');
         // Navigate to appropriate home screen based on role
         final user = authState.user;
         if (user?.isPatient ?? false) {
+          print('🔄 LoadingScreen: Navigating to patient home...');
           context.go('/patient/home');
         } else if (user?.isCaregiver ?? false) {
+          print('🔄 LoadingScreen: Navigating to caregiver home...');
           context.go('/caregiver/home');
         } else {
+          print('🔄 LoadingScreen: User role not recognized, navigating to welcome...');
           context.go('/welcome'); // Fallback
         }
       } else {
+        print('🔄 LoadingScreen: User not authenticated, going to welcome screen...');
         // Go to welcome/onboarding flow
         context.go('/welcome');
       }
+    } else {
+      print('🔄 LoadingScreen: Widget not mounted, cannot navigate');
     }
   }
 
