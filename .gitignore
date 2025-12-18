@@ -79,3 +79,14 @@ docs/
 # Personal learning files (local development only)
 learning-git.txt
 test-git-learning.txt
+
+
+# Flutter generated
+.dart_tool/
+.flutter-plugins-dependencies
+**/GeneratedPluginRegistrant.*
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+
+# Android
+android/local.properties
