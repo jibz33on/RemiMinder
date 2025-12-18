@@ -16,3 +16,6 @@ api_router.include_router(patient_register.router)
 api_router.include_router(visit_summary.router)
 api_router.include_router(reminders.router)
 api_router.include_router(product_demo.router)
+
+
+
