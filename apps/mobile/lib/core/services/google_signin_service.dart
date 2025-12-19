@@ -4,7 +4,9 @@ import '../config/environment.dart';
 /// Service for handling Google Sign In authentication
 class GoogleSignInService {
   static GoogleSignIn get _googleSignIn {
-    final clientId = Environment.supabaseUrl.isNotEmpty ? null : null; // Will be configured per platform
+    final clientId = Environment.supabaseUrl.isNotEmpty
+        ? null
+        : null; // Will be configured per platform
 
     return GoogleSignIn(
       scopes: [
@@ -36,13 +38,16 @@ class GoogleSignInService {
         return null;
       }
 
-      print('🔐 GoogleSignInService: Google user selected: ${googleUser.email}');
+      print(
+          '🔐 GoogleSignInService: Google user selected: ${googleUser.email}');
 
       // Get authentication credentials
       print('🔐 GoogleSignInService: Getting authentication credentials...');
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
-      print('🔐 GoogleSignInService: Got credentials - idToken: ${googleAuth.idToken != null ? "present" : "null"}, accessToken: ${googleAuth.accessToken != null ? "present" : "null"}');
+      print(
+          '🔐 GoogleSignInService: Got credentials - idToken: ${googleAuth.idToken != null ? "present" : "null"}, accessToken: ${googleAuth.accessToken != null ? "present" : "null"}');
 
       return googleAuth;
     } catch (error) {

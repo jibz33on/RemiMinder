@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/utilities/greeting_utils.dart';
+import '../widgets/widgets.dart';
+import '../widgets/rounded_navigation_bar.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -13,8 +15,6 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
-  int _selectedIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -83,112 +83,99 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               color: Theme.of(context).colorScheme.primary,
             ),
             onPressed: () {
-              // TODO: Navigate to notifications
+              context.go('/patient/notifications');
             },
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
 
-              // Next Reminder Card (Prominent)
-              _buildNextReminderCard(),
+                  // Daily Progress Overview
+                  _buildDailyProgressOverview(),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // Recent Visits Section
-              _buildSectionHeader('Recent Visits', Icons.history),
-              const SizedBox(height: 16),
-              _buildRecentVisits(),
+                  // Up Next Card
+                  _buildUpNextCard(),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // Today's Medication Section
-              _buildSectionHeader('Today\'s Medications', Icons.medication),
-              const SizedBox(height: 16),
-              _buildTodaysMedications(),
+                  // Today's Schedule
+                  const SectionHeader(
+                    title: 'Today\'s Schedule',
+                    icon: Icons.schedule,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTodaysSchedule(),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // Upcoming Appointments
-              _buildSectionHeader(
-                  'Upcoming Appointments', Icons.calendar_today),
-              const SizedBox(height: 16),
-              _buildUpcomingAppointments(),
+                  // To-do List
+                  const SectionHeader(
+                    title: 'To-do List',
+                    icon: Icons.checklist,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTodoList(),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // Quick Actions
-              _buildSectionHeader('Quick Actions', Icons.flash_on),
-              const SizedBox(height: 16),
-              _buildQuickActions(),
+                  // Health Summary
+                  const SectionHeader(
+                    title: 'Health Summary',
+                    icon: Icons.health_and_safety,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildHealthSummary(),
 
-              const SizedBox(height: 32),
-
-              // Health Summary
-              _buildSectionHeader('Health Summary', Icons.health_and_safety),
-              const SizedBox(height: 16),
-              _buildHealthSummary(),
-
-              const SizedBox(height: 24),
-            ],
+                  const SizedBox(
+                      height: 120), // Extra space for bottom navigation
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        backgroundColor: Colors.white,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).colorScheme.secondary,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Visits',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Reminders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan',
-          ),
+
+          // Rounded Navigation Bar
+          RoundedNavigationBar(currentItem: NavigationItem.home),
         ],
       ),
     );
   }
 
-  Widget _buildNextReminderCard() {
+  Widget _buildUpNextCard() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
+            Color(0xFF1A4D4D), // Dark teal-green
+            Color(0xFF051818), // Very dark green/black
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: const Border(
+          top: BorderSide(
+            color: Colors.white,
+            width: 0.5,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +189,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Next Reminder',
+                'Up Next',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 16,
@@ -212,7 +199,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Lisinopril 10mg',
             style: TextStyle(
               color: Colors.white,
@@ -278,7 +265,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildRecentVisits() {
+  Widget _buildTodaysSchedule() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -294,251 +281,110 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ),
       child: Column(
         children: [
-          _buildVisitItem(
-            'Dr. Sarah Johnson',
-            'Cardiology Follow-up',
-            '2 days ago',
-            'City Medical Center',
-            true, // has summary
-          ),
-          const Divider(height: 16),
-          _buildVisitItem(
-            'Dr. Michael Chen',
-            'Blood Work Review',
-            '1 week ago',
-            'LabCorp Downtown',
-            false, // no summary yet
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () {
-              // TODO: Navigate to full visit history
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('View all visits - Coming Soon!')),
-              );
-            },
-            child: Text(
-              'View All Visits',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+          // Medications Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Medications',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVisitItem(String doctor, String type, String date,
-      String location, bool hasSummary) {
-    return InkWell(
-      onTap: () {
-        context.go('/patient/visit-details');
-      },
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              hasSummary ? Icons.description : Icons.medical_services,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  doctor,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                Text(
-                  type,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-                Text(
-                  '$date • $location',
+                child: const Text(
+                  '1/3 taken',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .secondary
-                        .withOpacity(0.7),
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (hasSummary)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
-                'Summary Ready',
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 24,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
+            ],
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 12),
 
-  Widget _buildTodaysMedications() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
           _buildMedicationItem(
             'Lisinopril',
             '10mg',
             '08:00 AM',
             true, // taken
           ),
-          const Divider(height: 16),
+          const Divider(height: 12),
           _buildMedicationItem(
             'Metformin',
             '500mg',
             '02:00 PM',
             false, // not taken
           ),
-          const Divider(height: 16),
+          const Divider(height: 12),
           _buildMedicationItem(
             'Atorvastatin',
             '20mg',
             '08:00 PM',
             false, // not taken
           ),
+
+          const SizedBox(height: 24),
+
+          // Appointments Section
+          Row(
+            children: [
+              Text(
+                'Appointments',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          _buildAppointmentItem(
+            'Dr. Sarah Johnson',
+            'Cardiology Checkup',
+            '2:30 PM',
+            'City Medical Center',
+          ),
+
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    context.go('/patient/reminders');
+                  },
+                  child: const Text('View All'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    // TODO: Add new item
+                  },
+                  child: const Text('Add Item'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMedicationItem(
-      String name, String dosage, String time, bool isTaken) {
-    return Row(
-      children: [
-        // Medication Icon
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isTaken
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                : Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.medication,
-            color: isTaken
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.secondary,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Medication Details
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                  decoration: isTaken ? TextDecoration.lineThrough : null,
-                ),
-              ),
-              Text(
-                '$dosage • $time',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Status/Action Button
-        ElevatedButton(
-          onPressed: isTaken ? null : () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isTaken ? Colors.green : Theme.of(context).colorScheme.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          child: Text(
-            isTaken ? 'Taken' : 'Take',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUpcomingAppointments() {
+  Widget _buildTodoList() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -554,18 +400,241 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ),
       child: Column(
         children: [
-          _buildAppointmentItem(
-            'Dr. Sarah Johnson',
-            'Cardiology Checkup',
-            'Tomorrow, 2:30 PM',
-            'City Medical Center',
+          _buildTodoItem(
+            'Take blood pressure reading',
+            'Due today',
+            false,
+          ),
+          const Divider(height: 12),
+          _buildTodoItem(
+            'Schedule annual physical',
+            'Due in 2 weeks',
+            false,
+          ),
+          const Divider(height: 12),
+          _buildTodoItem(
+            'Refill Lisinopril prescription',
+            'Due in 5 days',
+            false,
+          ),
+          const Divider(height: 12),
+          _buildTodoItem(
+            'Complete health questionnaire',
+            'Due tomorrow',
+            true, // completed
           ),
           const SizedBox(height: 16),
-          _buildAppointmentItem(
-            'Dr. Michael Chen',
-            'Blood Work',
-            'Friday, 9:00 AM',
-            'LabCorp Downtown',
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // TODO: Navigate to full todo list
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add Task'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodoItem(String title, String dueDate, bool isCompleted) {
+    return Row(
+      children: [
+        Checkbox(
+          value: isCompleted,
+          onChanged: (value) {
+            // TODO: Update todo status
+          },
+          activeColor: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isCompleted
+                      ? Theme.of(context).colorScheme.secondary.withOpacity(0.6)
+                      : Theme.of(context).colorScheme.primary,
+                  decoration: isCompleted ? TextDecoration.lineThrough : null,
+                ),
+              ),
+              Text(
+                dueDate,
+                style: TextStyle(
+                  fontSize: 12,
+                  color:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (isCompleted)
+          Icon(
+            Icons.check_circle,
+            color: Colors.green,
+            size: 20,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMedicationItem(
+      String name, String dosage, String time, bool isTaken) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isTaken ? Colors.green.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isTaken
+              ? Colors.green.withOpacity(0.3)
+              : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Medication Icon with status indicator
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isTaken
+                      ? Colors.green.withOpacity(0.1)
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.medication,
+                  color: isTaken
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              if (isTaken)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          // Medication Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: isTaken ? TextDecoration.lineThrough : null,
+                    decorationColor: Colors.green,
+                    decorationThickness: 2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.schedule,
+                      size: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withOpacity(0.7),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      time,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.local_pharmacy,
+                      size: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withOpacity(0.7),
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      dosage,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Status/Action Button
+          ElevatedButton(
+            onPressed: isTaken
+                ? null
+                : () {
+                    // TODO: Mark as taken and update state
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$name marked as taken!')),
+                    );
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isTaken
+                  ? Colors.green
+                  : Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: isTaken ? 0 : 2,
+            ),
+            child: Text(
+              isTaken ? '✓ Taken' : 'Take Now',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -626,79 +695,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildQuickActionItem(
-          'Record Visit',
-          Icons.mic,
-          () {
-            context.go('/patient/record-visit');
-          },
-        ),
-        _buildQuickActionItem(
-          'Scan',
-          Icons.qr_code_scanner,
-          () {
-            context.go('/patient/scan');
-          },
-        ),
-        _buildQuickActionItem(
-          'Emergency',
-          Icons.emergency,
-          () {
-            // TODO: Emergency contact
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Emergency - Coming Soon!')),
-            );
-          },
-        ),
-        _buildQuickActionItem(
-          'Invite Caregiver',
-          Icons.person_add,
-          () {
-            context.go('/patient/invitations');
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionItem(
-      String label, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              color: Theme.of(context).colorScheme.primary,
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHealthSummary() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -752,28 +748,58 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // TODO: Implement navigation to different screens
-    switch (index) {
-      case 0:
-        // Already on home
-        break;
-      case 1:
-        // Navigate to visits screen (visit details for now)
-        context.go('/patient/visit-details');
-        break;
-      case 2:
-        // Navigate to reminders screen
-        context.go('/patient/reminders');
-        break;
-      case 3:
-        // Navigate to scan screen
-        context.go('/patient/scan');
-        break;
-    }
+  Widget _buildDailyProgressOverview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary.withOpacity(0.1),
+            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Today\'s Progress',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const ProgressItem(
+                title: 'Medications',
+                progress: 0.75,
+                subtitle: '3/4 taken',
+              ),
+              const ProgressItem(
+                title: 'Activities',
+                progress: 0.5,
+                subtitle: '1/2 completed',
+              ),
+              const ProgressItem(
+                title: 'Goals',
+                progress: 1.0,
+                subtitle: 'All met',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

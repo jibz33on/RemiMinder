@@ -19,7 +19,7 @@ class AppTheme {
       useMaterial3: true,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
         error: errorColor,
@@ -63,13 +63,13 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryColor, width: 2),
+          borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
-        labelStyle: TextStyle(color: accentColor),
+        labelStyle: const TextStyle(color: accentColor),
       ),
       // PM-specified typography: Merriweather for headings, Poppins for body text
       fontFamily: 'Poppins', // Default font for body text and UI elements
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         // Main headings use Merriweather (serif)
         headlineLarge: TextStyle(
           color: primaryColor,

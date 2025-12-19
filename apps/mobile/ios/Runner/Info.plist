@@ -60,7 +60,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.421545279021-r44bjf3i1i9r9ou95qirvfk1jj1vrff9</string>
+				<string>com.remiminder.app</string>
 			</array>
 		</dict>
 	</array>

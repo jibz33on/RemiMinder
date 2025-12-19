@@ -447,7 +447,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 children: [
                   _buildStatItem(
                     'Adherence',
-                    '${medicationAdherence}%',
+                    '$medicationAdherence%',
                     medicationAdherence >= 80
                         ? Colors.green
                         : medicationAdherence >= 60
@@ -480,7 +480,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           onPressed: () => _viewAlerts(patient),
                           icon: const Icon(Icons.notifications, size: 16),
                           label: Text(
-                              'View ${unreadAlerts} Alert${unreadAlerts > 1 ? 's' : ''}'),
+                              'View $unreadAlerts Alert${unreadAlerts > 1 ? 's' : ''}'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                           ),
@@ -494,7 +494,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           onPressed: () => _viewAppointments(patient),
                           icon: const Icon(Icons.calendar_today, size: 16),
                           label: Text(
-                              '${upcomingAppointments} Appointment${upcomingAppointments > 1 ? 's' : ''}'),
+                              '$upcomingAppointments Appointment${upcomingAppointments > 1 ? 's' : ''}'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                           ),

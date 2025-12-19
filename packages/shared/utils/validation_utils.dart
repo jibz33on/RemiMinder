@@ -93,13 +93,13 @@ class ValidationUtils {
 // Python version for backend validation
 class ValidationUtils:
     @staticmethod
-    def is_valid_email(email: str) -> bool:
+    def is_valid_email(email = str) -> bool:
         import re
         pattern = r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+'
         return bool(re.match(pattern, email))
 
     @staticmethod
-    def is_valid_password(password: str) -> bool:
+    def is_valid_password(password = str) -> bool:
         # At least 8 characters, 1 uppercase, 1 lowercase, 1 number
         import re
         if len(password) < 8:
@@ -108,7 +108,7 @@ class ValidationUtils:
         return bool(re.match(pattern, password))
 
     @staticmethod
-    def is_valid_medication_name(name: str) -> bool:
+    def is_valid_medication_name(name = str) -> bool:
         if not name or len(name.strip()) < 2 or len(name) > 100:
             return False
         import re
@@ -116,7 +116,7 @@ class ValidationUtils:
         return bool(re.match(pattern, name))
 
     @staticmethod
-    def is_valid_dosage(dosage: str) -> bool:
+    def is_valid_dosage(dosage = str) -> bool:
         if not dosage.strip():
             return False
         import re

@@ -63,11 +63,14 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo
+            // Logo - PM's blending suggestion
             Image.asset(
               'assets/images/RemiMinder_logo.png',
               width: 160,
               height: 160,
+              // PM's suggestion: BlendMode.multiply makes white areas transparent
+              colorBlendMode: BlendMode.multiply,
+              color: Colors.white, // Triggers multiply mode for transparency effect
             ),
 
             const SizedBox(height: 20),

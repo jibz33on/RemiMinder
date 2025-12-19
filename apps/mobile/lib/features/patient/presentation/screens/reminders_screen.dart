@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter/animation.dart';
+
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
 
@@ -165,6 +167,13 @@ class _RemindersScreenState extends State<RemindersScreen>
             ),
             onPressed: _toggleSearch,
           ),
+          IconButton(
+            icon: Icon(
+              Icons.bar_chart,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            onPressed: () => _showAdherenceStats(),
+          ),
         ],
         bottom: _searchQuery.isEmpty
             ? TabBar(
@@ -264,8 +273,8 @@ class _RemindersScreenState extends State<RemindersScreen>
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete'),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
               ),
             ],
           ),
@@ -646,6 +655,255 @@ class _RemindersScreenState extends State<RemindersScreen>
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Reminder deleted')),
+    );
+  }
+
+  void _showAdherenceStats() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.bar_chart,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Medication Adherence',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Stats Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Overall adherence
+                    _buildAdherenceStat('This Week', 0.85, '6/7 days'),
+                    const SizedBox(height: 16),
+                    _buildAdherenceStat('This Month', 0.92, '28/30 days'),
+                    const SizedBox(height: 16),
+                    _buildAdherenceStat('Overall', 0.88, '89/101 doses'),
+
+                    const SizedBox(height: 32),
+
+                    // Medication breakdown
+                    Text(
+                      'By Medication',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildMedicationAdherence(
+                        'Lisinopril 10mg', 0.95, '19/20 doses'),
+                    const SizedBox(height: 12),
+                    _buildMedicationAdherence(
+                        'Metformin 500mg', 0.80, '16/20 doses'),
+                    const SizedBox(height: 12),
+                    _buildMedicationAdherence(
+                        'Atorvastatin 20mg', 0.90, '18/20 doses'),
+
+                    const SizedBox(height: 32),
+
+                    // Tips
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Adherence Tips',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '• Set phone reminders for medication times\n• Keep medications in a visible location\n• Use a pill organizer for daily doses\n• Track your progress to stay motivated',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.5,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdherenceStat(String period, double adherence, String detail) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  period,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  detail,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 50,
+                height: 50,
+                child: CircularProgressIndicator(
+                  value: adherence,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    adherence >= 0.9
+                        ? Colors.green
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                  strokeWidth: 6,
+                ),
+              ),
+              Text(
+                '${(adherence * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedicationAdherence(
+      String medication, double adherence, String detail) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  medication,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  detail,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: adherence >= 0.9
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '${(adherence * 100).toInt()}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: adherence >= 0.9 ? Colors.green : Colors.orange,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
