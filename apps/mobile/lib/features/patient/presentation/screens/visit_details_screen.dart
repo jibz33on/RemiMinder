@@ -113,6 +113,21 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
 
               const SizedBox(height: 24),
 
+              // AI Insights Section
+              _buildAIInsightsSection(),
+
+              const SizedBox(height: 24),
+
+              // Health Trends
+              _buildHealthTrendsSection(),
+
+              const SizedBox(height: 24),
+
+              // Follow-up Recommendations
+              _buildFollowUpRecommendations(),
+
+              const SizedBox(height: 24),
+
               // Transcript Section
               _buildTranscriptSection(),
 
@@ -358,7 +373,7 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: Colors.green,
                     size: 20,
@@ -517,6 +532,352 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
     );
   }
 
+  Widget _buildAIInsightsSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  color: Colors.purple,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'AI Health Insights',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInsightCard(
+            'Positive Progress',
+            'Blood pressure and cholesterol levels show significant improvement since last visit.',
+            Icons.trending_up,
+            Colors.green,
+          ),
+          const SizedBox(height: 12),
+          _buildInsightCard(
+            'Medication Adherence',
+            'Consistent medication timing detected. This contributes to stable health metrics.',
+            Icons.check_circle,
+            Colors.blue,
+          ),
+          const SizedBox(height: 12),
+          _buildInsightCard(
+            'Lifestyle Impact',
+            'Monitor fatigue levels closely. Consider light exercise and balanced nutrition.',
+            Icons.fitness_center,
+            Colors.orange,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard(
+      String title, String description, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.secondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthTrendsSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.show_chart,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Health Trends',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildTrendItem(
+              'Blood Pressure', '128/82', '+5 points', true, Colors.green),
+          const SizedBox(height: 12),
+          _buildTrendItem('Cholesterol (Total)', '185 mg/dL', '-15 mg/dL', true,
+              Colors.green),
+          const SizedBox(height: 12),
+          _buildTrendItem(
+              'Heart Rate (Resting)', '72 bpm', 'Stable', false, Colors.blue),
+          const SizedBox(height: 12),
+          _buildTrendItem('Weight', '165 lbs', '-2 lbs', true, Colors.green),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrendItem(String metric, String value, String change,
+      bool isImprovement, Color color) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            metric,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Icon(
+                isImprovement ? Icons.arrow_upward : Icons.arrow_forward,
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                change,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFollowUpRecommendations() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_view_week,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Follow-up Recommendations',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildRecommendationItem(
+            'Schedule blood work in 3 months',
+            'Monitor cholesterol and kidney function',
+            DateTime.now().add(const Duration(days: 90)),
+            Colors.blue,
+          ),
+          const SizedBox(height: 12),
+          _buildRecommendationItem(
+            'Cardiac stress test if symptoms persist',
+            'Only if chest discomfort continues',
+            null,
+            Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _buildRecommendationItem(
+            'Nutrition consultation',
+            'Focus on heart-healthy diet',
+            DateTime.now().add(const Duration(days: 30)),
+            Colors.green,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItem(
+      String title, String description, DateTime? dueDate, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+                if (dueDate != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Due: ${dueDate.month}/${dueDate.day}/${dueDate.year}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButtons() {
     return Column(
       children: [
@@ -584,14 +945,14 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
                     Icon(
                       Icons.check_circle,
                       color: Colors.green,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       'Reminders Created',
                       style: TextStyle(

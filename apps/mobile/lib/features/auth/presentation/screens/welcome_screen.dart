@@ -107,13 +107,13 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Bottom indicator dots
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _IndicatorDot(isActive: true),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _IndicatorDot(isActive: false),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _IndicatorDot(isActive: false),
                 ],
               ),

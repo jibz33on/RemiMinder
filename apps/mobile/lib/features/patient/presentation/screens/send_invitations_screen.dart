@@ -24,6 +24,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
       'status': 'accepted',
       'invitedDate': DateTime.now().subtract(const Duration(days: 30)),
       'acceptedDate': DateTime.now().subtract(const Duration(days: 25)),
+      'permissions': ['view_medications', 'view_visits', 'view_health_data'],
+      'lastActivity': DateTime.now().subtract(const Duration(hours: 2)),
+      'activityCount': 45,
     },
     {
       'id': '2',
@@ -32,6 +35,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
       'relationship': 'Friend',
       'status': 'pending',
       'invitedDate': DateTime.now().subtract(const Duration(days: 5)),
+      'permissions': [],
+      'lastActivity': null,
+      'activityCount': 0,
     },
     {
       'id': '3',
@@ -41,6 +47,15 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
       'status': 'accepted',
       'invitedDate': DateTime.now().subtract(const Duration(days: 15)),
       'acceptedDate': DateTime.now().subtract(const Duration(days: 12)),
+      'permissions': [
+        'view_medications',
+        'view_visits',
+        'view_health_data',
+        'edit_medications',
+        'manage_emergency'
+      ],
+      'lastActivity': DateTime.now().subtract(const Duration(hours: 6)),
+      'activityCount': 23,
     },
   ];
 
@@ -288,15 +303,15 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.check_circle,
                       color: Colors.green,
                       size: 16,
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
                       'Active Caregiver',
                       style: TextStyle(
@@ -308,6 +323,89 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 8),
+              // Permissions and Activity Row
+              Row(
+                children: [
+                  // Permissions
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _showPermissionsDialog(caregiver),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.security,
+                              color: Colors.blue,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(caregiver['permissions'] as List).length} perms',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Activity
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.timeline,
+                            color: Colors.purple,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${caregiver['activityCount']} acts',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Colors.purple,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (caregiver['lastActivity'] != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Last active: ${_formatLastActivity(caregiver['lastActivity'])}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.6),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
@@ -421,7 +519,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _selectedRelationship,
+                    initialValue: _selectedRelationship,
                     decoration: const InputDecoration(
                       labelText: 'Relationship',
                     ),
@@ -528,5 +626,155 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
         ],
       ),
     );
+  }
+
+  void _showPermissionsDialog(Map<String, dynamic> caregiver) {
+    final currentPermissions = caregiver['permissions'] as List<String>;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.security,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Permissions for ${caregiver['name']}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildPermissionItem(
+                  'View Medications',
+                  'Can see medication schedules and history',
+                  'view_medications',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+                _buildPermissionItem(
+                  'View Visit Records',
+                  'Can access visit summaries and transcripts',
+                  'view_visits',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+                _buildPermissionItem(
+                  'View Health Data',
+                  'Can see health metrics and trends',
+                  'view_health_data',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+                _buildPermissionItem(
+                  'Edit Medications',
+                  'Can modify medication schedules',
+                  'edit_medications',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+                _buildPermissionItem(
+                  'Manage Emergency Contacts',
+                  'Can modify emergency contact settings',
+                  'manage_emergency',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+                _buildPermissionItem(
+                  'Receive Alerts',
+                  'Gets notified of important health events',
+                  'receive_alerts',
+                  currentPermissions,
+                  (updated) =>
+                      setState(() => _updatePermissions(caregiver, updated)),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionItem(
+    String title,
+    String description,
+    String permissionKey,
+    List<String> currentPermissions,
+    Function(List<String>) onChanged,
+  ) {
+    final hasPermission = currentPermissions.contains(permissionKey);
+
+    return CheckboxListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      subtitle: Text(
+        description,
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+        ),
+      ),
+      value: hasPermission,
+      onChanged: (value) {
+        final updated = List<String>.from(currentPermissions);
+        if (value == true) {
+          updated.add(permissionKey);
+        } else {
+          updated.remove(permissionKey);
+        }
+        onChanged(updated);
+      },
+      activeColor: Theme.of(context).colorScheme.primary,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  void _updatePermissions(
+      Map<String, dynamic> caregiver, List<String> newPermissions) {
+    setState(() {
+      caregiver['permissions'] = newPermissions;
+    });
+  }
+
+  String _formatLastActivity(DateTime lastActivity) {
+    final now = DateTime.now();
+    final difference = now.difference(lastActivity);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

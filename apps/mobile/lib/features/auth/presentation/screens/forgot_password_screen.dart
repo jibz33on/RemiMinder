@@ -61,9 +61,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Title
-                Text(
+                const Text(
                   'Forgot Password?',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily:
                         'Merriweather', // Consistent with other auth screens
                     fontWeight: FontWeight.w700, // Bold weight
@@ -75,9 +75,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 const SizedBox(height: 12),
 
                 // Subtitle
-                Text(
+                const Text(
                   'No worries! Enter your email and we\'ll send you reset instructions.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily:
                         'Poppins', // Consistent sans-serif for body text
                     fontWeight: FontWeight.w400, // Regular weight
@@ -151,9 +151,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ),
 
           // Centered "Remember your password?" text
-          Text(
+          const Text(
             'Remember your password?',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Poppins', // Consistent typography
               fontWeight: FontWeight.w400, // Regular weight
               fontSize: 14,
@@ -187,9 +187,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Back to Login',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins', // Consistent typography
                         fontWeight: FontWeight.w600, // SemiBold for buttons
                         fontSize: 16,
@@ -229,9 +229,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         const SizedBox(height: 32),
 
         // Success Title
-        Text(
+        const Text(
           'Check Your Email',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Merriweather', // Consistent typography
             fontWeight: FontWeight.w700, // Bold weight
             fontSize: 28,
@@ -243,9 +243,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         const SizedBox(height: 16),
 
         // Success Message
-        Text(
+        const Text(
           'Password reset email sent!',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Poppins', // Consistent sans-serif for body text
             fontWeight: FontWeight.w500, // Medium weight for emphasis
             fontSize: 16,

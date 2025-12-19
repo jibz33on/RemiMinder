@@ -403,14 +403,14 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.check_circle,
               color: Colors.green,
             ),
-            const SizedBox(width: 8),
-            const Text('Accept Invitation'),
+            SizedBox(width: 8),
+            Text('Accept Invitation'),
           ],
         ),
         content: Text(
@@ -438,14 +438,14 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.help_outline,
               color: Colors.orange,
             ),
-            const SizedBox(width: 8),
-            const Text('Decline Invitation'),
+            SizedBox(width: 8),
+            Text('Decline Invitation'),
           ],
         ),
         content: Text(

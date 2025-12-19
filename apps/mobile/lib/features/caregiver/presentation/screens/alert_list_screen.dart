@@ -281,8 +281,8 @@ class _AlertListScreenState extends State<AlertListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _markAllAsRead,
         backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.done_all),
         tooltip: 'Mark all as read',
+        child: const Icon(Icons.done_all),
       ),
     );
   }
@@ -518,14 +518,14 @@ class _AlertListScreenState extends State<AlertListScreen> {
 
                     // Action Required Indicator
                     if (actionRequired)
-                      Row(
+                      const Row(
                         children: [
                           Icon(
                             Icons.warning,
                             size: 14,
                             color: Colors.orange,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             'Action Required',
                             style: TextStyle(

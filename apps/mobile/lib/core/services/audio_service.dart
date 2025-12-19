@@ -70,30 +70,34 @@ class AudioService {
 
   /// Pause recording
   Future<void> pauseRecording() async {
-    try {
-      await _audioRecorder.pause();
-      _recordingTimer?.cancel();
-    } catch (e) {
-      debugPrint('Error pausing recording: $e');
-    }
+    // Temporarily disabled - record package commented out
+    debugPrint('Audio recording is temporarily disabled');
+    // try {
+    //   await _audioRecorder.pause();
+    //   _recordingTimer?.cancel();
+    // } catch (e) {
+    //   debugPrint('Error pausing recording: $e');
+    // }
   }
 
   /// Resume recording
   Future<void> resumeRecording() async {
-    try {
-      await _audioRecorder.resume();
-      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        _recordingDuration += const Duration(seconds: 1);
-      });
-    } catch (e) {
-      debugPrint('Error resuming recording: $e');
-    }
+    // Temporarily disabled - record package commented out
+    debugPrint('Audio recording is temporarily disabled');
+    // try {
+    //   await _audioRecorder.resume();
+    //   _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    //     _recordingDuration += const Duration(seconds: 1);
+    //   });
+    // } catch (e) {
+    //   debugPrint('Error resuming recording: $e');
+    // }
   }
 
   /// Cancel recording (delete the file)
   Future<void> cancelRecording() async {
     try {
-      await _audioRecorder.stop();
+      // await _audioRecorder.stop();  // Temporarily disabled
       _isRecording = false;
       _recordingTimer?.cancel();
       _recordingTimer = null;
@@ -120,11 +124,13 @@ class AudioService {
 
   /// Check if recording is paused
   Future<bool> isRecordingPaused() async {
-    try {
-      return await _audioRecorder.isPaused();
-    } catch (e) {
-      return false;
-    }
+    // Temporarily disabled - record package commented out
+    // try {
+    //   return await _audioRecorder.isPaused();
+    // } catch (e) {
+    //   return false;
+    // }
+    return false;
   }
 
   /// Play recorded audio (placeholder for future implementation)
@@ -174,6 +180,6 @@ class AudioService {
   /// Dispose resources
   void dispose() {
     _recordingTimer?.cancel();
-    _audioRecorder.dispose();
+    // _audioRecorder.dispose();  // Temporarily disabled
   }
 }

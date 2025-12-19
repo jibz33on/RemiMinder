@@ -3,10 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+  final ScanMode? initialMode;
+
+  const ScanScreen({
+    super.key,
+    this.initialMode,
+  });
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
+}
+
+ScanMode _parseScanMode(String? modeString) {
+  switch (modeString) {
+    case 'labReport':
+      return ScanMode.labReport;
+    case 'medication':
+      return ScanMode.medication;
+    case 'prescription':
+    default:
+      return ScanMode.prescription;
+  }
 }
 
 class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
@@ -14,7 +31,7 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
   late Animation<double> _scanAnimation;
   late AnimationController _processingController;
 
-  ScanMode _selectedMode = ScanMode.prescription;
+  late ScanMode _selectedMode;
   ScanState _scanState = ScanState.ready;
   Map<String, dynamic>? _scanResults;
   Timer? _scanTimer;
@@ -22,6 +39,22 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Initialize selected mode based on parameter or default
+    _selectedMode = widget.initialMode ?? ScanMode.prescription;
+
+    // Check for mode from query parameters
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final router = GoRouter.of(context);
+      final location = router.routerDelegate.currentConfiguration.uri;
+      final modeString = location.queryParameters['mode'];
+      if (modeString != null) {
+        setState(() {
+          _selectedMode = _parseScanMode(modeString);
+        });
+      }
+    });
+
     _scanAnimationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -197,7 +230,7 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        Text(
+                        const Text(
                           'Processing...',
                           style: TextStyle(
                             color: Colors.white,
@@ -330,7 +363,7 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
               color: Colors.green.withOpacity(0.1),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: Colors.green,
                     size: 32,

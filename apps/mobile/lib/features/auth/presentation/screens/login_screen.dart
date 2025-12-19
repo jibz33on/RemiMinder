@@ -306,9 +306,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 24),
 
               // Brand Name
-              Text(
+              const Text(
                 'RemiMinder.ai',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Merriweather', // Merriweather-Bold font
                   fontWeight: FontWeight.w700, // Bold weight
                   fontSize: 28, // Increased size for more prominence
@@ -320,10 +320,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 8),
 
               // Tagline
-              Text(
+              const Text(
                 'Smart AI for Health & Care Coordination',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Poppins', // Poppins-Regular
                   fontWeight: FontWeight.w400, // Regular
                   fontSize: 13, // 13-14sp
@@ -334,9 +334,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 48),
 
               // Heading - "Login"
-              Text(
+              const Text(
                 'Login',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily:
                       'Merriweather', // Merriweather-Bold for consistency
                   fontWeight: FontWeight.w700, // Bold weight

@@ -21,8 +21,8 @@ class _MediaServicesExampleScreenState
   final CameraService _cameraService = CameraService();
   final AudioService _audioService = AudioService();
 
-  List<String> _capturedImages = [];
-  List<String> _recordedAudios = [];
+  final List<String> _capturedImages = [];
+  final List<String> _recordedAudios = [];
 
   @override
   void initState() {

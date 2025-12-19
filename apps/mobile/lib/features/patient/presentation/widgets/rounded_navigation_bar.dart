@@ -1,0 +1,335 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+enum NavigationItem {
+  home,
+  visits,
+  history,
+  careTeam,
+  profile,
+}
+
+class RoundedNavigationBar extends StatefulWidget {
+  final NavigationItem currentItem;
+
+  const RoundedNavigationBar({
+    super.key,
+    required this.currentItem,
+  });
+
+  @override
+  State<RoundedNavigationBar> createState() => _RoundedNavigationBarState();
+}
+
+class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
+  void _onItemTapped(NavigationItem item) {
+    if (item == widget.currentItem) return;
+
+    switch (item) {
+      case NavigationItem.home:
+        context.go('/patient/home');
+        break;
+      case NavigationItem.visits:
+        _showVisitActionSelection();
+        break;
+      case NavigationItem.history:
+        context.go('/patient/history-list');
+        break;
+      case NavigationItem.careTeam:
+        context.go('/patient/care-team');
+        break;
+      case NavigationItem.profile:
+        context.go('/patient/profile');
+        break;
+    }
+  }
+
+  void _showVisitActionSelection() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.medical_services,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'What would you like to do?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Action Options
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildVisitActionOption(
+                      'Audio Record Conversation',
+                      'Record your doctor visit for automatic summary',
+                      Icons.mic,
+                      Colors.blue,
+                      () {
+                        Navigator.of(context).pop();
+                        context.go('/patient/record-visit');
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _buildVisitActionOption(
+                      'Capture & Scan',
+                      'Take photos of reports, pill bottles, and documents',
+                      Icons.camera_alt,
+                      Colors.green,
+                      () {
+                        Navigator.of(context).pop();
+                        context.go('/patient/capture');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Close Button
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVisitActionOption(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 20,
+      left: 20,
+      right: 20,
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF1A4D4D), // Dark teal-green
+              Color(0xFF051818), // Very dark green/black
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 25,
+              offset: const Offset(0, 8),
+            ),
+          ],
+          border: const Border(
+            top: BorderSide(
+              color: Colors.white,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildNavItem(
+              NavigationItem.home,
+              Icons.home_outlined,
+              Icons.home,
+              'Home',
+            ),
+            _buildNavItem(
+              NavigationItem.visits,
+              Icons.grid_view,
+              Icons.grid_view,
+              'Visits',
+            ),
+            _buildNavItem(
+              NavigationItem.history,
+              Icons.assignment,
+              Icons.assignment,
+              'History',
+            ),
+            _buildNavItem(
+              NavigationItem.careTeam,
+              Icons.group,
+              Icons.group,
+              'Care Team',
+            ),
+            _buildNavItem(
+              NavigationItem.profile,
+              Icons.account_circle_outlined,
+              Icons.account_circle,
+              'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(
+    NavigationItem item,
+    IconData inactiveIcon,
+    IconData activeIcon,
+    String label,
+  ) {
+    final isSelected = item == widget.currentItem;
+
+    return GestureDetector(
+      onTap: () => _onItemTapped(item),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF2C6E6E)
+                  .withOpacity(0.9) // Subtle teal pill-shape glow
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : inactiveIcon,
+              color: isSelected
+                  ? const Color(0xFFFFD700) // Brighter gold for active state
+                  : const Color(0xFFE6CFA1), // Soft gold for inactive state
+              size: 24,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11, // Slightly larger, 10-12pt range
+                color: isSelected
+                    ? Colors.white // White/beige for active state
+                    : const Color(0xFFE6CFA1), // Soft gold for inactive state
+                fontWeight: FontWeight.w500, // Regular to medium weight
+                fontFamily: 'Roboto', // Clean sans-serif font
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

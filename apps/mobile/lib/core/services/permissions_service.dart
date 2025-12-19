@@ -15,7 +15,8 @@ class PermissionsService {
       await _showPermissionDialog(
         context,
         title: 'Camera Permission Required',
-        message: 'Camera access is needed to scan pill bottles, lab reports, and other medical documents. Please enable camera permission in settings.',
+        message:
+            'Camera access is needed to scan pill bottles, lab reports, and other medical documents. Please enable camera permission in settings.',
         permission: Permission.camera,
       );
     }
@@ -24,14 +25,17 @@ class PermissionsService {
   }
 
   /// Request microphone permission for recording conversations
-  Future<PermissionStatus> requestMicrophonePermission(BuildContext context) async {
+  Future<PermissionStatus> requestMicrophonePermission(
+    BuildContext context,
+  ) async {
     final status = await Permission.microphone.request();
 
     if (status.isDenied || status.isPermanentlyDenied || !status.isGranted) {
       await _showPermissionDialog(
         context,
         title: 'Microphone Permission Required',
-        message: 'Microphone access is needed to record healthcare conversations and consultations. Please enable microphone permission in settings.',
+        message:
+            'Microphone access is needed to record healthcare conversations and consultations. Please enable microphone permission in settings.',
         permission: Permission.microphone,
       );
     }
@@ -40,15 +44,16 @@ class PermissionsService {
   }
 
   /// Request both camera and microphone permissions
-  Future<Map<Permission, PermissionStatus>> requestMediaPermissions(BuildContext context) async {
-    final statuses = await [
-      Permission.camera,
-      Permission.microphone,
-    ].request();
+  Future<Map<Permission, PermissionStatus>> requestMediaPermissions(
+    BuildContext context,
+  ) async {
+    final statuses = await [Permission.camera, Permission.microphone].request();
 
     // Show dialogs for denied permissions
     for (final entry in statuses.entries) {
-      if (entry.value.isDenied || entry.value.isPermanentlyDenied || !entry.value.isGranted) {
+      if (entry.value.isDenied ||
+          entry.value.isPermanentlyDenied ||
+          !entry.value.isGranted) {
         final title = entry.key == Permission.camera
             ? 'Camera Permission Required'
             : 'Microphone Permission Required';

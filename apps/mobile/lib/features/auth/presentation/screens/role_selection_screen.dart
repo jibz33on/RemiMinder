@@ -103,13 +103,13 @@ class RoleSelectionScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _IndicatorDot(isActive: false),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _IndicatorDot(isActive: true),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   _IndicatorDot(isActive: false),
                 ],
               ),
@@ -166,7 +166,7 @@ class _RoleCard extends StatelessWidget {
               : LinearGradient(
                   colors: [
                     Colors.white,
-                    Color(0xffF8F4E8).withOpacity(0.8),
+                    const Color(0xffF8F4E8).withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

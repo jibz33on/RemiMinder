@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mediminder"
+    namespace = "com.remiminder.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mediminder"
+        applicationId = "com.remiminder.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -30,7 +30,7 @@ android {
         versionName = flutter.versionName
 
         // Google Sign-In Configuration
-        manifestPlaceholders["appAuthRedirectScheme"] = "com.googleusercontent.apps.421545279021-r44bjf3i1i9r9ou95qirvfk1jj1vrff9"
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.remiminder.app"
     }
 
     buildTypes {

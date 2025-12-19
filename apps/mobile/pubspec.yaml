@@ -35,6 +35,9 @@ dependencies:
   jwt_decoder: ^2.0.1
   equatable: ^2.0.5
 
+  # Charts
+  fl_chart: ^0.66.2
+
   # Permissions & Media
   permission_handler: ^11.3.0
   camera: ^0.10.5+9

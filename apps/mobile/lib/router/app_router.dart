@@ -16,10 +16,13 @@ import '../features/patient/presentation/screens/visit_recording_screen.dart';
 import '../features/patient/presentation/screens/visit_details_screen.dart';
 import '../features/patient/presentation/screens/reminders_screen.dart';
 import '../features/patient/presentation/screens/scan_screen.dart';
+import '../features/patient/presentation/screens/capture_screen.dart';
+import '../features/patient/presentation/screens/history_list_screen.dart';
+import '../features/patient/presentation/screens/care_team_screen.dart';
+import '../features/patient/presentation/screens/profile_screen.dart';
 import '../features/patient/presentation/screens/send_invitations_screen.dart';
 
 import '../features/shared/presentation/screens/loading_screen.dart';
-import '../features/patient/presentation/screens/patient_home_screen.dart';
 
 // Placeholder screens - we'll implement these one by one
 class PlaceholderScreen extends StatelessWidget {
@@ -80,6 +83,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const VisitRecordingScreen(),
       ),
       GoRoute(
+        path: '/patient/capture',
+        builder: (context, state) => const CaptureScreen(),
+      ),
+      GoRoute(
+        path: '/patient/history-list',
+        builder: (context, state) => const HistoryListScreen(),
+      ),
+      GoRoute(
         path: '/patient/visit-details',
         builder: (context, state) => const VisitDetailsScreen(),
       ),
@@ -90,6 +101,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/scan',
         builder: (context, state) => const ScanScreen(),
+      ),
+      GoRoute(
+        path: '/patient/care-team',
+        builder: (context, state) => const CareTeamScreen(),
+      ),
+      GoRoute(
+        path: '/patient/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/patient/invitations',

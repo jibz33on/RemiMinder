@@ -142,7 +142,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
 
   Widget _buildInvitationsSection() {
     // Mock pending invitations count
-    final pendingInvitations = 2; // In real app, this would come from API/state
+    const pendingInvitations = 2; // In real app, this would come from API/state
 
     return Container(
       padding: const EdgeInsets.all(20),

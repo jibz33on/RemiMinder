@@ -163,112 +163,135 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   Widget _buildRecordingInterface() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Timer Display
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+    // Use MediaQuery to determine screen size and adjust layout
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen =
+        screenHeight < 700; // iPhone SE and similar small screens
+
+    return SingleChildScrollView(
+      child: Container(
+        constraints: BoxConstraints(
+          minHeight: isSmallScreen ? 300 : 400,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Timer Display
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 20 : 24,
+                vertical: isSmallScreen ? 10 : 12,
               ),
-            ],
-          ),
-          child: Text(
-            _formattedTime,
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              color: _recordingState == RecordingState.recording
-                  ? Colors.red
-                  : Theme.of(context).colorScheme.primary,
-              fontFeatures: [const FontFeature.tabularFigures()],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 40),
-
-        // Recording Status
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: _getStatusColor().withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            _getStatusText(),
-            style: TextStyle(
-              color: _getStatusColor(),
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 60),
-
-        // Recording Button
-        GestureDetector(
-          onTap: _toggleRecording,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: _recordingState == RecordingState.recording
-                  ? const LinearGradient(
-                      colors: [Colors.red, Colors.redAccent],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              boxShadow: [
-                BoxShadow(
-                  color: (_recordingState == RecordingState.recording
-                          ? Colors.red
-                          : Theme.of(context).colorScheme.primary)
-                      .withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isSmallScreen ? 16 : 20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Text(
+                _formattedTime,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 32 : 42,
+                  fontWeight: FontWeight.bold,
+                  color: _recordingState == RecordingState.recording
+                      ? Colors.red
+                      : Theme.of(context).colorScheme.primary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-              ],
+              ),
             ),
-            child: Icon(
-              _getRecordingIcon(),
-              color: Colors.white,
-              size: 48,
+
+            SizedBox(height: isSmallScreen ? 16 : 24),
+
+            // Recording Status
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor().withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _getStatusText(),
+                style: TextStyle(
+                  color: _getStatusColor(),
+                  fontWeight: FontWeight.w600,
+                  fontSize: isSmallScreen ? 12 : 13,
+                ),
+              ),
             ),
-          ),
-        ),
 
-        const SizedBox(height: 20),
+            SizedBox(height: isSmallScreen ? 24 : 32),
 
-        // Recording Instructions
-        Text(
-          _getRecordingInstructions(),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.secondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-          textAlign: TextAlign.center,
+            // Recording Button
+            GestureDetector(
+              onTap: _toggleRecording,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: isSmallScreen ? 90 : 120,
+                height: isSmallScreen ? 90 : 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: _recordingState == RecordingState.recording
+                      ? const LinearGradient(
+                          colors: [Colors.red, Colors.redAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : LinearGradient(
+                          colors: [
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(context).colorScheme.secondary,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_recordingState == RecordingState.recording
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.primary)
+                          .withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _getRecordingIcon(),
+                  color: Colors.white,
+                  size: isSmallScreen ? 36 : 48,
+                ),
+              ),
+            ),
+
+            SizedBox(height: isSmallScreen ? 12 : 16),
+
+            // Recording Instructions
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _getRecordingInstructions(),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontSize: isSmallScreen ? 13 : 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Add some bottom padding for small screens
+            if (isSmallScreen) const SizedBox(height: 20),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -331,7 +354,7 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     if (_recordingState == RecordingState.completed) {
       return Column(
         children: [
-          Text(
+          const Text(
             'Recording completed successfully!',
             style: TextStyle(
               color: Colors.green,
