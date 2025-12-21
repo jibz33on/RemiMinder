@@ -5,7 +5,8 @@ from sib_api_v3_sdk.rest import ApiException
 # from email.message import EmailMessage
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables from .env file in project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 # GMAIL_USER = os.getenv("GMAIL_USER")
 # GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")

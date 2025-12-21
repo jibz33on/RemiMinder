@@ -5,7 +5,8 @@ import jwt
 import os
 from dotenv import load_dotenv
 
-load_dotenv() 
+# Load environment variables from .env file in project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env')) 
 
 security = HTTPBearer()
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")

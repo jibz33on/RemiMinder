@@ -1,14 +1,15 @@
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file in project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+
 sys.path.append('..')
 
 from fastapi import FastAPI
 from route import invitations, patient_register, caregiver_patient, caregivers, visit_summary, reminders, users
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import os
-
-# Load environment variables from .env file in project root
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 app = FastAPI()
 
@@ -38,3 +39,7 @@ app.include_router(users.router)
 @app.get("/")
 def root():
     return {"message": "Backend running!"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="192.168.1.3", port=8000, reload=True)
