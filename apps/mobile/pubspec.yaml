@@ -60,8 +60,8 @@ flutter:
     # Environment configuration
     - .env
     # Logo assets for authentication (currently JPEG, ideally SVG)
-    - assets/images/google_logo.svg  # Currently a JPEG file
-    # - assets/images/apple_logo.svg
+    - assets/images/google_logo.svg
+    # - assets/images/apple_logo.svg  # Not available yet
     # Custom role icons
     - assets/images/patient_icon.svg
     - assets/images/caregiver_icon.svg
@@ -71,23 +71,24 @@ flutter:
       fonts:
         - asset: assets/fonts/Merriweather-Bold.ttf
           weight: 700
-    - family: Poppins
+    - family: Inter
       fonts:
-        - asset: assets/fonts/Poppins-Regular.ttf
-        # TODO: Add these Poppins weights when downloaded:
-        # - asset: assets/fonts/Poppins-Medium.ttf
-        #   weight: 500
-        # - asset: assets/fonts/Poppins-SemiBold.ttf
-        #   weight: 600
+        - asset: assets/fonts/Inter_28pt-Regular.ttf
+        - asset: assets/fonts/Inter_28pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_28pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_28pt-Bold.ttf
+          weight: 700
 
 # App Icon Configuration
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon.png"  # Standard location
+  image_path: "assets/icon.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
-    image_path: "assets/icon.png"  # Standard location
+    image_path: "assets/icon.png"
     background_color: "#F8F4E8"
     theme_color: "#1B4E59"

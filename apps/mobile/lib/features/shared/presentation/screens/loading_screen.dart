@@ -69,7 +69,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
           children: [
             // Logo - Simple display
             Image.asset(
-              'assets/images/remiminder_logo.jpeg',
+              'assets/images/RemiMinder_logo.png',
               width: 160,
               height: 160,
               fit: BoxFit.contain,

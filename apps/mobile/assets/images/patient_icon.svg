@@ -1,0 +1,20 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="patientGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1B4E59;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3AA8A1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="crossGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3AA8A1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1B4E59;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Person silhouette with gradient -->
+  <circle cx="12" cy="8" r="3" fill="url(#patientGradient)"/>
+  <path d="M12 14c-4 0-7 2-7 4v1h14v-1c0-2-3-4-7-4z" fill="url(#patientGradient)"/>
+  <!-- Medical cross with complementary gradient -->
+  <rect x="8.5" y="6.5" width="7" height="1" fill="url(#crossGradient)"/>
+  <rect x="11.5" y="3.5" width="1" height="7" fill="url(#crossGradient)"/>
+  <!-- Accent highlight -->
+  <circle cx="12" cy="8" r="1.5" fill="#F8F4E8" opacity="0.8"/>
+</svg>
