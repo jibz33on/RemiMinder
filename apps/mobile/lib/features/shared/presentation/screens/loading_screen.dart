@@ -27,10 +27,12 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
     if (mounted) {
       final authState = ref.read(authNotifierProvider);
       print('🔄 LoadingScreen: Auth state check - Status: ${authState.status}');
-      print('🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
+      print(
+          '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
 
       if (authState.status == AuthStatus.authenticated) {
-        print('🔄 LoadingScreen: User authenticated, navigating to home screen...');
+        print(
+            '🔄 LoadingScreen: User authenticated, navigating to home screen...');
         // Navigate to appropriate home screen based on role
         final user = authState.user;
         if (user?.isPatient ?? false) {
@@ -40,11 +42,13 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
           print('🔄 LoadingScreen: Navigating to caregiver home...');
           context.go('/caregiver/home');
         } else {
-          print('🔄 LoadingScreen: User role not recognized, navigating to welcome...');
+          print(
+              '🔄 LoadingScreen: User role not recognized, navigating to welcome...');
           context.go('/welcome'); // Fallback
         }
       } else {
-        print('🔄 LoadingScreen: User not authenticated, going to welcome screen...');
+        print(
+            '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
         // Go to welcome/onboarding flow
         context.go('/welcome');
       }
@@ -63,14 +67,12 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo - PM's blending suggestion
+            // Logo - Simple display
             Image.asset(
-              'assets/images/RemiMinder_logo.png',
+              'assets/images/remiminder_logo.jpeg',
               width: 160,
               height: 160,
-              // PM's suggestion: BlendMode.multiply makes white areas transparent
-              colorBlendMode: BlendMode.multiply,
-              color: Colors.white, // Triggers multiply mode for transparency effect
+              fit: BoxFit.contain,
             ),
 
             const SizedBox(height: 20),

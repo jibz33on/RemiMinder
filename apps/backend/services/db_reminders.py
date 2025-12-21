@@ -8,7 +8,8 @@ import pytz
 import uuid
 
 from dotenv import load_dotenv
-load_dotenv()
+# Load environment variables from .env file in project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 def get_supabase_client() -> Client:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
