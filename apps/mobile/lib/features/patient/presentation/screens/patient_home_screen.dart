@@ -98,11 +98,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 children: [
                   const SizedBox(height: 24),
 
-                  // Daily Progress Overview
-                  _buildDailyProgressOverview(),
-
-                  const SizedBox(height: 32),
-
                   // Up Next Card
                   _buildUpNextCard(),
 
@@ -127,14 +122,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   _buildTodoList(),
 
                   const SizedBox(height: 32),
-
-                  // Health Summary
-                  const SectionHeader(
-                    title: 'Health Summary',
-                    icon: Icons.health_and_safety,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildHealthSummary(),
 
                   const SizedBox(
                       height: 120), // Extra space for bottom navigation
@@ -692,114 +679,6 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildHealthSummary() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildHealthStat('Medications', '95%', Icons.medication),
-          _buildHealthStat('Appointments', '3', Icons.calendar_today),
-          _buildHealthStat('This Week', '7/7', Icons.check_circle),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthStat(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 24,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDailyProgressOverview() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Today\'s Progress',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              const ProgressItem(
-                title: 'Medications',
-                progress: 0.75,
-                subtitle: '3/4 taken',
-              ),
-              const ProgressItem(
-                title: 'Activities',
-                progress: 0.5,
-                subtitle: '1/2 completed',
-              ),
-              const ProgressItem(
-                title: 'Goals',
-                progress: 1.0,
-                subtitle: 'All met',
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
