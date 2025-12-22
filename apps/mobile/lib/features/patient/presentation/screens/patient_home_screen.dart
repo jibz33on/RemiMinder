@@ -20,7 +20,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final authState = ref.watch(authNotifierProvider);
     final user = authState.user;
     final userName = user?.displayName ?? 'Patient';
-    final greeting = GreetingUtils.getPersonalizedGreetingWithEmoji(userName);
+    final greeting =
+        GreetingUtils.getTimeBasedGreeting(); // Just the greeting part
+    final firstName = userName.split(' ').first; // Extract first name only
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -36,40 +38,84 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         ),
         title: Row(
           children: [
-            // User Avatar
+            // Enhanced User Avatar with Gradient (compact)
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
                 Icons.person,
                 color: Colors.white,
-                size: 24,
+                size: 22,
               ),
             ),
-            const SizedBox(width: 12),
-            // Welcome Text
+            const SizedBox(width: 10),
+            // Enhanced Welcome Text (greeting + name layout)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Greeting line
                   Text(
                     greeting,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
                     ),
                   ),
+                  // First name with sparkle
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          firstName,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '✨',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  // Subtitle
                   Text(
                     'How are you feeling today?',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 14,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
