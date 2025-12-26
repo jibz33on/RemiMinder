@@ -50,9 +50,14 @@
 	<string>This app needs camera access to scan pill bottles, lab reports, and other medical documents.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs microphone access to record healthcare conversations and consultations.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs speech recognition to transcribe healthcare conversations and consultations in real-time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to select and upload medical images and documents.</string>
 	<!-- Google Sign-In Configuration -->
+	<!-- Using iOS client from project 575820802106 -->
+	<key>GIDClientID</key>
+	<string>575820802106-p4hqriibug69du59bh2i42e7g91i8fhd.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -60,7 +65,8 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.remiminder.app</string>
+				<!-- REVERSED_CLIENT_ID from iOS OAuth client -->
+				<string>com.googleusercontent.apps.575820802106-p4hqriibug69du59bh2i42e7g91i8fhd</string>
 			</array>
 		</dict>
 	</array>

@@ -19,7 +19,7 @@ dependencies:
 
   # Networking & Authentication
   http: ^1.1.0
-  supabase_flutter: ^2.0.0
+  supabase_flutter: ^2.8.0  # Upgraded from 2.0.0 - may fix nonce issues
   flutter_dotenv: ^5.1.0
   google_sign_in: ^6.2.1
 
@@ -41,7 +41,8 @@ dependencies:
   # Permissions & Media
   permission_handler: ^11.3.0
   camera: ^0.10.5+9
-  # record: ^5.1.2  # Temporarily disabled due to build issues
+  record: ^4.4.4
+  speech_to_text: ^6.1.1
   image_picker: ^1.1.1
   path_provider: ^2.1.2
 

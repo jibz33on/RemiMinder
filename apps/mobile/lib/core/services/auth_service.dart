@@ -223,10 +223,10 @@ class AuthService {
           '🔐 AuthService: Got Google credentials, signing in with Supabase...');
 
       // Sign in with Supabase using Google OAuth
+      // Only pass idToken for Google (accessToken causes nonce issues)
       final response = await _supabase!.auth.signInWithIdToken(
         provider: supabase.OAuthProvider.google,
         idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken,
       );
 
       print('🔐 AuthService: Supabase response received');

@@ -1,21 +1,38 @@
+import 'dart:io' show Platform;
 import 'package:google_sign_in/google_sign_in.dart';
-import '../config/environment.dart';
 
 /// Service for handling Google Sign In authentication
 class GoogleSignInService {
+  // Google Cloud Project: 575820802106
+  // All OAuth clients are from the SAME project for proper authentication
+
+  // iOS OAuth Client (for native iOS sign-in)
+  static const String _iosClientId =
+      '575820802106-p4hqriibug69du59bh2i42e7g91i8fhd.apps.googleusercontent.com';
+
+  // Android OAuth Client (for native Android sign-in)
+  static const String _androidClientId =
+      '575820802106-576cjelarpplv12in62su54frlt7lkop.apps.googleusercontent.com';
+
+  // Web OAuth Client (for Supabase server-side authentication)
+  static const String _webClientId =
+      '575820802106-akqd9u3ksb51fqi7ibojbgkgsjjobm7g.apps.googleusercontent.com';
+
   static GoogleSignIn get _googleSignIn {
-    final clientId = Environment.supabaseUrl.isNotEmpty
-        ? null
-        : null; // Will be configured per platform
+    // Use platform-specific client ID for native sign-in
+    final String clientId = Platform.isIOS
+        ? _iosClientId
+        : (Platform.isAndroid ? _androidClientId : _webClientId);
 
     return GoogleSignIn(
+      // Platform-specific client for native OAuth
+      clientId: clientId,
+      // Web client for Supabase backend authentication
+      serverClientId: _webClientId,
       scopes: [
         'email',
         'profile',
       ],
-      // Note: clientId is typically configured in platform-specific files
-      // For iOS: ios/Runner/Info.plist
-      // For Android: android/app/build.gradle
     );
   }
 
