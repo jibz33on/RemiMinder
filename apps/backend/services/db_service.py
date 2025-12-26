@@ -33,7 +33,7 @@ async def fetch_visit_transcript(visit_id: str, user_id: str, transcript_id: str
         )
         .eq("id", visit_id)
         .eq("user_id", user_id)
-        .eq("transcript_id", transcript_id)
+        ##.eq("transcript_id", transcript_id)
         .single()
         .execute()
     )

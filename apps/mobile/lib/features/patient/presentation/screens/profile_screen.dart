@@ -131,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.profile),
+          const RoundedNavigationBar(currentItem: NavigationItem.profile),
         ],
       ),
     );
@@ -329,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: true,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
           const Divider(),
@@ -340,7 +340,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: false,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
           const Divider(),
@@ -351,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: true,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
           const Divider(),
@@ -391,7 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: false,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
           const Divider(),
@@ -402,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: false,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
           const Divider(),
@@ -413,7 +413,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             trailing: Switch(
               value: false,
               onChanged: (value) {},
-              activeColor: Theme.of(context).colorScheme.primary,
+              activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],

@@ -101,9 +101,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Text(
+                      const Text(
                         '✨',
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16),
                       ),
                     ],
                   ),
@@ -177,7 +177,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.home),
+          const RoundedNavigationBar(currentItem: NavigationItem.home),
         ],
       ),
     );
@@ -513,7 +513,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
         ),
         if (isCompleted)
-          Icon(
+          const Icon(
             Icons.check_circle,
             color: Colors.green,
             size: 20,

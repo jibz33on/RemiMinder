@@ -28,9 +28,21 @@ class PermissionsService {
   Future<PermissionStatus> requestMicrophonePermission(
     BuildContext context,
   ) async {
+    print('🔊 Requesting microphone permission...');
     final status = await Permission.microphone.request();
+    print('🔊 Microphone permission status: $status');
 
-    if (status.isDenied || status.isPermanentlyDenied || !status.isGranted) {
+    if (status.isPermanentlyDenied) {
+      print('🔊 Microphone permission permanently denied, opening settings...');
+      await _showPermissionDialog(
+        context,
+        title: 'Microphone Permission Required',
+        message:
+            'Microphone access is needed to record healthcare conversations and consultations. Permission was previously denied. Please go to Settings > RemiMinder > Microphone to enable it.',
+        permission: Permission.microphone,
+      );
+    } else if (status.isDenied || !status.isGranted) {
+      print('🔊 Microphone permission denied, showing dialog...');
       await _showPermissionDialog(
         context,
         title: 'Microphone Permission Required',

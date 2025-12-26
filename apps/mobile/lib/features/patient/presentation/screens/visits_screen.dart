@@ -100,7 +100,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.visits),
+          const RoundedNavigationBar(currentItem: NavigationItem.visits),
         ],
       ),
     );

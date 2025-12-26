@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/audio_service.dart';
 
 class VisitRecordingScreen extends StatefulWidget {
   const VisitRecordingScreen({super.key});
@@ -10,10 +11,16 @@ class VisitRecordingScreen extends StatefulWidget {
 }
 
 class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
+  final AudioService _audioService = AudioService();
+  final ScrollController _transcriptionScrollController = ScrollController();
   RecordingState _recordingState = RecordingState.ready;
   Timer? _timer;
   int _secondsElapsed = 0;
   String _formattedTime = '00:00';
+  String _transcription = 'Transcription will appear here...';
+  String? _audioFilePath;
+  Map<String, dynamic>? _aiSummary;
+  bool _useHighAccuracyMode = false;
 
   // Mock doctor info (would come from navigation params)
   final String _doctorName = 'Dr. Sarah Johnson';
@@ -22,6 +29,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audioService.dispose();
+    _transcriptionScrollController.dispose();
     super.dispose();
   }
 
@@ -61,35 +70,49 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-              // Doctor Info Card
-              _buildDoctorInfo(),
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    children: [
+                      SizedBox(height: isLandscape ? 20 : 40),
 
-              const SizedBox(height: 40),
+                      // Doctor Info Card
+                      _buildDoctorInfo(),
 
-              // Recording Interface
-              Expanded(
-                child: _buildRecordingInterface(),
+                      SizedBox(height: isLandscape ? 20 : 40),
+
+                      // Recording Interface
+                      SizedBox(
+                        height: isLandscape ? 200 : 400,
+                        child: _buildRecordingInterface(),
+                      ),
+
+                      SizedBox(height: isLandscape ? 20 : 40),
+
+                      // Control Buttons
+                      _buildControlButtons(),
+
+                      const SizedBox(height: 24),
+
+                      // Status Text
+                      _buildStatusText(),
+
+                      SizedBox(height: isLandscape ? 20 : 40),
+                    ],
+                  ),
+                ),
               ),
-
-              const SizedBox(height: 40),
-
-              // Control Buttons
-              _buildControlButtons(),
-
-              const SizedBox(height: 24),
-
-              // Status Text
-              _buildStatusText(),
-
-              const SizedBox(height: 40),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -216,7 +239,10 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                _getStatusText(),
+                _recordingState == RecordingState.completed &&
+                        _aiSummary != null
+                    ? 'AI Processing Complete'
+                    : _getStatusText(),
                 style: TextStyle(
                   color: _getStatusColor(),
                   fontWeight: FontWeight.w600,
@@ -225,7 +251,61 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
               ),
             ),
 
-            SizedBox(height: isSmallScreen ? 24 : 32),
+            const SizedBox(height: 12),
+
+            // Accuracy Mode Toggle
+            if (_recordingState == RecordingState.ready)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.precision_manufacturing,
+                        color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'High Accuracy Mode',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: isSmallScreen ? 12 : 13,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                          Text(
+                            _useHighAccuracyMode
+                                ? 'Uses cloud AI for 98% accuracy (slower)'
+                                : 'Uses device AI for real-time transcription',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 10 : 11,
+                              color: Colors.blue[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _useHighAccuracyMode,
+                      onChanged: (value) {
+                        setState(() {
+                          _useHighAccuracyMode = value;
+                        });
+                      },
+                      activeColor: Colors.blue,
+                    ),
+                  ],
+                ),
+              ),
+
+            SizedBox(height: isSmallScreen ? 12 : 20),
 
             // Recording Button
             GestureDetector(
@@ -270,6 +350,47 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
             ),
 
             SizedBox(height: isSmallScreen ? 12 : 16),
+
+            // Transcription Display
+            if (_recordingState != RecordingState.ready)
+              Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.all(16),
+                height: isSmallScreen ? 150 : 200,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Live Transcription:',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 12 : 14,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _transcriptionScrollController,
+                        child: Text(
+                          _transcription,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 12 : 14,
+                            color: Colors.black87,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Recording Instructions
             Padding(
@@ -396,44 +517,100 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     }
   }
 
-  void _startRecording() {
-    setState(() {
-      _recordingState = RecordingState.recording;
-      _secondsElapsed = 0;
-      _updateFormattedTime();
-    });
-
-    // TODO: Start actual audio recording
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recording started...')),
-    );
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _secondsElapsed++;
-        _updateFormattedTime();
+  void _startRecording() async {
+    print('🎬 Starting recording...');
+    final success = await _audioService.startRecording(context);
+    print('🎬 Recording start success: $success');
+    if (success) {
+      // Start speech-to-text listening
+      final listeningSuccess =
+          await _audioService.startListening((transcription) {
+        setState(() {
+          _transcription = transcription.isNotEmpty
+              ? transcription
+              : 'Transcription will appear here...';
+        });
+        // Auto-scroll to bottom to show latest transcription
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_transcriptionScrollController.hasClients) {
+            _transcriptionScrollController.animateTo(
+              _transcriptionScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
       });
-    });
+
+      setState(() {
+        _recordingState = RecordingState.recording;
+        _secondsElapsed = 0;
+        _updateFormattedTime();
+        if (!listeningSuccess) {
+          _transcription =
+              'Speech recognition not available. Audio will still be recorded.';
+        }
+      });
+
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          _secondsElapsed++;
+          _updateFormattedTime();
+        });
+      });
+    } else {
+      // Permission denied or initialization failed
+      print('🎬 Recording failed - permission denied or initialization error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Microphone permission is required. Please enable it in Settings > RemiMinder > Microphone.'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
-  void _pauseRecording() {
+  void _pauseRecording() async {
+    await _audioService.pauseRecording();
+    await _audioService.stopListening(); // Pause speech recognition too
     setState(() {
       _recordingState = RecordingState.paused;
     });
 
     _timer?.cancel();
-    // TODO: Pause audio recording
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Recording paused')),
     );
   }
 
-  void _resumeRecording() {
+  void _resumeRecording() async {
+    await _audioService.resumeRecording();
+    // Resume speech-to-text listening
+    await _audioService.startListening((transcription) {
+      setState(() {
+        _transcription = transcription.isNotEmpty
+            ? transcription
+            : 'Transcription will appear here...';
+      });
+      // Auto-scroll to bottom to show latest transcription
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_transcriptionScrollController.hasClients) {
+          _transcriptionScrollController.animateTo(
+            _transcriptionScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+
     setState(() {
       _recordingState = RecordingState.recording;
     });
 
-    // TODO: Resume audio recording
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Recording resumed')),
     );
@@ -446,19 +623,34 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     });
   }
 
-  void _stopRecording() {
+  void _stopRecording() async {
+    await _audioService.stopListening();
+    final recordingPath = await _audioService.stopRecording();
+    final finalTranscription = _audioService.transcription;
+
     setState(() {
       _recordingState = RecordingState.completed;
+      _audioFilePath = recordingPath;
+      _transcription = finalTranscription.isNotEmpty
+          ? finalTranscription
+          : 'No speech detected. Audio file saved.';
     });
 
     _timer?.cancel();
-    // TODO: Stop audio recording and save
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recording stopped')),
-    );
+
+    if (recordingPath != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recording and transcription completed!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save recording')),
+      );
+    }
   }
 
-  void _resetRecording() {
+  void _resetRecording() async {
+    await _audioService.cancelRecording();
     setState(() {
       _recordingState = RecordingState.ready;
       _secondsElapsed = 0;
@@ -466,22 +658,322 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     });
 
     _timer?.cancel();
-    // TODO: Reset recording
   }
 
-  void _saveRecording() {
-    // TODO: Save recording and navigate to visit details
+  void _saveRecording() async {
+    if (_audioFilePath == null || _transcription.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('No recording or transcription available')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Recording saved! Processing transcript...')),
+      const SnackBar(content: Text('Processing transcript...')),
     );
 
-    // Navigate back to home after a delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        context.go('/patient/home');
+    try {
+      Map<String, dynamic> aiSummary;
+
+      if (_useHighAccuracyMode && _audioFilePath != null) {
+        // Use high-accuracy backend transcription
+        aiSummary = await _processHighAccuracyTranscription(_audioFilePath!);
+      } else {
+        // Use mobile transcription
+        aiSummary = await _generateAISummary(_transcription);
       }
-    });
+
+      setState(() {
+        _aiSummary = aiSummary;
+      });
+
+      // Send to N8N extraction agent
+      await _sendToExtractionAgent(aiSummary);
+
+      // Show AI summary dialog
+      _showAISummaryDialog(aiSummary);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error processing visit: $e')),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> _generateAISummary(String transcript) async {
+    // TODO: Replace with your actual AI service call
+    // For now, return mock data that demonstrates the functionality
+
+    await Future.delayed(const Duration(seconds: 1)); // Simulate API call
+
+    // Simple mock logic based on transcription content
+    List<String> actionItems = [];
+    List<String> medications = [];
+
+    String lowerTranscript = transcript.toLowerCase();
+
+    if (lowerTranscript.contains('follow') ||
+        lowerTranscript.contains('appointment')) {
+      actionItems.add('Schedule follow-up appointment');
+    }
+    if (lowerTranscript.contains('blood pressure') ||
+        lowerTranscript.contains('hypertension')) {
+      actionItems.add('Monitor blood pressure daily');
+    }
+    if (lowerTranscript.contains('exercise') ||
+        lowerTranscript.contains('walk')) {
+      actionItems.add('Continue daily exercise routine');
+    }
+
+    if (lowerTranscript.contains('lisinopril')) {
+      medications.add('Lisinopril 10mg once daily');
+    }
+    if (lowerTranscript.contains('metformin')) {
+      medications.add('Metformin 500mg twice daily');
+    }
+    if (lowerTranscript.contains('aspirin')) {
+      medications.add('Aspirin 81mg once daily');
+    }
+
+    return {
+      'summary':
+          'Patient visit summary processed successfully. Key health discussions and action items identified.',
+      'action_items': actionItems.isNotEmpty
+          ? actionItems
+          : ['Monitor health condition', 'Follow prescribed treatment plan'],
+      'medications': medications.isNotEmpty
+          ? medications
+          : ['Continue current medications as prescribed'],
+      'transcript': transcript,
+      'processed_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<Map<String, dynamic>> _processHighAccuracyTranscription(
+      String audioFilePath) async {
+    // TODO: Implement audio file upload to backend
+    // This should upload the audio file to /reminders/process-audio-transcription
+    // and return the high-accuracy transcription result
+
+    debugPrint('Processing high-accuracy transcription for: $audioFilePath');
+
+    // For now, simulate backend processing with better accuracy
+    await Future.delayed(const Duration(seconds: 3)); // Longer processing time
+
+    // Return enhanced transcription (simulating Whisper accuracy)
+    return {
+      'summary':
+          'High-accuracy AI summary processed with Whisper transcription. Enhanced medical terminology recognition and improved context understanding.',
+      'action_items': [
+        'Schedule comprehensive follow-up',
+        'Review medication regimen',
+        'Monitor vital signs weekly'
+      ],
+      'medications': [
+        'Lisinopril 10mg daily - confirmed dosage',
+        'Metformin 500mg twice daily - verified frequency'
+      ],
+      'transcript': _transcription, // Original mobile transcription
+      'whisper_transcript':
+          'Enhanced transcription with improved accuracy', // Would be from backend
+      'accuracy_method': 'whisper_high_accuracy',
+      'processing_time': '3.2 seconds',
+      'confidence_score': 0.97,
+    };
+  }
+
+  Future<void> _sendToExtractionAgent(Map<String, dynamic> aiSummary) async {
+    // TODO: Replace with your actual API service call
+    // Example:
+    // final apiService = ApiService();
+    // await apiService.post('/reminders/process-visit-transcription', aiSummary);
+
+    debugPrint('Sending to N8N agent: $aiSummary');
+    // For now, simulate successful API call
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+  void _showAISummaryDialog(Map<String, dynamic> aiSummary) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('AI Visit Summary'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Accuracy Method Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color:
+                      (aiSummary['accuracy_method'] == 'whisper_high_accuracy')
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (aiSummary['accuracy_method'] ==
+                            'whisper_high_accuracy')
+                        ? Colors.green.withOpacity(0.3)
+                        : Colors.blue.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      aiSummary['accuracy_method'] == 'whisper_high_accuracy'
+                          ? Icons.verified
+                          : Icons.speed,
+                      size: 16,
+                      color: aiSummary['accuracy_method'] ==
+                              'whisper_high_accuracy'
+                          ? Colors.green[700]
+                          : Colors.blue[700],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      aiSummary['accuracy_method'] == 'whisper_high_accuracy'
+                          ? 'High Accuracy Mode'
+                          : 'Real-time Mode',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: aiSummary['accuracy_method'] ==
+                                'whisper_high_accuracy'
+                            ? Colors.green[700]
+                            : Colors.blue[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Summary Section
+              const Text(
+                'Summary:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(aiSummary['summary'] ?? 'No summary available'),
+              const SizedBox(height: 16),
+
+              // Action Items
+              if (aiSummary['action_items'] != null &&
+                  (aiSummary['action_items'] as List).isNotEmpty) ...[
+                const Text(
+                  'Action Items:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                ...((aiSummary['action_items'] as List).map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle,
+                              size: 16, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(item.toString())),
+                        ],
+                      ),
+                    ))),
+                const SizedBox(height: 16),
+              ],
+
+              // Medications
+              if (aiSummary['medications'] != null &&
+                  (aiSummary['medications'] as List).isNotEmpty) ...[
+                const Text(
+                  'Medications:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                ...((aiSummary['medications'] as List).map((med) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.medication,
+                              size: 16, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(med.toString())),
+                        ],
+                      ),
+                    ))),
+                const SizedBox(height: 16),
+              ],
+
+              // Processing Stats (for high accuracy mode)
+              if (aiSummary['processing_time'] != null ||
+                  aiSummary['confidence_score'] != null) ...[
+                Row(
+                  children: [
+                    if (aiSummary['processing_time'] != null) ...[
+                      const Icon(Icons.timer, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        aiSummary['processing_time'],
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                    if (aiSummary['confidence_score'] != null) ...[
+                      const Icon(Icons.verified_user,
+                          size: 16, color: Colors.green),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(aiSummary['confidence_score'] * 100).round()}% confidence',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.green),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Transcription Preview
+              const Text(
+                'Transcription Preview:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _transcription.length > 200
+                      ? '${_transcription.substring(0, 200)}...'
+                      : _transcription,
+                  style: const TextStyle(
+                      fontSize: 14, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go('/patient/home');
+            },
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleClose() {

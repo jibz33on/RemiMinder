@@ -47,9 +47,9 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
             Text(
               'Medical Media Capture',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
 
@@ -157,7 +157,8 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
                 const SizedBox(width: 8),
                 Text(
                   'Recording: ${_audioService.getFormattedDuration()}',
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 IconButton(
@@ -192,9 +193,9 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
             Text(
               'Recent Recordings',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),
@@ -231,8 +232,9 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
     if (success) {
       setState(() {}); // Trigger rebuild to show recording state
       _showSuccessSnackBar('Recording started...');
+    } else {
+      _showErrorSnackBar('Microphone permission is required to record audio.');
     }
-    // Audio recording is temporarily disabled, snackbar is shown in the service
   }
 
   Future<void> _stopRecording() async {

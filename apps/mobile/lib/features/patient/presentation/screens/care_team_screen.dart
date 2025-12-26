@@ -180,7 +180,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                           title: const Text('John Doe (Spouse)'),
                           subtitle: const Text('(555) 123-4567'),
                           trailing: IconButton(
-                            icon: Icon(Icons.call),
+                            icon: const Icon(Icons.call),
                             onPressed: () {
                               // TODO: Call contact
                             },
@@ -197,7 +197,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.careTeam),
+          const RoundedNavigationBar(currentItem: NavigationItem.careTeam),
         ],
       ),
     );

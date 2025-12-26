@@ -18,7 +18,11 @@ router = APIRouter(prefix="/api", tags=["Visit Summaries"])
 @router.post("/generate-summary/{visit_id}", response_model=VisitSummaryPayload)
 async def create_visit_summary(visit_id: str, user_id: str, transcript_id: str):
 
-    visit = await fetch_visit_transcript(visit_id, user_id)
+    visit = await fetch_visit_transcript(
+        visit_id = visit_id,
+        user_id = user_id,
+        transcript_id = transcript_id,
+    )
     if not visit or not visit.get("transcript_text"):
         raise HTTPException(status_code=404, detail="Transcript not found")
     
@@ -32,6 +36,7 @@ async def create_visit_summary(visit_id: str, user_id: str, transcript_id: str):
         "data": {
             "visit_id": visit_id,
             "user_id": user_id,
+            "transcript_id": transcript_id,
             **ai_output,
         }
     }

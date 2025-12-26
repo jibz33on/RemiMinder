@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:flutter/animation.dart';
-
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
 

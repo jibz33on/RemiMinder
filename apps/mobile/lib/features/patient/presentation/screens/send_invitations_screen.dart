@@ -341,7 +341,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.security,
                               color: Colors.blue,
                               size: 12,
@@ -373,7 +373,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.timeline,
                             color: Colors.purple,
                             size: 12,

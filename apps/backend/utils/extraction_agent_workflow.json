@@ -1,0 +1,143 @@
+{
+    "name": "ExtractionAgent_Test",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "extract-medication",
+                "options": {}
+            },
+            "id": "e4e4e4e4-e4e4-4e4e-e4e4-e4e4e4e4e4e4",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                400,
+                300
+            ],
+            "webhookId": "extract-medication"
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "options": {
+                    "temperature": 0
+                }
+            },
+            "id": "a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
+            "name": "OpenAI Chat Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1,
+            "position": [
+                600,
+                500
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "YOUR_OPENAI_CREDENTIALS_ID",
+                    "name": "OpenAI account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=You are a medical extraction agent.\n\nExtract structured information from the text below.\n\nReturn ONLY valid JSON with these fields:\n- medicine\n- dosage\n- frequency\n- timing\n- duration\n- confidence (0 to 1)\n\nText:\n{{ $json.body.text }}\n\n⚠️ No explanation\n⚠️ No markdown\n⚠️ No extra text",
+                "options": {}
+            },
+            "id": "b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2",
+            "name": "AI Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1,
+            "position": [
+                600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "medicine",
+                            "value": "={{ $json.output.medicine }}"
+                        },
+                        {
+                            "name": "dosage",
+                            "value": "={{ $json.output.dosage }}"
+                        },
+                        {
+                            "name": "frequency",
+                            "value": "={{ $json.output.frequency }}"
+                        },
+                        {
+                            "name": "timing",
+                            "value": "={{ $json.output.timing }}"
+                        },
+                        {
+                            "name": "duration",
+                            "value": "={{ $json.output.duration }}"
+                        },
+                        {
+                            "name": "confidence",
+                            "value": "={{ $json.output.confidence }}"
+                        },
+                        {
+                            "name": "source",
+                            "value": "conversation"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "c3c3c3c3-c3c3-c3c3-c3c3-c3c3e3c3c3c3",
+            "name": "Normalize Output",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Normalize Output",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -134,7 +134,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.history),
+          const RoundedNavigationBar(currentItem: NavigationItem.history),
         ],
       ),
     );

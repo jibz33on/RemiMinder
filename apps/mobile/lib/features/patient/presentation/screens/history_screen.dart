@@ -82,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
 
           // Rounded Navigation Bar
-          RoundedNavigationBar(currentItem: NavigationItem.history),
+          const RoundedNavigationBar(currentItem: NavigationItem.history),
         ],
       ),
     );
@@ -308,7 +308,10 @@ class _HistoryScreenState extends State<HistoryScreen>
                       date,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withOpacity(0.7),
                       ),
                     ),
                   ],
