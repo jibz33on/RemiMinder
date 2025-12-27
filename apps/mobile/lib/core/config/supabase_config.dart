@@ -27,6 +27,9 @@ class SupabaseConfig {
     await supabase.Supabase.initialize(
       url: url,
       anonKey: anonKey,
+      authOptions: const supabase.FlutterAuthClientOptions(
+        authFlowType: supabase.AuthFlowType.implicit,
+      ),
     );
     print('Supabase initialized successfully');
   }

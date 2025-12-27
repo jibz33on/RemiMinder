@@ -1,19 +1,25 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config/environment.dart';
 import '../config/supabase_config.dart';
 import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
-import 'google_signin_service.dart';
 
 /// Authentication service handling Supabase auth and API integration
 class AuthService {
   final supabase.SupabaseClient? _supabase;
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
+
+  // Native Google Sign-In instance
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
 
   AuthService({
     supabase.SupabaseClient? supabase,
@@ -198,9 +204,10 @@ class AuthService {
     }
   }
 
-  /// Sign in with Google OAuth
+  /// Sign in with Google using NATIVE Google Sign-In (NO web redirect)
+  /// Uses google_sign_in plugin with signInWithIdToken
   Future<User> signInWithGoogle() async {
-    print('🔐 AuthService: Starting Google Sign-In process...');
+    print('🔐 AuthService: Starting NATIVE Google Sign-In...');
 
     // Check if Supabase is available
     if (_supabase == null) {
@@ -210,60 +217,95 @@ class AuthService {
     }
 
     try {
-      print('🔐 AuthService: Getting Google authentication credentials...');
-      // Get Google authentication credentials
-      final googleAuth = await GoogleSignInService.signInWithGoogle();
+      print('🔐 AuthService: Opening native Google account picker...');
 
-      if (googleAuth == null) {
-        print('🔐 AuthService: Google sign in was cancelled by user');
-        throw Exception('Google sign in was cancelled');
+      // Clear any cached account to ensure account picker appears
+      await _googleSignIn.signOut();
+
+      // Step 1: Sign in with Google natively
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        print('🔐 AuthService: Google sign-in cancelled by user');
+        throw Exception('Google sign-in cancelled');
       }
 
-      print(
-          '🔐 AuthService: Got Google credentials, signing in with Supabase...');
+      print('🔐 AuthService: Google account selected: ${googleUser.email}');
 
-      // Sign in with Supabase using Google OAuth
-      // Only pass idToken for Google (accessToken causes nonce issues)
+      // Step 2: Get authentication tokens
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      if (googleAuth.idToken == null || googleAuth.accessToken == null) {
+        print('🔐 AuthService: Missing required Google tokens');
+        throw Exception('Missing Google authentication tokens');
+      }
+
+      print('🔐 AuthService: Google tokens obtained');
+      print('🔐 AuthService: Signing in to Supabase...');
+
+      // Step 3: Sign in to Supabase with idToken + accessToken (NO nonce)
       final response = await _supabase!.auth.signInWithIdToken(
         provider: supabase.OAuthProvider.google,
         idToken: googleAuth.idToken!,
+        accessToken: googleAuth.accessToken!,
       );
 
-      print('🔐 AuthService: Supabase response received');
-
       if (response.session == null) {
-        print('🔐 AuthService: No session in Supabase response');
-        throw Exception('Google sign in failed');
+        print('🔐 AuthService: No session created');
+        throw Exception('Failed to create Supabase session');
       }
 
-      print('🔐 AuthService: Supabase session created successfully');
+      final session = response.session!;
+      print('🔐 AuthService: Supabase session created successfully!');
       print(
-          '🔐 AuthService: Session details - User: ${response.session!.user.email}, ID: ${response.session!.user.id}');
-
-      // Get user profile from backend
-      print(
-          '🔐 AuthService: Google signin successful, fetching backend profile...');
-      final user = await _getUserProfile();
-      print('🔐 AuthService: Backend profile fetched successfully');
+          '🔐 AuthService: User: ${session.user.email}, ID: ${session.user.id}');
 
       // Save tokens
-      print(
-          '🔐 AuthService: Saving tokens - access token length: ${response.session!.accessToken.length}, refresh token length: ${response.session!.refreshToken!.length}');
+      print('🔐 AuthService: Saving tokens...');
       await _tokenManager.saveTokens(
-        response.session!.accessToken,
-        response.session!.refreshToken!,
+        session.accessToken,
+        session.refreshToken!,
       );
       print('🔐 AuthService: Tokens saved successfully');
 
-      // Verify tokens were saved
-      final savedToken = await _tokenManager.getAccessToken();
-      print(
-          '🔐 AuthService: Verification - saved token exists: ${savedToken != null}');
+      // Try to get user profile from backend, create if doesn't exist
+      print('🔐 AuthService: Fetching backend profile...');
+      User user;
+      try {
+        user = await _getUserProfile();
+        print('🔐 AuthService: Backend profile fetched successfully');
+      } catch (e) {
+        print(
+            '🔐 AuthService: User profile not found, creating new profile...');
+        // User doesn't exist in backend, create profile
+        final userData = {
+          'auth_uid': session.user.id,
+          'email': session.user.email,
+          'role': 'user', // Default role for Google sign-in
+          'full_name': session.user.userMetadata?['full_name'] ??
+              session.user.userMetadata?['name'] ??
+              googleUser.displayName,
+        };
 
+        final apiResponse = await _createUserProfile(userData);
+
+        if (apiResponse.statusCode != 200 && apiResponse.statusCode != 201) {
+          print(
+              '🔐 AuthService: Backend profile creation failed: ${apiResponse.statusCode} - ${apiResponse.body}');
+          throw Exception(
+              'Failed to create user profile: ${apiResponse.statusCode}');
+        }
+
+        print('🔐 AuthService: Backend profile created successfully');
+        final userJson = json.decode(apiResponse.body);
+        user = User.fromJson(userJson);
+      }
+
+      print('🔐 AuthService: Google Sign-In completed successfully!');
       return user;
     } catch (e) {
-      // Clean up Google sign in on error
-      await GoogleSignInService.signOut();
+      print('🔐 AuthService: Error during Google sign-in: $e');
       throw _handleAuthError(e);
     }
   }
@@ -274,8 +316,6 @@ class AuthService {
       if (_supabase != null) {
         await _supabase!.auth.signOut();
       }
-      // Also sign out from Google
-      await GoogleSignInService.signOut();
       await _tokenManager.clearTokens();
     } catch (e) {
       // Clear local tokens even if API call fails

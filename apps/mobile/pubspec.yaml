@@ -19,9 +19,9 @@ dependencies:
 
   # Networking & Authentication
   http: ^1.1.0
-  supabase_flutter: ^2.8.0  # Upgraded from 2.0.0 - may fix nonce issues
+  supabase_flutter: ^2.8.0
+  google_sign_in: ^6.2.1  # Native Google Sign-In for iOS/Android
   flutter_dotenv: ^5.1.0
-  google_sign_in: ^6.2.1
 
   # Secure Storage (for JWT tokens)
   flutter_secure_storage: ^9.0.0
@@ -34,6 +34,7 @@ dependencies:
   flutter_svg: ^2.0.9
   jwt_decoder: ^2.0.1
   equatable: ^2.0.5
+  crypto: ^3.0.3
 
   # Charts
   fl_chart: ^0.66.2
