@@ -93,3 +93,7 @@ android/local.properties
 # OAuth Credentials - Keep Private
 apps/mobile/android/app/src/client_secret_*.json
 apps/mobile/ios/Runner/client_*.plist
+
+# Google Cloud Service Account Keys - NEVER PUSH TO REMOTE
+apps/backend/keys/
+*.json
