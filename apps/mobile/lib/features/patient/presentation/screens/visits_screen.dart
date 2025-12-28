@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import '../widgets/widgets.dart';
 
 class VisitsScreen extends StatefulWidget {
@@ -55,7 +56,9 @@ class _VisitsScreenState extends State<VisitsScreen> {
                           icon: Icons.mic,
                           color: Colors.blue,
                           onTap: () {
-                            context.go('/patient/record-visit');
+                            // Generate proper UUID v4 for visit ID
+                            final visitId = const Uuid().v4();
+                            context.go('/patient/record-visit/$visitId');
                           },
                         ),
                         const SizedBox(height: 20),

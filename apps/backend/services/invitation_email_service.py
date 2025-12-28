@@ -5,8 +5,9 @@ from sib_api_v3_sdk.rest import ApiException
 # from email.message import EmailMessage
 from dotenv import load_dotenv
 
-# Load environment variables from .env file in project root
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+# Load environment variables from .env file in backend directory
+# Temporarily disabled due to permission issues in development environment
+# load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # GMAIL_USER = os.getenv("GMAIL_USER")
 # GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
@@ -15,19 +16,25 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 # Brevo API key from environment variables
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
+# In development, allow missing email API key
 if not BREVO_API_KEY:
-    raise ValueError("BREVO_API_KEY not found in environment variables!")
+    print("⚠️ BREVO_API_KEY not found - email functionality will be disabled")
+    api_instance = None
+else:
+    # Initialize Brevo API client
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = BREVO_API_KEY
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+        sib_api_v3_sdk.ApiClient(configuration)
+    )
 
 FRONTEND_BASE_URL = os.getenv("REACT_APP_FRONTEND_URL", "http://localhost:3000")
 
-# Initialize Brevo API client
-configuration = sib_api_v3_sdk.Configuration()
-configuration.api_key['api-key'] = BREVO_API_KEY
-api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
-    sib_api_v3_sdk.ApiClient(configuration)
-)
-
 def send_invite_email(to_email: str, invite_token: str, patient_name: str):
+    if api_instance is None:
+        print(f"⚠️ Email not sent to {to_email} - BREVO_API_KEY not configured")
+        return False
+
     invite_link = f"{FRONTEND_BASE_URL}/invitation?token={invite_token}"
 
     #print("DEBUG: Invite link being sent:", invite_link)

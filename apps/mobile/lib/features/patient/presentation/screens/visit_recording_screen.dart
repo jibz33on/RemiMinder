@@ -1,10 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/services/audio_service.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
 
 class VisitRecordingScreen extends StatefulWidget {
-  const VisitRecordingScreen({super.key});
+  final String visitId;
+
+  const VisitRecordingScreen({
+    super.key,
+    required this.visitId,
+  });
 
   @override
   State<VisitRecordingScreen> createState() => _VisitRecordingScreenState();
@@ -12,6 +20,7 @@ class VisitRecordingScreen extends StatefulWidget {
 
 class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   final AudioService _audioService = AudioService();
+  final AuthService _authService = AuthService();
   final ScrollController _transcriptionScrollController = ScrollController();
   RecordingState _recordingState = RecordingState.ready;
   Timer? _timer;
@@ -669,6 +678,23 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       return;
     }
 
+    // Upload audio file to backend first
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Uploading audio...')),
+    );
+
+    try {
+      await _uploadAudioToBackend(_audioFilePath!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Audio uploaded successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload audio: $e')),
+      );
+      return; // Don't proceed if upload fails
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Processing transcript...')),
     );
@@ -697,6 +723,42 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error processing visit: $e')),
       );
+    }
+  }
+
+  Future<void> _uploadAudioToBackend(String audioFilePath) async {
+    // Get access token from AuthService
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    // Use the visit ID from widget arguments
+    final visitId = widget.visitId;
+
+    // Use API_BASE_URL from environment configuration
+    final uri =
+        Uri.parse('${Environment.apiBaseUrl}/api/visits/$visitId/audio/upload');
+    final request = http.MultipartRequest('POST', uri);
+
+    // Add authentication header
+    request.headers['Authorization'] = 'Bearer $accessToken';
+
+    // Use MultipartFile.fromPath for efficient streaming (no memory loading)
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file', // Field name expected by backend
+        audioFilePath,
+        filename: 'recording.m4a',
+      ),
+    );
+
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      final responseBody = await response.stream.bytesToString();
+      throw Exception(
+          'Audio upload failed: ${response.statusCode} - $responseBody');
     }
   }
 
@@ -751,8 +813,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
   Future<Map<String, dynamic>> _processHighAccuracyTranscription(
       String audioFilePath) async {
-    // TODO: Implement audio file upload to backend
-    // This should upload the audio file to /reminders/process-audio-transcription
+    // ✅ Audio file upload implemented
+    // Uploads to /api/visits/{visit_id}/audio/upload endpoint
     // and return the high-accuracy transcription result
 
     debugPrint('Processing high-accuracy transcription for: $audioFilePath');

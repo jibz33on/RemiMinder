@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 enum NavigationItem {
   home,
@@ -97,7 +98,9 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
                       Colors.blue,
                       () {
                         Navigator.of(context).pop();
-                        context.go('/patient/record-visit');
+                        // Generate proper UUID v4 for visit ID
+                        final visitId = const Uuid().v4();
+                        context.go('/patient/record-visit/$visitId');
                       },
                     ),
                     const SizedBox(height: 24),

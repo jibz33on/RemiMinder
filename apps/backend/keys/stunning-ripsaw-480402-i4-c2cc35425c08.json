@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "stunning-ripsaw-480402-i4",
+  "private_key_id": "c2cc35425c08e731e39a512075183392df17ef4d",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCi31U2m/o0k2Xd\nOyWc5cwapXQt/5LwN7Rr11hbHsF+ugTc1AOhew23QLsDPBnKuW37fQIg28E+4L/A\nRIeBVGx8ixbTyp93x9Jm4JHLcNrqavBgmfD8EJKKcAYfpthCLcgljeBj5gW15Dxg\nojbnLWzO7j2+Vh/GyQZoogWiRVFspN5PemMSo+A0sHYz57iUOa4SpzaRdJncYE9D\n7mswan2HIqwrdxIn6MyliDbJXuVUu3Q9vons8IHiiMGxk3of4yvFOMWl3KktoKSs\nWbbrnQX6vEQV17LCRtkwy/jA0eHV79ZBHnPwi+K9aA57at2HEiO1MdQmSrd1zVQi\nD212kE3RAgMBAAECggEADzZ7ybriMQ669yHnCpuCt9LwMfszFPWpCCEgPzuVUHJM\n0bkKYUcCghU9WokeshslkRXNMPdBuq8oretgukVh0DS4JD5i7H/ZMNOFPqq7AeYM\n74L1eb/NBjn+Mm7luHG5Bfv1Y3NY4XNQ6ehA51EsfnwNf5WhCHLeor+OdeiSWUq7\nPFsccNDWHpv7YIJoAyeYvau7aYzRcWM8Kbf/HvrDgCCpfs2zbHwx3/W9TjPHrkGo\nfsBu/RuLb1E3Zu7FV8yNUSNg2vICiappZT2ETgHacRzimD/lHXR5ftVwhZJQlMhX\nky0iJOvvkjMmYlCXz17EzupUAhEVTJAXO9B9DYMbeQKBgQDbVN+ZOzHiT9+K8mVX\n16o5EbHqVDGYqpJASyP4c+X0MBPY0xgYqlVcez+wAhW3AReLF87gU4pPijy6mvJs\ni9ApNqiMH68p9TUekvAdKfRZ2LKNN+veNps424CYYIWT9TTEKwaJxbY17nnGYIyX\nRkDs/ep1OkddrM/y2roboQyiGQKBgQC+GhNsZs4u04YzodTTkChvqmf+JKFThTgh\nF7M34UnDewb//X3gMmn76bUY9w1MdP0RLff+5AgynLA4iPxYs3sSFdcAUMtGzrMQ\n4/bREYuhTC9Kvo5fN//K33D4Bc4SlSCeAHaitYzsTVcXWUgF8etUGQNiUFTyzlpH\nBkLwlysweQKBgB3egBjhC9kTIZFNk2mUEDV3aHBOCPcOe55P3VUvi2hmx70mekiZ\nochXbIPutMBYYLlrg5vfJJ3SaJTNFyibHb0PGYMDqZogL5y7TAHcvc8iiKZcsD1x\n2E+07N1Tf713jjkM1vYaO8c6c9EFQwAy7BKaPby7NA7YwvUCvoeWth65AoGAByQ3\nopTiHgQ4QGxN8Hyz6C4Aph1+KgMRLr0TMIA4Iy3V/3voZKnALYSEFyIAz+R9NU4C\nyQKMBEq6nAUZZcOoVe+YGhzu5gQR2gqWVRhRpIeWJzqtYopaA6cNOWQOb8hGZ2kh\nC8/CMYZeRTRHbmG+M3SVGfZmmpCB97UWgq9LIhECgYEAlUU3kXDsKtT6A7n68rLg\nMA9PtGwEC2o1SlNgN3cqX7E98g40SBs/6OoXKX6+WEebKQAiZTt9T5V/iSPF+Xbv\niHZ7/gVZtRqv0x5BYdUzW7CKhBrIu4kfygPS9bqe+Sv8fx0LUHTNFkxKm1mBphfu\n1MSwdOh26oPGCbVOQM5iAGc=\n-----END PRIVATE KEY-----\n",
+  "client_email": "mediminder-backend@stunning-ripsaw-480402-i4.iam.gserviceaccount.com",
+  "client_id": "106650373806805325838",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mediminder-backend%40stunning-ripsaw-480402-i4.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -1,13 +1,16 @@
 #backend\route\visit_summary.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from schemas.schemas import VisitSummary, VisitSummaryPayload
 from services.db_service import (
     fetch_visit_transcript,
     fetch_visit_summary,
     insert_visit_summary,
     fetch_all_visit_summaries,
+    update_visit_audio_url,
+    upsert_visit_audio_url,
 )
 from services.ai_service import generate_ai_summary
+from services.gcs_service import upload_audio
 from services.db_service import get_supabase_client
 from utils.auth import get_current_user
 from datetime import datetime, timezone
@@ -89,3 +92,53 @@ async def get_all_summaries(current_user=Depends(get_current_user)):
         })
 
     return formatted_summaries
+
+
+@router.post("/visits/{visit_id}/audio/upload")
+async def upload_audio_for_visit(
+    visit_id: str,
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Upload audio file to GCS (UBLA-compatible) and save the signed URL in visit_transcripts table.
+    Creates visit_transcripts record if it doesn't exist.
+    Returns success message with signed audio URL (valid for 24 hours).
+    """
+    try:
+        # Get user_id from authenticated user
+        auth_uid = current_user["sub"]
+        supabase = get_supabase_client()
+        user_res = supabase.table("users").select("id").eq("auth_uid", auth_uid).execute()
+        if not user_res.data:
+            raise HTTPException(status_code=404, detail="User not found in database")
+        user_id = user_res.data[0]["id"]
+
+        # Upload file to GCS first
+        audio_url = await upload_audio(file, visit_id)
+
+        # Save the audio URL in database (create record if it doesn't exist)
+        try:
+            db_result = await upsert_visit_audio_url(visit_id, user_id, audio_url)
+            if db_result is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Audio uploaded to storage but failed to update visit record in database"
+                )
+        except Exception as db_error:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Audio uploaded to storage but database update failed: {str(db_error)}"
+            )
+
+        return {
+            "message": "Audio uploaded successfully",
+            "audio_url": audio_url,
+            "expires_in": "24 hours"  # Signed URL expiration info
+        }
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audio upload failed: {str(e)}")

@@ -209,6 +209,59 @@ async def update_transcript_visit_id(transcript_id: str, visit_id: str, user_id:
         return None
 
 
+async def update_visit_audio_url(visit_id: str, audio_url: str) -> Optional[Dict[str, Any]]:
+    """
+    Updates the audio_url in visit_transcripts table for a specific visit.
+    """
+    supabase = get_supabase_client()
+    try:
+        response = (
+            supabase.table("visit_transcripts")
+            .update({"audio_url": audio_url})
+            .eq("visit_id", visit_id)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.info(f"Error updating audio_url for visit {visit_id}: {e}")
+        print(f"Error updating audio_url for visit {visit_id}: {e}")
+        return None
+
+
+async def upsert_visit_audio_url(visit_id: str, user_id: str, audio_url: str) -> Optional[Dict[str, Any]]:
+    """
+    Inserts or updates the audio_url in visit_transcripts table for a specific visit.
+    Creates the record if it doesn't exist.
+    """
+    supabase = get_supabase_client()
+    try:
+        # First try to update existing record
+        response = (
+            supabase.table("visit_transcripts")
+            .update({"audio_url": audio_url})
+            .eq("visit_id", visit_id)
+            .execute()
+        )
+
+        # If no record was updated, create a new one
+        if not response.data:
+            response = (
+                supabase.table("visit_transcripts")
+                .insert({
+                    "visit_id": visit_id,
+                    "user_id": user_id,
+                    "audio_url": audio_url
+                })
+                .execute()
+            )
+
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.info(f"Error upserting audio_url for visit {visit_id}: {e}")
+        print(f"Error upserting audio_url for visit {visit_id}: {e}")
+        return None
+
+
 #-------------------------------------------------------------#
 # AI
 #-------------------------------------------------------------#
