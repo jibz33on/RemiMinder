@@ -1,34 +1,35 @@
-# backend/auth.py
+import logging
+import os
+from typing import Dict, Any
+
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
-import jwt
-import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file in project root
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env')) 
-
+logger = logging.getLogger(__name__)
 security = HTTPBearer()
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
-def get_current_user(credentials=Depends(security)):
-    """
-    This verifies the Supabase JWT token sent from frontend.
-    Gives API the identity of the logged-in user
-    It makes sure only logged-in users (patients) can access protected routes.
-    Extracts and validates JWT from Authorization header.
-    Returns decoded token data if valid, else raises 401.
-    """
-    token = credentials.credentials  # Extracts token from header
+def get_current_user(credentials=Depends(security)) -> Dict[str, Any]:
+    """Verify Supabase JWT token and return decoded user data."""
+    token = credentials.credentials
+
+    # Get JWT secret at runtime (not import time) for reload compatibility
+    jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+    if not jwt_secret:
+        logger.error("SUPABASE_JWT_SECRET not set")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error"
+        )
 
     try:
         decoded_token = jwt.decode(
             token,
-            SUPABASE_JWT_SECRET,
+            jwt_secret,
             algorithms=["HS256"],
-            audience="authenticated" 
+            audience="authenticated"
         )
-        return decoded_token  # This will be current_user in endpoints
+        return decoded_token
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,6 +41,7 @@ def get_current_user(credentials=Depends(security)):
             detail="Invalid token audience"
         )
     except Exception as e:
+        logger.warning(f"JWT validation failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"

@@ -1,83 +1,73 @@
+import logging
 import os
+from typing import Optional
+
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
-# import aiosmtplib
-# from email.message import EmailMessage
-from dotenv import load_dotenv
 
-# Load environment variables from .env file in backend directory
-# Temporarily disabled due to permission issues in development environment
-# load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+logger = logging.getLogger(__name__)
 
-# GMAIL_USER = os.getenv("GMAIL_USER")
-# GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-# GMAIL_NAME = os.getenv("GMAIL_NAME")
-
-# Brevo API key from environment variables
-BREVO_API_KEY = os.getenv("BREVO_API_KEY")
-
-# In development, allow missing email API key
-if not BREVO_API_KEY:
-    print("⚠️ BREVO_API_KEY not found - email functionality will be disabled")
-    api_instance = None
-else:
-    # Initialize Brevo API client
-    configuration = sib_api_v3_sdk.Configuration()
-    configuration.api_key['api-key'] = BREVO_API_KEY
-    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
-        sib_api_v3_sdk.ApiClient(configuration)
-    )
-
+# Global variable to cache the API instance (lazy initialization)
+_api_instance: Optional[sib_api_v3_sdk.TransactionalEmailsApi] = None
 FRONTEND_BASE_URL = os.getenv("REACT_APP_FRONTEND_URL", "http://localhost:3000")
 
-def send_invite_email(to_email: str, invite_token: str, patient_name: str):
+def _get_brevo_api_instance() -> Optional[sib_api_v3_sdk.TransactionalEmailsApi]:
+    """Lazy initialization of Brevo API client."""
+    global _api_instance
+    if _api_instance is not None:
+        return _api_instance
+
+    # Get API key at runtime (not import time)
+    api_key = os.getenv("BREVO_API_KEY")
+    if not api_key:
+        logger.warning("BREVO_API_KEY not found - email functionality will be disabled")
+        return None
+
+    # Initialize Brevo API client
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = api_key
+    _api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+        sib_api_v3_sdk.ApiClient(configuration)
+    )
+    return _api_instance
+
+def send_invite_email(to_email: str, invite_token: str, patient_name: str) -> bool:
+    """Send invitation email to caregiver."""
+    api_instance = _get_brevo_api_instance()
     if api_instance is None:
-        print(f"⚠️ Email not sent to {to_email} - BREVO_API_KEY not configured")
+        logger.warning(f"Email not sent to {to_email} - BREVO_API_KEY not configured")
         return False
 
     invite_link = f"{FRONTEND_BASE_URL}/invitation?token={invite_token}"
 
-    #print("DEBUG: Invite link being sent:", invite_link)
-
     # Plain text version
-    plain_content = f"""\
-Hi,
+    plain_content = f"""Hi,
 
 {patient_name} has invited you to join as their caregiver on RemiMinderAI.
 
 Click the link below to accept:
 {invite_link}
 
-If you didn’t expect this, you can safely ignore this email.
-"""
+If you didn't expect this, you can safely ignore this email."""
 
     # HTML version
-    html_content = f"""\
-<html>
+    html_content = f"""<html>
   <body style="font-family: Arial, sans-serif; line-height:1.6;">
     <h2 style="color: #333;">You're invited!</h2>
     <p><strong>{patient_name}</strong> has invited you to join as their caregiver on <strong>RemiMinderAI</strong>.</p>
     <p>
-      <a href="{invite_link}" 
-         style="
-           display:inline-block;
-           background-color:#4CAF50;
-           color:white;
-           padding:10px 20px;
-           text-decoration:none;
-           border-radius:6px;
-           font-weight:bold;
-         ">
+      <a href="{invite_link}"
+         style="display:inline-block; background-color:#4CAF50; color:white; padding:10px 20px;
+                text-decoration:none; border-radius:6px; font-weight:bold;">
         Accept Invitation
       </a>
     </p>
     <hr style="border:none; border-top:1px solid #eee;" />
     <p style="font-size:0.9em; color:#555;">
-      If you didn’t expect this invitation, you can safely ignore this email.
+      If you didn't expect this invitation, you can safely ignore this email.
     </p>
   </body>
-</html>
-"""
+</html>"""
 
     # Brevo email object
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
@@ -90,6 +80,8 @@ If you didn’t expect this, you can safely ignore this email.
 
     try:
         api_instance.send_transac_email(send_smtp_email)
-        print(f"Email sent to {to_email}")
+        logger.info(f"Email sent successfully to {to_email}")
+        return True
     except ApiException as e:
-        print(f"Error sending Brevo email to {to_email}: {e}")
+        logger.error(f"Error sending Brevo email to {to_email}: {e}")
+        return False

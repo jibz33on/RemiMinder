@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../../../core/config/environment.dart';
+import '../../../../core/services/auth_service.dart';
 import '../widgets/widgets.dart';
 
 class HistoryListScreen extends StatefulWidget {
@@ -13,13 +17,18 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final AuthService _authService = AuthService();
   String _searchQuery = '';
+  List<dynamic> _visitSummaries = [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _searchController.addListener(_onSearchChanged);
+    _fetchVisitSummaries();
   }
 
   @override
@@ -33,6 +42,41 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     setState(() {
       _searchQuery = _searchController.text.toLowerCase();
     });
+  }
+
+  Future<void> _fetchVisitSummaries() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final accessToken = await _authService.getAccessToken();
+      if (accessToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final uri = Uri.parse('${Environment.apiBaseUrl}/api/visit-summaries');
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load visit summaries');
+      }
+
+      final data = json.decode(response.body);
+      setState(() {
+        _visitSummaries = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -141,7 +185,64 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildAllEvents() {
-    final events = _getAllEvents();
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load history',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 12,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchVisitSummaries,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Convert visit summaries to HistoryEvent objects
+    final events = _visitSummaries.map((summary) {
+      return HistoryEvent(
+        title: summary['title'] ?? 'Visit Summary',
+        description: summary['summary'] ?? 'No summary available',
+        date:
+            '${summary['date'] ?? 'Unknown date'} at ${summary['time'] ?? 'Unknown time'}',
+        type: 'visit_recording',
+        category: 'visit',
+        icon: Icons.mic,
+        color: Colors.blue,
+        categoryColor: Colors.blue,
+      );
+    }).toList();
+
     final filteredEvents = _searchQuery.isEmpty
         ? events
         : events
@@ -155,34 +256,69 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildScannedDocuments() {
-    final events = _getAllEvents()
-        .where((event) =>
-            event.category == 'document' || event.type.contains('scan'))
-        .toList();
-    final filteredEvents = _searchQuery.isEmpty
-        ? events
-        : events
-            .where((event) =>
-                event.title.toLowerCase().contains(_searchQuery) ||
-                event.description.toLowerCase().contains(_searchQuery))
-            .toList();
-
-    return _buildEventList(filteredEvents);
+    // For now, show empty state since we only have visit recordings
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.document_scanner,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No scanned documents yet',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Scanned prescriptions and documents will appear here',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildLabResults() {
-    final events = _getAllEvents()
-        .where((event) => event.category == 'lab' || event.type.contains('lab'))
-        .toList();
-    final filteredEvents = _searchQuery.isEmpty
-        ? events
-        : events
-            .where((event) =>
-                event.title.toLowerCase().contains(_searchQuery) ||
-                event.description.toLowerCase().contains(_searchQuery))
-            .toList();
-
-    return _buildEventList(filteredEvents);
+    // For now, show empty state since we only have visit recordings
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.science,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No lab results yet',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Lab results and test reports will appear here',
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEventList(List<HistoryEvent> events) {
@@ -321,13 +457,27 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     // Navigate based on event type
     switch (event.type) {
       case 'visit_recording':
-        context.go('/patient/visit-details');
+        // For now, show the summary in a dialog since we don't have visit details page yet
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(event.title),
+            content: SingleChildScrollView(
+              child: Text(event.description),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
         break;
       case 'document_scan':
       case 'lab_report':
-        // TODO: Show document viewer
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opening ${event.title}')),
+          SnackBar(content: Text('Document viewer coming soon')),
         );
         break;
       case 'medication_taken':
@@ -335,101 +485,9 @@ class _HistoryListScreenState extends State<HistoryListScreen>
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opening ${event.title}')),
+          SnackBar(content: Text('Feature coming soon')),
         );
     }
-  }
-
-  List<HistoryEvent> _getAllEvents() {
-    return [
-      // Visit Recordings
-      HistoryEvent(
-        title: 'Cardiology Follow-up Visit',
-        description: 'Audio recording with Dr. Sarah Johnson',
-        date: '2 days ago',
-        type: 'visit_recording',
-        category: 'visit',
-        icon: Icons.mic,
-        color: Colors.blue,
-        categoryColor: Colors.blue,
-      ),
-      HistoryEvent(
-        title: 'Blood Work Review',
-        description: 'Audio recording with Dr. Michael Chen',
-        date: '1 week ago',
-        type: 'visit_recording',
-        category: 'visit',
-        icon: Icons.mic,
-        color: Colors.blue,
-        categoryColor: Colors.blue,
-      ),
-
-      // Scanned Documents
-      HistoryEvent(
-        title: 'Lisinopril Prescription',
-        description: 'Scanned prescription document',
-        date: '3 days ago',
-        type: 'document_scan',
-        category: 'document',
-        icon: Icons.receipt,
-        color: Colors.green,
-        categoryColor: Colors.green,
-      ),
-      HistoryEvent(
-        title: 'Medical Insurance Card',
-        description: 'Scanned insurance information',
-        date: '2 weeks ago',
-        type: 'document_scan',
-        category: 'document',
-        icon: Icons.credit_card,
-        color: Colors.purple,
-        categoryColor: Colors.green,
-      ),
-
-      // Lab Results
-      HistoryEvent(
-        title: 'Complete Blood Count',
-        description: 'LabCorp - Comprehensive blood panel',
-        date: '1 week ago',
-        type: 'lab_report',
-        category: 'lab',
-        icon: Icons.science,
-        color: Colors.purple,
-        categoryColor: Colors.red,
-      ),
-      HistoryEvent(
-        title: 'Lipid Panel Results',
-        description: 'Cholesterol and triglyceride levels',
-        date: '2 weeks ago',
-        type: 'lab_report',
-        category: 'lab',
-        icon: Icons.science,
-        color: Colors.purple,
-        categoryColor: Colors.red,
-      ),
-
-      // Medication Events
-      HistoryEvent(
-        title: 'Lisinopril Taken',
-        description: '10mg dose recorded',
-        date: 'Today, 8:00 AM',
-        type: 'medication_taken',
-        category: 'medication',
-        icon: Icons.check_circle,
-        color: Colors.teal,
-        categoryColor: Colors.teal,
-      ),
-      HistoryEvent(
-        title: 'Metformin Missed',
-        description: '500mg dose not taken',
-        date: 'Yesterday',
-        type: 'medication_missed',
-        category: 'medication',
-        icon: Icons.cancel,
-        color: Colors.red,
-        categoryColor: Colors.teal,
-      ),
-    ];
   }
 }
 

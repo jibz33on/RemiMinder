@@ -1,33 +1,24 @@
-#backend\services\db_reminders.py
-import os
-from supabase import create_client, Client
-from typing import List, Optional, Dict, Any
+import logging
 from datetime import datetime, timedelta, timezone
-from dateutil import parser
-import pytz
+from typing import List, Optional, Dict, Any
 import uuid
 
-from dotenv import load_dotenv
-# Load environment variables from .env file in project root
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+from dateutil import parser
+import pytz
 
-def get_supabase_client() -> Client:
-    SUPABASE_URL = os.getenv("SUPABASE_URL")
-    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+from .supabase_client import get_supabase_client
+
+logger = logging.getLogger(__name__)
 
 async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
     """Create a new reminder in the database."""
-    supabase = get_supabase_client()
-    
-    if isinstance(data["user_id"], uuid.UUID):
-        data["user_id"] = str(data["user_id"])
-    if "visit_id" in data and isinstance(data["visit_id"], uuid.UUID):
-        data["visit_id"] = str(data["visit_id"])
+    # Convert UUIDs to strings if needed
+    user_id = str(data["user_id"]) if isinstance(data["user_id"], uuid.UUID) else data["user_id"]
+    visit_id = str(data["visit_id"]) if data.get("visit_id") and isinstance(data["visit_id"], uuid.UUID) else data.get("visit_id")
 
     reminder_data = {
-        "user_id": data["user_id"],
-        "visit_id": data.get("visit_id"),
+        "user_id": user_id,
+        "visit_id": visit_id,
         "reminder_type": data["reminder_type"],
         "title": data["title"],
         "message": data["message"],
@@ -36,89 +27,75 @@ async def create_reminder(data: dict) -> Optional[Dict[str, Any]]:
         "recurrence": data.get("recurrence", "once"),
         "status": "pending"
     }
-    
+
+    supabase = get_supabase_client()
     response = supabase.table("reminders").insert(reminder_data).execute()
     return response.data[0] if response.data else None
 
 
 async def insert_ai_reminders(
-    ai_summary_result: Dict, 
-    user_id: str, 
+    ai_summary_result: Dict,
+    user_id: str,
     visit_id: str
 ) -> List[Optional[Dict[str, Any]]]:
-    """
-    Transforms AI-generated reminders into the UTC-based database schema format 
-    and inserts them into the 'reminders' table using the existing create_reminder function.
-    """
-    
-    USER_TIMEZONE: str = 'America/New_York'
-    
+    """Transform AI-generated reminders into database format and insert them."""
+    USER_TIMEZONE = 'America/New_York'
     reminders_to_insert = ai_summary_result.get("reminders", [])
     inserted_reminders = []
     
     for reminder_item in reminders_to_insert:
         scheduled_datetime_utc = None
-        
-        # 1. Title/Message mapping
-        title = ai_summary_result.get("title", "Doctor Office Visit") 
-        message = reminder_item["text"] 
 
-        # 2. Type and Recurrence
+        # Extract reminder data
+        title = ai_summary_result.get("title", "Doctor Office Visit")
+        message = reminder_item["text"]
         reminder_type = reminder_item["type"]
         recurrence = reminder_item.get("recurrence", "once")
 
-        # 3. Scheduled Time Transformation
+        # Parse scheduled time
         scheduled_date_str = reminder_item.get("scheduled_date", "")
         scheduled_time_str = reminder_item.get("scheduled_time", "")
-        
-        # Case A: Specific date provided
+
         if scheduled_date_str:
             try:
                 datetime_str = f"{scheduled_date_str} {scheduled_time_str or '00:00'}"
                 dt_naive = parser.parse(datetime_str)
 
-                # Interpret as NY time (not UTC!)
-                ny_tz = pytz.timezone('America/New_York')
-                dt_ny_aware = ny_tz.localize(dt_naive)  # Now it's 00:00 in NY
-
-                # Convert to UTC for storage
+                # Convert NY time to UTC
+                ny_tz = pytz.timezone(USER_TIMEZONE)
+                dt_ny_aware = ny_tz.localize(dt_naive)
                 scheduled_datetime_utc = dt_ny_aware.astimezone(timezone.utc)
 
             except Exception as e:
-                # If date string is unparseable, skip this reminder item.
-                print(f"Warning: Failed to parse date/time for reminder '{message}'. Skipping. Error: {e}")
+                logger.warning(f"Failed to parse date/time for reminder '{message}': {e}")
                 continue 
 
-        # Case B: Recurring task (e.g., 'daily') with NO specific date/time 
+        # Handle recurring reminders without specific dates
         elif recurrence != 'once':
-            # Set the first instance for tomorrow at 8 AM UTC.
-            ny_tz = pytz.timezone('America/New_York')
-            now_ny = datetime.now(ny_tz)
-            tomorrow_ny = now_ny + timedelta(days=1)
+            # Schedule first instance for tomorrow at 8 AM NY time
+            ny_tz = pytz.timezone(USER_TIMEZONE)
+            tomorrow_ny = datetime.now(ny_tz) + timedelta(days=1)
             tomorrow_8am_ny = tomorrow_ny.replace(hour=8, minute=0, second=0, microsecond=0)
-            
-            # Convert to UTC
-            scheduled_datetime_utc = tomorrow_8am_ny.astimezone(timezone.utc)        
-            
-        # 4. Insertion Guard
-        if scheduled_datetime_utc is not None:
+            scheduled_datetime_utc = tomorrow_8am_ny.astimezone(timezone.utc)
 
+        # Insert reminder if we have a valid scheduled time
+        if scheduled_datetime_utc is not None:
             db_data = {
                 "user_id": user_id,
                 "visit_id": visit_id,
                 "reminder_type": reminder_type,
                 "title": title,
                 "message": message,
-                "scheduled_time": scheduled_datetime_utc, # This is the UTC datetime object
-                "timezone": USER_TIMEZONE, 
+                "scheduled_time": scheduled_datetime_utc,
+                "timezone": USER_TIMEZONE,
                 "recurrence": recurrence,
             }
 
             try:
-                inserted = await create_reminder(db_data) 
+                inserted = await create_reminder(db_data)
                 inserted_reminders.append(inserted)
             except Exception as e:
-                print(f"Error inserting reminder: {message}. Exception: {e}")
+                logger.error(f"Error inserting reminder '{message}': {e}")
                 inserted_reminders.append(None)
                 
     return inserted_reminders
@@ -193,33 +170,27 @@ async def delete_reminder(reminder_id: str, user_id: str) -> bool:
 
 async def mark_reminder_complete(reminder_id: str, user_id: str, notes: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Mark a reminder as completed."""
-    supabase = get_supabase_client()
-    
     now = datetime.now(timezone.utc)
-    
-    # Update reminder status
+
+    # Update reminder status and reset skip count
     reminder = await update_reminder(
-        reminder_id, 
-        user_id, 
+        reminder_id,
+        user_id,
         {
             "status": "completed",
-            "completed_at": now.isoformat()
+            "completed_at": now.isoformat(),
+            "consecutive_skips": 0
         }
     )
 
-    await update_reminder(
-        reminder_id, user_id,
-        {"consecutive_skips": 0}
-    )
-
-    # If recurring, create next instance
-    if reminder.get("recurrence") and reminder["recurrence"] != "once":
+    # Create next recurring instance if needed
+    if reminder and reminder.get("recurrence") and reminder["recurrence"] != "once":
         await create_recurring_reminder(reminder)
 
+    # Log the action
     if reminder:
-        # Log the action
         await log_reminder_action(reminder_id, user_id, "completed", notes)
-    
+
     return reminder
 
 
@@ -294,12 +265,9 @@ async def log_reminder_action(
     notes: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """Log a reminder action to reminder_logs table."""
-    supabase = get_supabase_client()
-
-    if isinstance(reminder_id, uuid.UUID):
-        reminder_id = str(reminder_id)
-    if isinstance(user_id, uuid.UUID):
-        user_id = str(user_id)
+    # Convert UUIDs to strings if needed
+    reminder_id = str(reminder_id) if isinstance(reminder_id, uuid.UUID) else reminder_id
+    user_id = str(user_id) if isinstance(user_id, uuid.UUID) else user_id
 
     log_data = {
         "reminder_id": reminder_id,
@@ -307,7 +275,8 @@ async def log_reminder_action(
         "action": action,
         "notes": notes
     }
-    
+
+    supabase = get_supabase_client()
     response = supabase.table("reminder_logs").insert(log_data).execute()
     return response.data[0] if response.data else None
 
@@ -477,11 +446,10 @@ async def create_caregiver_alert(
     message: str
 ) -> Optional[Dict[str, Any]]:
     """Create a caregiver alert."""
-    supabase = get_supabase_client()
-    
-    for key, val in {"caregiver_id": caregiver_id, "user_id": user_id, "reminder_id": reminder_id}.items():
-        if isinstance(val, uuid.UUID):
-            locals()[key] = str(val)
+    # Convert UUIDs to strings if needed
+    caregiver_id = str(caregiver_id) if isinstance(caregiver_id, uuid.UUID) else caregiver_id
+    user_id = str(user_id) if isinstance(user_id, uuid.UUID) else user_id
+    reminder_id = str(reminder_id) if isinstance(reminder_id, uuid.UUID) else reminder_id
 
     alert_data = {
         "caregiver_id": caregiver_id,
@@ -490,7 +458,8 @@ async def create_caregiver_alert(
         "alert_type": alert_type,
         "message": message
     }
-    
+
+    supabase = get_supabase_client()
     response = supabase.table("caregiver_alerts").insert(alert_data).execute()
     return response.data[0] if response.data else None
 

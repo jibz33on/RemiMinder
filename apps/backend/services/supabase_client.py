@@ -1,40 +1,52 @@
-# Store your keys in .env file and load them using python-dotenv.
-from supabase import create_client, Client
+import logging
 import os
-from dotenv import load_dotenv
+from typing import Optional
 
-# Load environment variables from .env file in backend directory
-# Temporarily disabled due to permission issues in development environment
-# env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-# if os.path.exists(env_path):
-#     load_dotenv(env_path)
+from supabase import create_client, Client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+logger = logging.getLogger(__name__)
 
-# In development, allow missing env vars (will be set via command line)
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("⚠️ SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found in .env")
-    print("Set them via command line or environment variables")
+# Global variable to cache the client (lazy initialization)
+_supabase_client: Optional[Client] = None
 
-    # Create a mock client that raises an error when used
-    class MockSupabaseClient:
-        def table(self, name):
-            raise RuntimeError("Supabase client not initialized. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.")
+def get_supabase_client() -> Client:
+    """Lazy initialization of Supabase client."""
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
 
-    supabase = MockSupabaseClient()
-else:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    # Read environment variables at runtime (not import time)
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise RuntimeError(
+            "Supabase client not initialized. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables."
+        )
+
+    _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
+
+# For backward compatibility, create a proxy object
+class SupabaseProxy:
+    """Proxy object that lazily initializes the Supabase client."""
+
+    def __getattr__(self, name):
+        return getattr(get_supabase_client(), name)
+
+
+# Global proxy instance for backward compatibility
+supabase = SupabaseProxy()
 
 def check_table_exists(table_name: str) -> bool:
-    """Check if a table exists in Supabase"""
+    """Check if a table exists in Supabase."""
     try:
         # Try to select from table with limit 1
         supabase.table(table_name).select("*").limit(1).execute()
         return True
     except RuntimeError as e:
         if "Supabase client not initialized" in str(e):
-            print("⚠️ Supabase client not initialized - skipping table check")
+            logger.warning("Supabase client not initialized - skipping table check")
             return False
         raise e
     except Exception as e:
