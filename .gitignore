@@ -97,3 +97,23 @@ apps/mobile/ios/Runner/client_*.plist
 # Google Cloud Service Account Keys - NEVER PUSH TO REMOTE
 apps/backend/keys/
 *.json
+
+# Development utility scripts (local development only)
+apps/backend/debug_*.py
+apps/backend/check_*.py
+apps/backend/test_*.py
+apps/backend/*README*.txt
+
+# Experiments and notebooks (local development only)
+apps/backend/experiments/
+*.ipynb_checkpoints/
+experiment_results/
+
+# Audio files in experiments (contain PHI)
+apps/backend/experiments/audio/*.mp3
+apps/backend/experiments/audio/*.mp4
+apps/backend/experiments/audio/*.wav
+apps/backend/experiments/audio/*.webm
+apps/backend/experiments/audio/*.m4a
+apps/backend/experiments/audio/*.mpeg
+!apps/backend/experiments/audio/README.md

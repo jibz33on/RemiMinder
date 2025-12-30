@@ -81,6 +81,7 @@ async def fetch_visit_summary(visit_id: str, user_id: str) -> Optional[Dict[str,
 
 async def fetch_all_visit_summaries(user_id: str) -> List[Dict[str, Any]]:
     """Fetch all summaries for a patient (no transcript)."""
+    logger.info(f"Querying visit_summaries for user_id: {user_id}")
     supabase = get_supabase_client()
 
     response = (
@@ -91,7 +92,11 @@ async def fetch_all_visit_summaries(user_id: str) -> List[Dict[str, Any]]:
         .execute()
     )
 
-    return response.data or []
+    result = response.data or []
+    logger.info(f"Query returned {len(result)} visit summaries")
+    if result:
+        logger.info(f"Sample summary IDs: {[s.get('id') for s in result[:3]]}")
+    return result
 
 def _list_to_comma_separated(data_list: list) -> str:
     if isinstance(data_list, tuple):
@@ -109,6 +114,7 @@ async def insert_visit_summary(
     summary_data: dict
 ) -> Optional[Dict[str, Any]]:
     """Insert visit summary data into database."""
+    logger.info(f"Inserting visit summary for visit_id: {visit_id}, user_id: {user_id}")
     supabase = get_supabase_client()
 
     # Convert lists to comma-separated strings for storage
@@ -124,13 +130,19 @@ async def insert_visit_summary(
         "medications": _list_to_comma_separated(summary_data.get("medications", [])),
     }
 
+    logger.info(f"Summary data to insert: summary length={len(data.get('summary', ''))}")
+
     # Update visit title
     title = summary_data.get("title", "New Recorded Visit")
     await update_visit_title(visit_id, user_id, title)
 
     response = supabase.table("visit_summaries").insert(data).execute()
-    logger.info("Visit summary inserted successfully")
-    return response.data[0] if response.data else None
+    if response.data:
+        logger.info(f"Visit summary inserted successfully with ID: {response.data[0].get('id')}")
+        return response.data[0]
+    else:
+        logger.error("Visit summary insertion returned no data")
+        return None
 
 
 async def insert_visit_transcript(transcript_text: str) -> Optional[Dict[str, Any]]:

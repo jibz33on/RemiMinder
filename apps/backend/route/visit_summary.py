@@ -69,7 +69,9 @@ async def get_visit_summary(visit_id: int, user_id: int):
 
 @router.get("/visit-summaries")
 async def get_all_summaries(user_id: str = Depends(get_user_id)):
+    logger.info(f"Fetching visit summaries for user_id: {user_id}")
     summaries = await fetch_all_visit_summaries(user_id)
+    logger.info(f"Found {len(summaries)} raw summaries from database")
     formatted_summaries = []
 
     for item in summaries:
