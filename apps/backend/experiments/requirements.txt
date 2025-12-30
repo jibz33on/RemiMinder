@@ -1,0 +1,14 @@
+# Jupyter Notebook Experimentation Requirements
+# Install with: pip install -r experiments/requirements.txt
+
+jupyter>=1.0.0
+notebook>=7.0.0
+openai>=1.12.0
+python-dotenv>=1.0.0
+google-generativeai>=0.3.0  # For Gemini models
+
+# Optional: For better notebook experience
+ipywidgets>=8.1.0
+matplotlib>=3.8.0  # For visualization if needed
+pandas>=2.1.0      # For data analysis if needed
+

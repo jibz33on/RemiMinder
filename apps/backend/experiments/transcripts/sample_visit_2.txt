@@ -1,0 +1,46 @@
+Doctor: Hello! Welcome back. What brings you in today?
+
+Patient: Hi Doctor. I've been having trouble with my blood pressure medication. I keep forgetting to take it, and when I do remember, I sometimes feel dizzy.
+
+Doctor: I see. How long have you been experiencing the dizziness?
+
+Patient: About two weeks now. It usually happens in the morning, maybe an hour after I take the pill.
+
+Doctor: And what medication are you currently taking?
+
+Patient: It's called lisinopril. I think it's 20 milligrams.
+
+Doctor: Yes, I have you on lisinopril 20 milligrams once daily. Let's check your blood pressure right now. [takes blood pressure] Your pressure is 148 over 92, which is higher than we'd like to see.
+
+Patient: Is that bad?
+
+Doctor: It's elevated, but manageable. The dizziness you're experiencing is likely a side effect of the medication, and it might be because the dose is a bit too strong for you. I'm going to reduce your dose to 10 milligrams once daily.
+
+Patient: Will that still work to control my blood pressure?
+
+Doctor: Yes, 10 milligrams should be effective. We'll monitor it closely. I also want you to check your blood pressure at home twice a week and keep a log. Can you do that?
+
+Patient: Yes, I have a blood pressure monitor at home. Should I write it down?
+
+Doctor: Exactly. Write down the date, time, and the reading, and bring the log with you to your next appointment. Now, about forgetting to take your medication—do you take it at the same time every day?
+
+Patient: Not really. Sometimes I take it in the morning, sometimes at night.
+
+Doctor: That's part of the problem. I want you to take it every morning right after breakfast. Set an alarm on your phone if you need to. Consistency is key for managing high blood pressure.
+
+Patient: Okay, I can do that. Every morning after breakfast.
+
+Doctor: Good. Also, try to reduce your salt intake. Avoid processed foods and don't add extra salt to your meals. That will help lower your blood pressure naturally.
+
+Patient: I do eat a lot of frozen meals. I'll try to cut back.
+
+Doctor: That would be very helpful. Now, let's schedule a follow-up in three weeks. By then, I want to see your blood pressure log and check how you're doing on the lower dose.
+
+Patient: Three weeks, okay. And if I still feel dizzy?
+
+Doctor: If the dizziness continues after a week on the lower dose, give my office a call. We might need to try a different medication altogether. But let's see how you do with this adjustment first.
+
+Patient: Sounds good. Thank you, Doctor.
+
+Doctor: You're welcome. Take care, and remember—every morning after breakfast, and keep that log!
+
