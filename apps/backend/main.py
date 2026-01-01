@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 # Explicitly load .env from backend directory
 env_path = os.path.join(os.path.dirname(__file__), ".env")
-load_dotenv(env_path)
+try:
+    load_dotenv(env_path)
+except (FileNotFoundError, PermissionError):
+    logger.warning(f"Could not load .env file from {env_path}. Make sure environment variables are set.")
 
 # Verify critical environment variables are loaded
 required_vars = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GCS_BUCKET_NAME"]
