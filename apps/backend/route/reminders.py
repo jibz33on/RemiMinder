@@ -25,7 +25,6 @@ from services.reminder_service import (
     get_caregiver_dashboard_data
 )
 # from services.speech_to_text_service import SpeechToTextService  # TODO: Implement this service
-from utils.n8n_helper import send_to_extraction_agent
 from services.db_reminders import (
     get_caregiver_alerts,
     mark_alert_as_read
@@ -295,50 +294,6 @@ async def mark_alert_read(alert_id: str, caregiver_id: str):
         )
 
 
-# Voice Recording & AI Agent Integration
-@router.post("/process-visit-transcription")
-async def process_visit_transcription(
-    transcription_data: dict = Body(..., description="AI summary data from voice recording")
-):
-    """
-    Process transcription data from voice recordings and send to N8N extraction agent.
-
-    Expected payload:
-    {
-        "transcript": "full conversation text",
-        "summary": "AI generated summary",
-        "action_items": ["item1", "item2"],
-        "medications": ["med1", "med2"],
-        "patient_id": "patient123",
-        "visit_id": "visit456"
-    }
-    """
-    try:
-        logger.info(f"Processing visit transcription for patient: {transcription_data.get('patient_id')}")
-
-        # Send to N8N extraction agent
-        success = await send_to_extraction_agent(transcription_data)
-
-        if success:
-            return {
-                "status": "success",
-                "message": "Transcription sent to extraction agent successfully",
-                "data": transcription_data
-            }
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to send data to extraction agent"
-            )
-
-    except Exception as e:
-        logger.error(f"Error processing visit transcription: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process transcription: {str(e)}"
-        )
-
-
 # High-accuracy speech-to-text processing
 # TODO: Implement SpeechToTextService
 # @router.post("/process-audio-transcription")
@@ -384,14 +339,10 @@ async def process_visit_transcription(
 #             "visit_id": visit_id
 #         }
 
-#         # Send to N8N agent
-#         success = await send_to_extraction_agent(ai_summary_data)
-
 #         return {
 #             "status": "success",
 #             "transcript": transcript,
 #             "accuracy_method": "whisper_high_accuracy",
-#             "n8n_processed": success,
 #             "data": ai_summary_data
 #         }
 
