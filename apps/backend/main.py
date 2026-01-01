@@ -34,6 +34,24 @@ if gemini_key:
 else:
     logger.warning("GEMINI_API_KEY not set - AI summaries will fail")
 
+# Check Cloud SQL environment variables (optional for read-only testing)
+cloud_sql_vars = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+cloud_sql_configured = all(os.getenv(var) for var in cloud_sql_vars)
+
+if cloud_sql_configured:
+    logger.info("Cloud SQL PostgreSQL environment variables loaded (read-only connection available)")
+else:
+    logger.info("Cloud SQL PostgreSQL environment variables not set (optional for read-only testing)")
+
+# Check database provider setting
+db_provider = os.getenv("DB_PROVIDER", "supabase").lower()
+if db_provider == "cloudsql":
+    logger.info("Database provider set to: Cloud SQL")
+elif db_provider == "supabase":
+    logger.info("Database provider set to: Supabase (default)")
+else:
+    logger.warning(f"Unknown DB_PROVIDER '{db_provider}', will default to 'supabase'")
+
 logger.info("Environment variables verified")
 
 sys.path.append('..')
