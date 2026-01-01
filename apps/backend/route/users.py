@@ -4,7 +4,7 @@ User management routes for authentication
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from services.auth import get_current_user
+from utils.auth import get_current_user
 from services.supabase_client import supabase, check_table_exists
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
@@ -25,21 +25,62 @@ class UpdateRoleRequest(BaseModel):
     role: str
 
 @router.get("/profile")
-def get_user_profile(user_id: str = Depends(get_current_user)):
+def get_user_profile(current_user: dict = Depends(get_current_user)):
     """Get current user's profile"""
-    # Check if users table exists
-    if not check_table_exists("users"):
-        raise HTTPException(
-            500,
-            "Database setup incomplete: Please create the 'users' table in Supabase."
-        )
+    from services.db_provider import get_cloud_sql_engine_if_enabled
+    from sqlalchemy import text
 
-    user_data = supabase.table("users").select("id,email,full_name,role").eq("id", user_id).single().execute()
+    # Extract auth_uid from JWT
+    auth_uid = current_user.get("sub")
+    if not auth_uid:
+        raise HTTPException(401, "Invalid token: missing user ID")
 
-    if not user_data.data:
-        raise HTTPException(404, "User not found")
+    # Check if Cloud SQL is enabled
+    engine = get_cloud_sql_engine_if_enabled()
 
-    return UserResponse(**user_data.data)
+    if engine:
+        # Cloud SQL path - query by auth_uid
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(
+                    text("SELECT id, email, full_name, role FROM users WHERE auth_uid = :auth_uid LIMIT 1"),
+                    {"auth_uid": auth_uid}
+                )
+                row = result.fetchone()
+
+                if not row:
+                    raise HTTPException(404, "User not found")
+
+                # Convert row to dict matching the expected response format
+                user_data = {
+                    "id": str(row[0]),
+                    "email": row[1],
+                    "full_name": row[2],
+                    "role": row[3]
+                }
+
+                return UserResponse(**user_data)
+
+        except Exception as e:
+            # Log error but don't expose internal details
+            print(f"Cloud SQL query error: {e}")
+            raise HTTPException(500, "Database error")
+
+    else:
+        # Default Supabase path - query by auth_uid
+        # Check if users table exists
+        if not check_table_exists("users"):
+            raise HTTPException(
+                500,
+                "Database setup incomplete: Please create the 'users' table in Supabase."
+            )
+
+        user_data = supabase.table("users").select("id,email,full_name,role").eq("auth_uid", auth_uid).single().execute()
+
+        if not user_data.data:
+            raise HTTPException(404, "User not found")
+
+        return UserResponse(**user_data.data)
 
 
 @router.post("/")
@@ -86,10 +127,14 @@ def create_user_profile(request: CreateUserRequest):
         raise HTTPException(500, f"Internal server error: {str(e)}")
 
 
-@router.put("/{user_id}/role")
-def update_user_role(user_id: str, request: UpdateRoleRequest, current_user: str = Depends(get_current_user)):
+@router.put("/{target_auth_uid}/role")
+def update_user_role(target_auth_uid: str, request: UpdateRoleRequest, current_user: dict = Depends(get_current_user)):
     """Update user role - only allow users to update their own role"""
-    print(f"BACKEND: Role update requested - user_id: {user_id}, current_user: {current_user}, new_role: {request.role}")
+    current_auth_uid = current_user.get("sub")
+    if not current_auth_uid:
+        raise HTTPException(401, "Invalid token: missing user ID")
+
+    print(f"BACKEND: Role update requested - target_auth_uid: {target_auth_uid}, current_auth_uid: {current_auth_uid}, new_role: {request.role}")
 
     # Check if users table exists
     if not check_table_exists("users"):
@@ -100,8 +145,8 @@ def update_user_role(user_id: str, request: UpdateRoleRequest, current_user: str
         )
 
     # Only allow users to update their own role
-    if current_user != user_id:
-        print(f"BACKEND: Permission denied - current_user ({current_user}) != user_id ({user_id})")
+    if current_auth_uid != target_auth_uid:
+        print(f"BACKEND: Permission denied - current_auth_uid ({current_auth_uid}) != target_auth_uid ({target_auth_uid})")
         raise HTTPException(403, "You can only update your own role")
 
     print("BACKEND: Permission check passed, proceeding with role update")
@@ -116,13 +161,13 @@ def update_user_role(user_id: str, request: UpdateRoleRequest, current_user: str
 
     try:
         # Update user role
-        result = supabase.table("users").update({"role": db_role}).eq("id", user_id).execute()
+        result = supabase.table("users").update({"role": db_role}).eq("auth_uid", target_auth_uid).execute()
 
         if not result.data:
             raise HTTPException(404, "User not found")
 
         # Return updated user data
-        user_data = supabase.table("users").select("id,email,full_name,role").eq("id", user_id).single().execute()
+        user_data = supabase.table("users").select("id,email,full_name,role").eq("auth_uid", target_auth_uid).single().execute()
 
         if not user_data.data:
             raise HTTPException(404, "User not found after update")
