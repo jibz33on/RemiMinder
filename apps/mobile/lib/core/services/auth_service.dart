@@ -9,34 +9,51 @@ import '../config/supabase_config.dart';
 import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
+import 'firebase_auth_service.dart';
 
 /// Authentication service handling Supabase auth and API integration
+/// Phase 4.2: Supports both Supabase and Firebase auth providers
 class AuthService {
   final supabase.SupabaseClient? _supabase;
+  final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
 
-  // Native Google Sign-In instance
+  // Native Google Sign-In instance (disabled for Phase 4.2)
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );
 
   AuthService({
     supabase.SupabaseClient? supabase,
+    FirebaseAuthService? firebaseAuth,
     TokenManager? tokenManager,
     SecureStorage? secureStorage,
   })  : _supabase = supabase ?? SupabaseConfig.client,
+        _firebaseAuth = firebaseAuth ?? FirebaseAuthService(),
         _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
         _secureStorage = secureStorage ?? SecureStorage() {
     // Check if Supabase is available
     if (_supabase == null) {
       print(
-          'AuthService: Supabase not initialized - authentication will not work');
+          'AuthService: Supabase not initialized - Supabase authentication will not work');
     } else {
       // Initialize auth state change listener for debugging
       _initializeAuthStateListener();
     }
+
+    print(
+        '🔐 AuthService: Initialized with provider: ${Environment.authProvider}');
   }
+
+  /// Get the current auth provider (supabase or firebase)
+  String get _authProvider => Environment.authProvider;
+
+  /// Check if using Supabase auth
+  bool get _isSupabaseAuth => _authProvider == 'supabase';
+
+  /// Check if using Firebase auth
+  bool get _isFirebaseAuth => _authProvider == 'firebase';
 
   /// Initialize auth state change listener for debugging
   void _initializeAuthStateListener() {
@@ -69,60 +86,72 @@ class AuthService {
     required UserRole role,
     String? fullName,
   }) async {
-    // Check if Supabase is available
-    if (_supabase == null) {
-      throw Exception(
-          'Authentication not available. Please configure Supabase in your .env file.');
-    }
-
-    try {
-      // Create account in Supabase Auth
-      final response = await _supabase!.auth.signUp(
+    if (_isFirebaseAuth) {
+      print('🔐 AuthService: Using Firebase auth for sign up');
+      // Firebase auth - no backend API call in Phase 4.2
+      return await _firebaseAuth.signUp(
         email: email,
         password: password,
+        role: role,
+        fullName: fullName,
       );
-
-      if (response.user == null) {
-        throw Exception('Sign up failed');
-      }
-
-      // Create user profile in our backend
-      // Convert role to database-compatible format
-      final dbRole = role == UserRole.patient ? 'user' : role.name;
-
-      final userData = {
-        'auth_uid': response.user!.id,
-        'email': email,
-        'role': dbRole,
-        'full_name': fullName,
-      };
-
-      print('Supabase signup successful, creating backend profile...');
-      final apiResponse = await _createUserProfile(userData);
-
-      if (apiResponse.statusCode != 200 && apiResponse.statusCode != 201) {
-        print(
-            'Backend profile creation failed: ${apiResponse.statusCode} - ${apiResponse.body}');
+    } else {
+      print('🔐 AuthService: Using Supabase auth for sign up');
+      // Check if Supabase is available
+      if (_supabase == null) {
         throw Exception(
-            'Failed to create user profile: ${apiResponse.statusCode}');
+            'Authentication not available. Please configure Supabase in your .env file.');
       }
 
-      print('Backend profile created successfully');
-
-      final userJson = json.decode(apiResponse.body);
-      final user = User.fromJson(userJson);
-
-      // Save tokens if available
-      if (response.session != null) {
-        await _tokenManager.saveTokens(
-          response.session!.accessToken,
-          response.session!.refreshToken!,
+      try {
+        // Create account in Supabase Auth
+        final response = await _supabase!.auth.signUp(
+          email: email,
+          password: password,
         );
-      }
 
-      return user;
-    } catch (e) {
-      throw _handleAuthError(e);
+        if (response.user == null) {
+          throw Exception('Sign up failed');
+        }
+
+        // Create user profile in our backend
+        // Convert role to database-compatible format
+        final dbRole = role == UserRole.patient ? 'user' : role.name;
+
+        final userData = {
+          'auth_uid': response.user!.id,
+          'email': email,
+          'role': dbRole,
+          'full_name': fullName,
+        };
+
+        print('Supabase signup successful, creating backend profile...');
+        final apiResponse = await _createUserProfile(userData);
+
+        if (apiResponse.statusCode != 200 && apiResponse.statusCode != 201) {
+          print(
+              'Backend profile creation failed: ${apiResponse.statusCode} - ${apiResponse.body}');
+          throw Exception(
+              'Failed to create user profile: ${apiResponse.statusCode}');
+        }
+
+        print('Backend profile created successfully');
+
+        final userJson = json.decode(apiResponse.body);
+        final user = User.fromJson(userJson);
+
+        // Save tokens if available
+        if (response.session != null) {
+          await _tokenManager.saveTokens(
+            response.session!.accessToken,
+            response.session!.refreshToken!,
+          );
+        }
+
+        return user;
+      } catch (e) {
+        throw _handleAuthError(e);
+      }
     }
   }
 
@@ -131,76 +160,85 @@ class AuthService {
       {UserRole? selectedRole}) async {
     print(
         '🔐 AuthService: Starting sign in process for $email, selectedRole: $selectedRole');
-    print('🔐 AuthService: selectedRole is null: ${selectedRole == null}');
+    print('🔐 AuthService: Auth provider: $_authProvider');
 
-    // Check if Supabase is available
-    if (_supabase == null) {
-      print('🔐 AuthService: Supabase not available');
-      throw Exception(
-          'Authentication not available. Please configure Supabase in your .env file.');
-    }
+    if (_isFirebaseAuth) {
+      print('🔐 AuthService: Using Firebase auth for sign in');
+      // Firebase auth - no backend API call in Phase 4.2
+      return await _firebaseAuth.signIn(email, password,
+          selectedRole: selectedRole);
+    } else {
+      print('🔐 AuthService: Using Supabase auth for sign in');
 
-    try {
-      print('🔐 AuthService: Calling Supabase signInWithPassword...');
-      // Sign in with Supabase
-      final response = await _supabase!.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-
-      print('🔐 AuthService: Supabase response received');
-      if (response.session == null) {
-        print('🔐 AuthService: No session in response - sign in failed');
-        throw Exception('Sign in failed');
+      // Check if Supabase is available
+      if (_supabase == null) {
+        print('🔐 AuthService: Supabase not available');
+        throw Exception(
+            'Authentication not available. Please configure Supabase in your .env file.');
       }
 
-      print(
-          '🔐 AuthService: Session details - accessToken exists: ${response.session!.accessToken != null}, refreshToken exists: ${response.session!.refreshToken != null}');
+      try {
+        print('🔐 AuthService: Calling Supabase signInWithPassword...');
+        // Sign in with Supabase
+        final response = await _supabase!.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
 
-      print('🔐 AuthService: Session found, saving tokens...');
+        print('🔐 AuthService: Supabase response received');
+        if (response.session == null) {
+          print('🔐 AuthService: No session in response - sign in failed');
+          throw Exception('Sign in failed');
+        }
 
-      // Save tokens FIRST
-      print(
-          '🔐 AuthService: Saving tokens - access token length: ${response.session!.accessToken.length}, refresh token length: ${response.session!.refreshToken!.length}');
-      await _tokenManager.saveTokens(
-        response.session!.accessToken,
-        response.session!.refreshToken!,
-      );
-      print('🔐 AuthService: Tokens saved successfully');
-
-      // Verify tokens were saved
-      final savedToken = await _tokenManager.getAccessToken();
-      print(
-          '🔐 AuthService: Verification - saved token exists: ${savedToken != null}');
-
-      print('🔐 AuthService: Now fetching backend profile...');
-
-      // Get user profile from backend (now has token)
-      final user = await _getUserProfile();
-      print(
-          '🔐 AuthService: Backend profile fetched: ${user.email}, role: ${user.role}');
-
-      // If a role was selected and it differs from the current role, update it
-      print(
-          '🔐 AuthService: Checking role update - selectedRole: $selectedRole, user.role: ${user.role}');
-      if (selectedRole != null && user.role != selectedRole) {
         print(
-            '🔐 AuthService: Selected role ($selectedRole) differs from user role (${user.role}), updating...');
-        final updatedUser = await _updateUserRole(user.id, selectedRole);
-        print('🔐 AuthService: User role updated to: ${updatedUser.role}');
-        return updatedUser;
-      } else if (selectedRole != null) {
+            '🔐 AuthService: Session details - accessToken exists: ${response.session!.accessToken != null}, refreshToken exists: ${response.session!.refreshToken != null}');
+
+        print('🔐 AuthService: Session found, saving tokens...');
+
+        // Save tokens FIRST
         print(
-            '🔐 AuthService: Selected role ($selectedRole) matches user role (${user.role}), no update needed');
-      } else {
+            '🔐 AuthService: Saving tokens - access token length: ${response.session!.accessToken.length}, refresh token length: ${response.session!.refreshToken!.length}');
+        await _tokenManager.saveTokens(
+          response.session!.accessToken,
+          response.session!.refreshToken!,
+        );
+        print('🔐 AuthService: Tokens saved successfully');
+
+        // Verify tokens were saved
+        final savedToken = await _tokenManager.getAccessToken();
         print(
-            '🔐 AuthService: No selectedRole provided, using stored role (${user.role})');
+            '🔐 AuthService: Verification - saved token exists: ${savedToken != null}');
+
+        print('🔐 AuthService: Now fetching backend profile...');
+
+        // Get user profile from backend (now has token)
+        final user = await _getUserProfile();
+        print(
+            '🔐 AuthService: Backend profile fetched: ${user.email}, role: ${user.role}');
+
+        // If a role was selected and it differs from the current role, update it
+        print(
+            '🔐 AuthService: Checking role update - selectedRole: $selectedRole, user.role: ${user.role}');
+        if (selectedRole != null && user.role != selectedRole) {
+          print(
+              '🔐 AuthService: Selected role ($selectedRole) differs from user role (${user.role}), updating...');
+          final updatedUser = await _updateUserRole(user.id, selectedRole);
+          print('🔐 AuthService: User role updated to: ${updatedUser.role}');
+          return updatedUser;
+        } else if (selectedRole != null) {
+          print(
+              '🔐 AuthService: Selected role ($selectedRole) matches user role (${user.role}), no update needed');
+        } else {
+          print(
+              '🔐 AuthService: No selectedRole provided, using stored role (${user.role})');
+        }
+
+        return user;
+      } catch (e) {
+        print('🔐 AuthService: Sign in failed with error: $e');
+        throw _handleAuthError(e);
       }
-
-      return user;
-    } catch (e) {
-      print('🔐 AuthService: Sign in failed with error: $e');
-      throw _handleAuthError(e);
     }
   }
 
@@ -313,11 +351,20 @@ class AuthService {
   /// Sign out current user
   Future<void> signOut() async {
     try {
-      if (_supabase != null) {
-        await _supabase!.auth.signOut();
+      print('🔐 AuthService: Signing out from $_authProvider auth');
+
+      if (_isFirebaseAuth) {
+        await _firebaseAuth.signOut();
+      } else {
+        if (_supabase != null) {
+          await _supabase!.auth.signOut();
+        }
       }
+
       await _tokenManager.clearTokens();
+      print('🔐 AuthService: Sign out completed');
     } catch (e) {
+      print('🔐 AuthService: Sign out failed: $e');
       // Clear local tokens even if API call fails
       await _tokenManager.clearTokens();
       rethrow;
@@ -326,30 +373,46 @@ class AuthService {
 
   /// Get current authenticated user
   Future<User?> getCurrentUser() async {
-    final isValid = await _tokenManager.isTokenValid();
-    if (!isValid) return null;
+    print('🔐 AuthService: Getting current user from $_authProvider');
 
-    try {
-      return await _getUserProfile();
-    } catch (e) {
-      // Token might be expired, clear it
-      await _tokenManager.clearTokens();
-      return null;
+    if (_isFirebaseAuth) {
+      // Firebase auth - no backend call in Phase 4.2
+      return await _firebaseAuth.getCurrentUser();
+    } else {
+      // Supabase auth - check token and fetch from backend
+      final isValid = await _tokenManager.isTokenValid();
+      if (!isValid) return null;
+
+      try {
+        return await _getUserProfile();
+      } catch (e) {
+        // Token might be expired, clear it
+        await _tokenManager.clearTokens();
+        return null;
+      }
     }
   }
 
   /// Check if user is currently authenticated
   Future<bool> isAuthenticated() async {
-    return await _tokenManager.isTokenValid();
+    if (_isFirebaseAuth) {
+      return await _firebaseAuth.isAuthenticated();
+    } else {
+      return await _tokenManager.isTokenValid();
+    }
   }
 
   /// Reset password for email
   Future<void> resetPassword(String email) async {
-    if (_supabase == null) {
-      throw Exception(
-          'Authentication not available. Please configure Supabase in your .env file.');
+    if (_isFirebaseAuth) {
+      await _firebaseAuth.resetPassword(email);
+    } else {
+      if (_supabase == null) {
+        throw Exception(
+            'Authentication not available. Please configure Supabase in your .env file.');
+      }
+      await _supabase!.auth.resetPasswordForEmail(email);
     }
-    await _supabase!.auth.resetPasswordForEmail(email);
   }
 
   /// Update password (requires current session)
@@ -364,10 +427,18 @@ class AuthService {
 
   /// Get access token for API calls
   Future<String?> getAccessToken() async {
-    final token = await _tokenManager.getAccessToken();
-    print(
-        '🔐 AuthService: getAccessToken returned: ${token != null ? "token exists" : "null"}');
-    return token;
+    if (_isFirebaseAuth) {
+      // Phase 4.2: Firebase tokens not sent to backend yet
+      // Return null to prevent backend calls with Firebase tokens
+      print(
+          '🔐 AuthService: Firebase auth - not providing token to backend yet');
+      return null;
+    } else {
+      final token = await _tokenManager.getAccessToken();
+      print(
+          '🔐 AuthService: getAccessToken returned: ${token != null ? "token exists" : "null"}');
+      return token;
+    }
   }
 
   /// Refresh token if needed
@@ -393,8 +464,13 @@ class AuthService {
   /// Get authenticated headers for API calls
   Future<Map<String, String>> getAuthHeaders() async {
     final token = await getAccessToken();
-    print('🔐 AuthService: getAuthHeaders - token exists: ${token != null}');
-    if (token != null) {
+    print(
+        '🔐 AuthService: getAuthHeaders - token exists: ${token != null} (provider: $_authProvider)');
+
+    if (_isFirebaseAuth && token == null) {
+      print(
+          '🔐 AuthService: Firebase auth - no backend token provided in Phase 4.2');
+    } else if (token != null) {
       print('🔐 AuthService: Token length: ${token.length}');
     } else {
       print('🔐 AuthService: No token available!');

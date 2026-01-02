@@ -11,6 +11,10 @@ class Environment {
   static String get supabaseAnonKey =>
       _isLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? '') : '';
 
+  // Auth Provider Configuration (Phase 4.2)
+  static String get authProvider =>
+      _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'supabase') : 'supabase';
+
   // API Configuration
   static String get apiBaseUrl => _isLoaded
       ? (dotenv.env['MOBILE_API_BASE_URL'] ??
