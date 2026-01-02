@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config/environment.dart';
 import '../config/supabase_config.dart';
@@ -19,10 +18,7 @@ class AuthService {
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
 
-  // Native Google Sign-In instance (disabled for Phase 4.x)
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  // Google Sign-In disabled for Phase 4.x (conflicts resolved)
 
   AuthService({
     supabase.SupabaseClient? supabase,
@@ -242,8 +238,8 @@ class AuthService {
     }
   }
 
-  /// Sign in with Google using NATIVE Google Sign-In (NO web redirect)
-  /// Uses google_sign_in plugin with signInWithIdToken
+  // Google Sign-In disabled for Phase 4.x to avoid dependency conflicts
+  /*
   Future<User> signInWithGoogle() async {
     print('🔐 AuthService: Starting NATIVE Google Sign-In...');
 
@@ -347,6 +343,7 @@ class AuthService {
       throw _handleAuthError(e);
     }
   }
+  */
 
   /// Sign out current user
   Future<void> signOut() async {

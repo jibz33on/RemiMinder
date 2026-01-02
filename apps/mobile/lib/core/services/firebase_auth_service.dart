@@ -55,7 +55,7 @@ class FirebaseAuthService {
 
       // Store Firebase token (Phase 4.2 - not sent to backend yet)
       await _tokenManager.saveTokens(
-          idToken, null); // No refresh token from Firebase
+          idToken, ''); // Firebase doesn't provide refresh tokens
       await _secureStorage.write('firebase_uid', userCredential.user!.uid);
       await _secureStorage.write('auth_provider', 'firebase');
 
@@ -67,7 +67,7 @@ class FirebaseAuthService {
         email: email,
         role: role,
         fullName: fullName,
-        isActive: true,
+        authUid: userCredential.user!.uid,
       );
 
       print('🔥 FirebaseAuth: Sign up completed successfully');
@@ -109,7 +109,7 @@ class FirebaseAuthService {
 
       // Store Firebase token (Phase 4.2 - not sent to backend yet)
       await _tokenManager.saveTokens(
-          idToken, null); // No refresh token from Firebase
+          idToken, ''); // Firebase doesn't provide refresh tokens
       await _secureStorage.write('firebase_uid', userCredential.user!.uid);
       await _secureStorage.write('auth_provider', 'firebase');
 
@@ -121,7 +121,7 @@ class FirebaseAuthService {
         email: email,
         role: selectedRole ?? UserRole.patient, // Default role
         fullName: userCredential.user!.displayName,
-        isActive: true,
+        authUid: userCredential.user!.uid,
       );
 
       print('🔥 FirebaseAuth: Sign in completed successfully');
@@ -177,7 +177,7 @@ class FirebaseAuthService {
         email: firebaseUser.email ?? '',
         role: UserRole.patient, // Default role
         fullName: firebaseUser.displayName,
-        isActive: true,
+        authUid: firebaseUser.uid,
       );
     } catch (e) {
       print('🔥 FirebaseAuth: Error getting current user - $e');
