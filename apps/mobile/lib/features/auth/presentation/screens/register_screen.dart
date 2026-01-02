@@ -541,46 +541,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _registerWithGoogle() async {
-    // Show user-friendly message that Google Sign-In is disabled
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Google Sign-In is temporarily disabled. Please use Email/Password registration.',
-          ),
-          duration: Duration(seconds: 4),
-        ),
-      );
-    }
-
-    // Early return - don't attempt Google registration
-    return;
-
-    // Original code (commented out for Phase 4.4):
-    /*
     try {
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
 
       // Check auth state after registration attempt
       final authState = ref.read(authNotifierProvider);
 
-      if (authState.status == AuthStatus.authenticated) {
+      if (authState.isAuthenticated) {
         // Navigate to appropriate home screen based on role
         final user = authState.user;
+
         if (user?.isPatient ?? false) {
-          context.go('/patient/home');
+          if (mounted) {
+            context.go('/patient/home');
+          }
         } else if (user?.isCaregiver ?? false) {
-          context.go('/caregiver/home');
+          if (mounted) {
+            context.go('/caregiver/home');
+          }
         } else {
-          context.go('/welcome'); // Fallback
+          if (mounted) {
+            context.go('/welcome'); // Fallback
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Google Sign Up failed')),
+          );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google Registration failed: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign Up failed: ${e.toString()}')),
+        );
+      }
     }
-    */
   }
 
   void _registerWithApple() {

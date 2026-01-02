@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
@@ -8,18 +9,21 @@ import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
 
-/// Firebase Authentication service for Email/Password authentication
+/// Firebase Authentication service for Email/Password and Google authentication
 /// Supports Firebase Auth as one of multiple authentication providers
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _firebaseAuth;
+  final GoogleSignIn _googleSignIn;
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
 
   FirebaseAuthService({
     firebase_auth.FirebaseAuth? firebaseAuth,
+    GoogleSignIn? googleSignIn,
     TokenManager? tokenManager,
     SecureStorage? secureStorage,
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn(),
         _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
         _secureStorage = secureStorage ?? SecureStorage();
 
@@ -117,15 +121,80 @@ class FirebaseAuthService {
     }
   }
 
+  /// Sign in with Google OAuth
+  Future<User> signInWithGoogle() async {
+    try {
+      // Start Google Sign-In process
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw Exception('Google sign-in cancelled');
+      }
+
+      // Get authentication tokens
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      if (googleAuth.idToken == null || googleAuth.accessToken == null) {
+        throw Exception('Missing Google authentication tokens');
+      }
+
+      // Create Firebase credential
+      final firebase_auth.AuthCredential credential =
+          firebase_auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with Google credential
+      final firebase_auth.UserCredential userCredential =
+          await _firebaseAuth.signInWithCredential(credential);
+
+      if (userCredential.user == null) {
+        throw Exception('Firebase sign-in with Google failed');
+      }
+
+      // Get Firebase ID token
+      final idToken = await userCredential.user!.getIdToken();
+      if (idToken == null) {
+        throw Exception('Failed to get Firebase ID token');
+      }
+
+      // Store Firebase token securely
+      await _tokenManager.saveTokens(
+          idToken, ''); // Firebase doesn't provide refresh tokens
+      await _secureStorage.write('firebase_uid', userCredential.user!.uid);
+      await _secureStorage.write('auth_provider', 'firebase');
+
+      // Create User object
+      final user = User(
+        id: userCredential.user!.uid,
+        email: userCredential.user!.email ?? '',
+        role: UserRole.patient, // Default role for Google sign-in
+        fullName: userCredential.user!.displayName,
+        displayName: userCredential.user!.displayName ??
+            "User", // Temporary, will be replaced by backend
+        authUid: userCredential.user!.uid,
+      );
+
+      return user;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
+    } catch (e) {
+      throw Exception('Google sign-in failed: $e');
+    }
+  }
+
   /// Sign out from Firebase
   Future<void> signOut() async {
     try {
       await _firebaseAuth.signOut();
+      await _googleSignIn.signOut(); // Also sign out from Google
       await _tokenManager.clearTokens();
       await _secureStorage.delete('firebase_uid');
       await _secureStorage.delete('auth_provider');
     } catch (e) {
-      // Clear local tokens even if Firebase sign out fails
+      // Clear local tokens even if sign out calls fail
       await _tokenManager.clearTokens();
       await _secureStorage.delete('firebase_uid');
       await _secureStorage.delete('auth_provider');
@@ -190,6 +259,16 @@ class FirebaseAuthService {
       await _firebaseAuth.sendPasswordResetEmail(email: email);
     } catch (e) {
       rethrow;
+    }
+  }
+
+  /// Update password (requires recent authentication)
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _firebaseAuth.currentUser?.updatePassword(newPassword);
+    } catch (e) {
+      throw Exception(
+          'Failed to update password. You may need to re-authenticate.');
     }
   }
 

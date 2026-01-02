@@ -31,11 +31,8 @@ class AuthRepository {
   }
 
   /// Sign in with Google OAuth
-  /// Currently disabled due to dependency conflicts
   Future<User> signInWithGoogle() async {
-    throw Exception(
-        'Google Sign-In is currently disabled. Use Email/Password authentication instead.');
-    // return await _authService.signInWithGoogle();
+    return await _authService.signInWithGoogle();
   }
 
   /// Sign out current user
