@@ -182,7 +182,8 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
         token: JWT token from Authorization header (without 'Bearer ' prefix)
 
     Returns:
-        Dict containing decoded JWT claims
+        Dict containing decoded JWT claims plus 'auth_provider' key indicating
+        whether this is a 'firebase' or 'supabase' token.
 
     Raises:
         HTTPException: If token is invalid or AUTH_MODE is unsupported
@@ -199,25 +200,29 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
         if auth_mode == "supabase":
             # Use existing Supabase JWT verification logic only
             result = _verify_supabase_token(token)
-            logger.info("Auth success", extra={"issuer": "supabase"})
+            result["auth_provider"] = "supabase"
+            logger.info("Auth success", extra={"auth_provider": "supabase"})
             return result
 
         elif auth_mode == "hybrid":
             # Try Google first, fallback to Supabase
             try:
                 result = _verify_google_token(token)
-                logger.info("Auth success", extra={"issuer": "google"})
+                result["auth_provider"] = "firebase"
+                logger.info("Auth success", extra={"auth_provider": "firebase"})
                 return result
             except HTTPException:
                 # Fallback to Supabase
                 result = _verify_supabase_token(token)
-                logger.info("Auth success", extra={"issuer": "supabase", "fallback": True})
+                result["auth_provider"] = "supabase"
+                logger.info("Auth success", extra={"auth_provider": "supabase", "fallback": True})
                 return result
 
         elif auth_mode == "google":
             # Google ID token only
             result = _verify_google_token(token)
-            logger.info("Auth success", extra={"issuer": "google"})
+            result["auth_provider"] = "firebase"
+            logger.info("Auth success", extra={"auth_provider": "firebase"})
             return result
 
         else:
@@ -261,10 +266,10 @@ def _verify_supabase_token(token: str) -> Dict[str, Any]:
 
 def get_current_user_with_db_lookup(token: str) -> str:
     """
-    Get current user with full database lookup.
+    Get current user with full database lookup supporting both Firebase and Supabase.
 
     This provides the same functionality as the original services/auth.py
-    get_current_user function, but routed through the auth gateway.
+    get_current_user function, but supports both authentication providers.
 
     Args:
         token: JWT token from Authorization header (without 'Bearer ' prefix)
@@ -275,48 +280,186 @@ def get_current_user_with_db_lookup(token: str) -> str:
     # First verify the token
     decoded_token = verify_auth_token(token)
 
-    # Extract auth_uid from JWT sub claim
-    auth_uid = decoded_token.get("sub")
-    if not auth_uid:
+    # Determine auth provider and extract identifiers
+    auth_provider = decoded_token.get("auth_provider")
+    user_sub = decoded_token.get("sub")  # Firebase: UID string, Supabase: UUID string
+    user_email = decoded_token.get("email")
+
+    if not user_sub:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token: missing subject claim"
         )
 
-    # Perform database lookup using existing Supabase logic
-    # This is extracted from the original services/auth.py logic
+    # Perform database lookup based on auth provider
     from .supabase_client import supabase
 
     try:
-        user_data = supabase.table("users").select("id,email,role").eq("auth_uid", auth_uid).single().execute()
+        if auth_provider == "firebase":
+            return _get_or_create_firebase_user(supabase, user_sub, user_email)
+        elif auth_provider == "supabase":
+            return _get_or_create_supabase_user(supabase, user_sub, user_email)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unknown auth provider"
+            )
+
+    except Exception as e:
+        logger.error(f"Database lookup failed for {auth_provider} user {user_sub}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Authentication error: {str(e)}"
+        )
+
+
+def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str) -> str:
+    """
+    Get or create user for Firebase authentication.
+
+    Lookup order:
+    1. Direct firebase_uid match
+    2. Email match (auto-link existing user)
+    3. Create new user
+
+    Args:
+        supabase_client: Supabase client instance
+        firebase_uid: Firebase UID string
+        email: User email from token
+
+    Returns:
+        Internal user ID string
+    """
+    # 1. Try direct firebase_uid lookup
+    try:
+        user_data = supabase_client.table("users").select("id,email").eq("firebase_uid", firebase_uid).single().execute()
+        if user_data.data:
+            logger.info("Firebase user resolved", extra={
+                "auth_provider": "firebase",
+                "user_resolved": True,
+                "linked_existing": False,
+                "firebase_uid": firebase_uid
+            })
+            return user_data.data["id"]
+    except Exception:
+        # User not found by firebase_uid, continue to email lookup
+        pass
+
+    # 2. Try email-based auto-linking
+    if email:
+        try:
+            user_data = supabase_client.table("users").select("id,email").eq("email", email).single().execute()
+            if user_data.data:
+                # Link Firebase UID to existing user
+                update_result = supabase_client.table("users").update({
+                    "firebase_uid": firebase_uid
+                }).eq("id", user_data.data["id"]).execute()
+
+                if update_result.data:
+                    logger.info("Firebase user linked to existing account", extra={
+                        "auth_provider": "firebase",
+                        "user_resolved": True,
+                        "linked_existing": True,
+                        "firebase_uid": firebase_uid,
+                        "email": email
+                    })
+                    return user_data.data["id"]
+        except Exception as e:
+            logger.warning(f"Email lookup failed for Firebase user {firebase_uid}: {str(e)}")
+
+    # 3. Create new user
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Firebase token: missing email claim"
+        )
+
+    new_user = {
+        "firebase_uid": firebase_uid,
+        "email": email,
+        "role": "user"  # Default role - matches database constraint
+    }
+
+    try:
+        create_result = supabase_client.table("users").insert(new_user).execute()
+
+        if create_result.data:
+            new_user_id = create_result.data[0]["id"]
+            logger.info("New Firebase user created", extra={
+                "auth_provider": "firebase",
+                "user_resolved": True,
+                "linked_existing": False,
+                "firebase_uid": firebase_uid,
+                "email": email
+            })
+            return new_user_id
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create Firebase user record"
+            )
+    except Exception as e:
+        logger.error(f"Failed to create Firebase user {firebase_uid}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create user record"
+        )
+
+
+def _get_or_create_supabase_user(supabase_client, auth_uid: str, email: str) -> str:
+    """
+    Get or create user for Supabase authentication (original logic).
+
+    Args:
+        supabase_client: Supabase client instance
+        auth_uid: Supabase auth UID (UUID string)
+        email: User email from token
+
+    Returns:
+        Internal user ID string
+    """
+    try:
+        user_data = supabase_client.table("users").select("id,email").eq("auth_uid", auth_uid).single().execute()
 
         if user_data.data:
+            logger.info("Supabase user resolved", extra={
+                "auth_provider": "supabase",
+                "user_resolved": True,
+                "auth_uid": auth_uid
+            })
             return user_data.data["id"]
 
         # User not found, create new record (same logic as original)
-        user_email = decoded_token.get("email")
-        if not user_email:
+        if not email:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing email claim"
+                detail="Invalid Supabase token: missing email claim"
             )
 
         new_user = {
             "auth_uid": auth_uid,
-            "email": user_email,
+            "email": email,
             "role": "user"  # Default role - matches database constraint
         }
-        create_result = supabase.table("users").insert(new_user).execute()
+        create_result = supabase_client.table("users").insert(new_user).execute()
 
         if create_result.data:
-            return create_result.data[0]["id"]
+            new_user_id = create_result.data[0]["id"]
+            logger.info("New Supabase user created", extra={
+                "auth_provider": "supabase",
+                "user_resolved": True,
+                "auth_uid": auth_uid,
+                "email": email
+            })
+            return new_user_id
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user record"
+                detail="Failed to create Supabase user record"
             )
 
     except Exception as e:
+        logger.error(f"Failed to get/create Supabase user {auth_uid}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Authentication error: {str(e)}"
