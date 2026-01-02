@@ -51,7 +51,6 @@ class AuthService {
   }
 
   /// Get current authenticated user
-  /// Get current authenticated user
   Future<User?> getCurrentUser() async {
     return await _firebaseAuth.getCurrentUser();
   }
@@ -91,6 +90,4 @@ class AuthService {
 
   /// Check if authentication services are available
   bool get isAvailable => true; // Firebase auth is always available
-
-  // Private helper methods
 }

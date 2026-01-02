@@ -95,7 +95,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     try {
-      print('🔐 Login: Starting sign in process...');
       // Convert string role to UserRole enum
       UserRole? selectedRole;
       if (_userRole != null) {

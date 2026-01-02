@@ -12,6 +12,8 @@ class Environment {
       _isLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? '') : '';
 
   // Auth Provider Configuration
+  // AUTH_PROVIDER=firebase (default) - Use Firebase Auth
+  // AUTH_PROVIDER=supabase (legacy) - Use Supabase Auth (rollback only)
   static String get authProvider =>
       _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'firebase') : 'firebase';
 

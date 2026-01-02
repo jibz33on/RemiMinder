@@ -96,35 +96,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState.loading();
 
     try {
-      print('🔐 AuthProvider: Calling auth repository signIn...');
       final user = await _authRepository.signIn(email, password,
           selectedRole: selectedRole);
-      print(
-          '🔐 AuthProvider: Sign in successful, user: ${user.email}, role: ${user.role}');
       state = AuthState.authenticated(user);
-      print('🔐 AuthProvider: Auth state set to authenticated');
     } catch (e) {
-      print('🔐 AuthProvider: Sign in failed with error: $e');
       state = AuthState.error(e.toString());
-      print('🔐 AuthProvider: Auth state set to error');
     }
   }
 
   /// Sign in with Google OAuth
   Future<void> signInWithGoogle() async {
-    print('🔐 AuthProvider: Starting Google sign-in, setting loading state...');
     state = AuthState.loading();
 
     try {
-      print('🔐 AuthProvider: Calling auth repository signInWithGoogle...');
       final user = await _authRepository.signInWithGoogle();
-      print(
-          '🔐 AuthProvider: Auth repository returned user: ${user.email}, role: ${user.role}');
-      print('🔐 AuthProvider: Setting authenticated state...');
       state = AuthState.authenticated(user);
-      print('🔐 AuthProvider: State set to authenticated');
     } catch (e) {
-      print('🔐 AuthProvider: Google sign-in failed with error: $e');
       state = AuthState.error(e.toString());
     }
   }

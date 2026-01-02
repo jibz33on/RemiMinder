@@ -42,9 +42,9 @@ class AuthRepository {
 
   /// Get current authenticated user
   Future<User?> getCurrentUser() async {
-    // Check if auth service is available
+    // Early return if authentication service is unavailable
     if (!_authService.isAvailable) {
-      return null; // No authentication available
+      return null;
     }
     return await _authService.getCurrentUser();
   }

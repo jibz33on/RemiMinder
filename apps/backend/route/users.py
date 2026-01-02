@@ -28,6 +28,7 @@ def resolve_display_name(full_name: str | None) -> str:
         return full_name.strip()
     return "User"
 
+
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -35,14 +36,17 @@ class UserResponse(BaseModel):
     display_name: str
     role: str
 
+
 class CreateUserRequest(BaseModel):
     auth_uid: str
     email: str
     role: str
     full_name: Optional[str] = None
 
+
 class UpdateRoleRequest(BaseModel):
     role: str
+
 
 @router.get("/profile")
 def get_user_profile(current_user: dict = Depends(get_current_user)):

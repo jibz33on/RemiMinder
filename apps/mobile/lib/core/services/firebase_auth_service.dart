@@ -1,10 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
-
-import '../config/environment.dart';
 import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';

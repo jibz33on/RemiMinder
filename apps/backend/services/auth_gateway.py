@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Firebase JWKS cache
 _firebase_jwks_cache = None
 _firebase_jwks_cache_time = 0
-JWKS_CACHE_DURATION = 3600  # 1 hour
+JWKS_CACHE_DURATION = 3600  # 1 hour in seconds
 
 
 def _get_firebase_jwks() -> Dict[str, Any]:
@@ -174,9 +174,12 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
     Central authentication gateway that verifies tokens based on AUTH_MODE.
 
     Supports multiple authentication modes:
-    - supabase: Supabase JWT only
-    - hybrid: Try Google ID token first, fallback to Supabase JWT
-    - google: Google ID token only
+    - supabase: Supabase JWT only (legacy - for rollback)
+    - hybrid: Try Firebase ID token first, fallback to Supabase JWT (current default)
+    - google: Firebase ID token only
+
+    Environment variable: AUTH_MODE
+    Default: hybrid
 
     Args:
         token: JWT token from Authorization header (without 'Bearer ' prefix)
@@ -188,7 +191,7 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If token is invalid or AUTH_MODE is unsupported
     """
-    auth_mode = os.getenv("AUTH_MODE", "supabase")
+    auth_mode = os.getenv("AUTH_MODE", "hybrid")
 
     # Log authentication attempt (minimal, safe logging)
     logger.info(f"Auth attempt", extra={
