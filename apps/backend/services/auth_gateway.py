@@ -1,21 +1,17 @@
 """
-Centralized authentication gateway for MediMinder.
+Firebase authentication gateway for MediMinder.
 
-This module provides a single entry point for all authentication operations,
-routing requests based on the AUTH_MODE environment variable.
+This module provides Firebase ID token verification and user resolution.
 """
 
 import os
 import time
 import logging
-from typing import Dict, Any, Optional
-from fastapi import HTTPException, status, Request, Depends
+from typing import Dict, Any
+from fastapi import HTTPException, status, Request
 
 import jwt
 import requests
-
-from .auth import get_current_user as _supabase_get_current_user_with_db
-from utils.auth import get_current_user as _supabase_get_current_user_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -171,27 +167,23 @@ def _verify_google_token(token: str) -> Dict[str, Any]:
 
 def verify_auth_token(token: str) -> Dict[str, Any]:
     """
-    Central authentication gateway that verifies tokens based on AUTH_MODE.
+    Central authentication gateway for Firebase ID token verification.
 
-    Supports multiple authentication modes:
-    - supabase: Supabase JWT only (legacy - for rollback)
-    - hybrid: Try Firebase ID token first, fallback to Supabase JWT (current default)
-    - google: Firebase ID token only
+    Supports Firebase authentication only.
 
     Environment variable: AUTH_MODE
-    Default: hybrid
+    Default: google (Firebase only)
 
     Args:
-        token: JWT token from Authorization header (without 'Bearer ' prefix)
+        token: Firebase ID token from Authorization header (without 'Bearer ' prefix)
 
     Returns:
-        Dict containing decoded JWT claims plus 'auth_provider' key indicating
-        whether this is a 'firebase' or 'supabase' token.
+        Dict containing decoded JWT claims plus 'auth_provider' key set to 'firebase'.
 
     Raises:
-        HTTPException: If token is invalid or AUTH_MODE is unsupported
+        HTTPException: If token is invalid or not a Firebase token
     """
-    auth_mode = os.getenv("AUTH_MODE", "hybrid")
+    auth_mode = os.getenv("AUTH_MODE", "google")
 
     # Log authentication attempt (minimal, safe logging)
     logger.info(f"Auth attempt", extra={
@@ -200,39 +192,17 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
     })
 
     try:
-        if auth_mode == "supabase":
-            # Use existing Supabase JWT verification logic only
-            result = _verify_supabase_token(token)
-            result["auth_provider"] = "supabase"
-            logger.info("Auth success", extra={"auth_provider": "supabase"})
-            return result
-
-        elif auth_mode == "hybrid":
-            # Try Google first, fallback to Supabase
-            try:
-                result = _verify_google_token(token)
-                result["auth_provider"] = "firebase"
-                logger.info("Auth success", extra={"auth_provider": "firebase"})
-                return result
-            except HTTPException:
-                # Fallback to Supabase
-                result = _verify_supabase_token(token)
-                result["auth_provider"] = "supabase"
-                logger.info("Auth success", extra={"auth_provider": "supabase", "fallback": True})
-                return result
-
-        elif auth_mode == "google":
-            # Google ID token only
+        if auth_mode == "google":
             result = _verify_google_token(token)
             result["auth_provider"] = "firebase"
             logger.info("Auth success", extra={"auth_provider": "firebase"})
             return result
 
         else:
-            logger.warning(f"Unsupported auth mode: {auth_mode}")
+            logger.warning(f"Unsupported auth mode: {auth_mode}. Only 'google' (Firebase) is supported.")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication mode not supported"
+                detail="Supabase authentication is no longer supported. Please use Firebase authentication."
             )
 
     except HTTPException:
@@ -240,76 +210,43 @@ def verify_auth_token(token: str) -> Dict[str, Any]:
         raise
 
 
-def _verify_supabase_token(token: str) -> Dict[str, Any]:
-    """
-    Verify Supabase JWT token using existing logic.
-
-    This wraps the existing utils/auth.py verification logic
-    to return decoded JWT claims.
-    """
-    try:
-        # Import here to avoid circular imports
-        import jwt
-        from fastapi.security import HTTPAuthorizationCredentials
-
-        # Create fake credentials object to reuse existing logic
-        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-
-        # Call existing Supabase verification logic
-        return _supabase_get_current_user_jwt(credentials)
-    except Exception as e:
-        # Re-raise as HTTPException to maintain API contract
-        if isinstance(e, HTTPException):
-            raise
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-
-
 def get_current_user_with_db_lookup(token: str) -> str:
     """
-    Get current user with full database lookup supporting both Firebase and Supabase.
+    Get current user with full database lookup for Firebase authentication.
 
     This provides the same functionality as the original services/auth.py
-    get_current_user function, but supports both authentication providers.
+    get_current_user function, but for Firebase authentication only.
 
     Args:
-        token: JWT token from Authorization header (without 'Bearer ' prefix)
+        token: Firebase ID token from Authorization header (without 'Bearer ' prefix)
 
     Returns:
         Internal user ID string
+
+    Raises:
+        HTTPException: If token is invalid or user lookup fails
     """
-    # First verify the token
+    # First verify the token (will only accept Firebase tokens now)
     decoded_token = verify_auth_token(token)
 
-    # Determine auth provider and extract identifiers
-    auth_provider = decoded_token.get("auth_provider")
-    user_sub = decoded_token.get("sub")  # Firebase: UID string, Supabase: UUID string
+    # Extract Firebase identifiers
+    firebase_uid = decoded_token.get("sub")
     user_email = decoded_token.get("email")
 
-    if not user_sub:
+    if not firebase_uid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token: missing subject claim"
+            detail="Invalid Firebase token: missing subject claim"
         )
 
-    # Perform database lookup based on auth provider
+    # Perform database lookup for Firebase user
     from .supabase_client import supabase
 
     try:
-        if auth_provider == "firebase":
-            return _get_or_create_firebase_user(supabase, user_sub, user_email)
-        elif auth_provider == "supabase":
-            return _get_or_create_supabase_user(supabase, user_sub, user_email)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unknown auth provider"
-            )
+        return _get_or_create_firebase_user(supabase, firebase_uid, user_email)
 
     except Exception as e:
-        logger.error(f"Database lookup failed for {auth_provider} user {user_sub}: {str(e)}")
+        logger.error(f"Database lookup failed for Firebase user {firebase_uid}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Authentication error: {str(e)}"
@@ -446,57 +383,6 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create user record"
-        )
-
-
-def _get_or_create_supabase_user(supabase_client, auth_uid: str, email: str) -> str:
-    """
-    Get existing user for Supabase authentication (legacy support only).
-
-    Supabase auth is decommissioned - only existing users can authenticate.
-    New user creation via Supabase is blocked.
-
-    Args:
-        supabase_client: Supabase client instance
-        auth_uid: Supabase auth UID (UUID string)
-        email: User email from token
-
-    Returns:
-        Internal user ID string
-
-    Raises:
-        HTTPException: If user doesn't exist (410 Gone - decommissioned)
-    """
-    try:
-        user_data = supabase_client.table("users").select("id,email").eq("auth_uid", auth_uid).single().execute()
-
-        if user_data.data:
-            logger.info("Supabase user authenticated", extra={
-                "auth_provider": "supabase",
-                "user_resolved": True,
-                "legacy_auth": True,
-                "auth_uid": auth_uid
-            })
-            return user_data.data["id"]
-
-        # SUPABASE AUTH DECOMMISSIONED: No new user creation allowed
-        logger.warning("Supabase user creation blocked - auth decommissioned", extra={
-            "auth_provider": "supabase",
-            "user_creation_blocked": True,
-            "legacy_auth": True,
-            "auth_uid": auth_uid,
-            "email": email
-        })
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="Supabase authentication is no longer available for new users. Please use modern authentication methods. Contact support if you need access to an existing account."
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to get/create Supabase user {auth_uid}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication error: {str(e)}"
         )
 
 

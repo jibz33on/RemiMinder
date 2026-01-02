@@ -3,8 +3,7 @@ import 'token_manager.dart';
 import 'secure_storage.dart';
 import 'firebase_auth_service.dart';
 
-/// Authentication service supporting multiple authentication providers
-/// Handles Supabase and Firebase authentication with API integration
+/// Firebase authentication service with API integration
 class AuthService {
   final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
@@ -22,7 +21,6 @@ class AuthService {
     required UserRole role,
     String? fullName,
   }) async {
-    // Only Firebase signup is supported
     return await _firebaseAuth.signUp(
       email: email,
       password: password,
@@ -34,7 +32,6 @@ class AuthService {
   /// Sign in with email and password
   Future<User> signIn(String email, String password,
       {UserRole? selectedRole}) async {
-    // Only Firebase signin is supported for new flows
     return await _firebaseAuth.signIn(email, password,
         selectedRole: selectedRole);
   }
@@ -89,5 +86,5 @@ class AuthService {
   }
 
   /// Check if authentication services are available
-  bool get isAvailable => true; // Firebase auth is always available
+  bool get isAvailable => true;
 }

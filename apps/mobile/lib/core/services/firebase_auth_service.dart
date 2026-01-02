@@ -6,7 +6,6 @@ import 'token_manager.dart';
 import 'secure_storage.dart';
 
 /// Firebase Authentication service for Email/Password and Google authentication
-/// Supports Firebase Auth as one of multiple authentication providers
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final GoogleSignIn _googleSignIn;
@@ -31,7 +30,6 @@ class FirebaseAuthService {
     String? fullName,
   }) async {
     try {
-      // Create Firebase account
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
