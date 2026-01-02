@@ -428,15 +428,15 @@ class AuthService {
   /// Get access token for API calls
   Future<String?> getAccessToken() async {
     if (_isFirebaseAuth) {
-      // Phase 4.2: Firebase tokens not sent to backend yet
-      // Return null to prevent backend calls with Firebase tokens
+      // Phase 4.3: Firebase tokens now sent to backend
+      final token = await _firebaseAuth.getIdToken();
       print(
-          '🔐 AuthService: Firebase auth - not providing token to backend yet');
-      return null;
+          '🔐 AuthService: Firebase getAccessToken returned: ${token != null ? "token exists (length: ${token!.length})" : "null"}');
+      return token;
     } else {
       final token = await _tokenManager.getAccessToken();
       print(
-          '🔐 AuthService: getAccessToken returned: ${token != null ? "token exists" : "null"}');
+          '🔐 AuthService: Supabase getAccessToken returned: ${token != null ? "token exists" : "null"}');
       return token;
     }
   }
@@ -467,11 +467,9 @@ class AuthService {
     print(
         '🔐 AuthService: getAuthHeaders - token exists: ${token != null} (provider: $_authProvider)');
 
-    if (_isFirebaseAuth && token == null) {
+    if (token != null) {
       print(
-          '🔐 AuthService: Firebase auth - no backend token provided in Phase 4.2');
-    } else if (token != null) {
-      print('🔐 AuthService: Token length: ${token.length}');
+          '🔐 AuthService: Token length: ${token.length} (source: ${_isFirebaseAuth ? "firebase" : "supabase"})');
     } else {
       print('🔐 AuthService: No token available!');
     }
