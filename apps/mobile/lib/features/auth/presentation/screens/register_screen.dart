@@ -541,6 +541,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _registerWithGoogle() async {
+    // Show user-friendly message that Google Sign-In is disabled
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Google Sign-In is temporarily disabled. Please use Email/Password registration.',
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+
+    // Early return - don't attempt Google registration
+    return;
+
+    // Original code (commented out for Phase 4.4):
+    /*
     try {
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
 
@@ -563,6 +580,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         SnackBar(content: Text('Google Registration failed: ${e.toString()}')),
       );
     }
+    */
   }
 
   void _registerWithApple() {

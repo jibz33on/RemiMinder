@@ -10,15 +10,13 @@ import 'token_manager.dart';
 import 'secure_storage.dart';
 import 'firebase_auth_service.dart';
 
-/// Authentication service handling Supabase auth and API integration
-/// Phase 4.4: Supports both Supabase and Firebase auth providers (Firebase is default)
+/// Authentication service supporting multiple authentication providers
+/// Handles Supabase and Firebase authentication with API integration
 class AuthService {
   final supabase.SupabaseClient? _supabase;
   final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
-
-  // Google Sign-In disabled for Phase 4.x (conflicts resolved)
 
   AuthService({
     supabase.SupabaseClient? supabase,
@@ -29,17 +27,10 @@ class AuthService {
         _firebaseAuth = firebaseAuth ?? FirebaseAuthService(),
         _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
         _secureStorage = secureStorage ?? SecureStorage() {
-    // Check if Supabase is available
-    if (_supabase == null) {
-      print(
-          'AuthService: Supabase not initialized - Supabase authentication will not work');
-    } else {
-      // Initialize auth state change listener for debugging
+    // Initialize auth state change listener if Supabase is available
+    if (_supabase != null) {
       _initializeAuthStateListener();
     }
-
-    print(
-        '🔐 AuthService: Initialized with provider: ${Environment.authProvider}');
   }
 
   /// Get the current auth provider (supabase or firebase)
@@ -51,28 +42,12 @@ class AuthService {
   /// Check if using Firebase auth
   bool get _isFirebaseAuth => _authProvider == 'firebase';
 
-  /// Initialize auth state change listener for debugging
+  /// Initialize auth state change listener
   void _initializeAuthStateListener() {
-    print('🔐 AuthService: Initializing auth state change listener...');
-
-    // Add auth state change listener for debugging
+    // Listen for auth state changes to maintain session consistency
     _supabase!.auth.onAuthStateChange.listen((event) {
-      print(
-          '🔐 AuthService: Auth state change - Event: ${event.event}, Session: ${event.session != null ? 'present' : 'null'}');
-      print(
-          '🔐 AuthService: Current user: ${_supabase!.auth.currentUser?.email ?? 'null'}');
-      print(
-          '🔐 AuthService: Current session: ${_supabase!.auth.currentSession != null ? 'present' : 'null'}');
-
-      if (event.session != null) {
-        print(
-            '🔐 AuthService: Session details - User ID: ${event.session!.user.id}');
-        print(
-            '🔐 AuthService: Session details - Access token: ${event.session!.accessToken.substring(0, 20)}...');
-      }
+      // Auth state changes are handled automatically by Supabase
     });
-
-    print('🔐 AuthService: Auth state change listener initialized');
   }
 
   /// Sign up a new user
@@ -83,8 +58,6 @@ class AuthService {
     String? fullName,
   }) async {
     if (_isFirebaseAuth) {
-      print('🔐 AuthService: Using Firebase auth for sign up');
-      // Firebase auth - no backend API call in Phase 4.2
       return await _firebaseAuth.signUp(
         email: email,
         password: password,
@@ -92,7 +65,6 @@ class AuthService {
         fullName: fullName,
       );
     } else {
-      print('🔐 AuthService: Using Supabase auth for sign up');
       // Check if Supabase is available
       if (_supabase == null) {
         throw Exception(
@@ -121,17 +93,12 @@ class AuthService {
           'full_name': fullName,
         };
 
-        print('Supabase signup successful, creating backend profile...');
         final apiResponse = await _createUserProfile(userData);
 
         if (apiResponse.statusCode != 200 && apiResponse.statusCode != 201) {
-          print(
-              'Backend profile creation failed: ${apiResponse.statusCode} - ${apiResponse.body}');
           throw Exception(
               'Failed to create user profile: ${apiResponse.statusCode}');
         }
-
-        print('Backend profile created successfully');
 
         final userJson = json.decode(apiResponse.body);
         final user = User.fromJson(userJson);
@@ -154,85 +121,46 @@ class AuthService {
   /// Sign in with email and password
   Future<User> signIn(String email, String password,
       {UserRole? selectedRole}) async {
-    print(
-        '🔐 AuthService: Starting sign in process for $email, selectedRole: $selectedRole');
-    print('🔐 AuthService: Auth provider: $_authProvider');
-
     if (_isFirebaseAuth) {
-      print('🔐 AuthService: Using Firebase auth for sign in');
-      // Firebase auth - no backend API call in Phase 4.2
       return await _firebaseAuth.signIn(email, password,
           selectedRole: selectedRole);
     } else {
-      print('🔐 AuthService: Using Supabase auth for sign in');
-
       // Check if Supabase is available
       if (_supabase == null) {
-        print('🔐 AuthService: Supabase not available');
         throw Exception(
             'Authentication not available. Please configure Supabase in your .env file.');
       }
 
       try {
-        print('🔐 AuthService: Calling Supabase signInWithPassword...');
         // Sign in with Supabase
         final response = await _supabase!.auth.signInWithPassword(
           email: email,
           password: password,
         );
 
-        print('🔐 AuthService: Supabase response received');
         if (response.session == null) {
-          print('🔐 AuthService: No session in response - sign in failed');
           throw Exception('Sign in failed');
         }
 
-        print(
-            '🔐 AuthService: Session details - accessToken exists: ${response.session!.accessToken != null}, refreshToken exists: ${response.session!.refreshToken != null}');
-
-        print('🔐 AuthService: Session found, saving tokens...');
-
-        // Save tokens FIRST
-        print(
-            '🔐 AuthService: Saving tokens - access token length: ${response.session!.accessToken.length}, refresh token length: ${response.session!.refreshToken!.length}');
+        // Save tokens
         await _tokenManager.saveTokens(
           response.session!.accessToken,
           response.session!.refreshToken!,
         );
-        print('🔐 AuthService: Tokens saved successfully');
 
-        // Verify tokens were saved
-        final savedToken = await _tokenManager.getAccessToken();
-        print(
-            '🔐 AuthService: Verification - saved token exists: ${savedToken != null}');
-
-        print('🔐 AuthService: Now fetching backend profile...');
-
-        // Get user profile from backend (now has token)
+        // Get user profile from backend
         final user = await _getUserProfile();
-        print(
-            '🔐 AuthService: Backend profile fetched: ${user.email}, role: ${user.role}');
 
         // If a role was selected and it differs from the current role, update it
-        print(
-            '🔐 AuthService: Checking role update - selectedRole: $selectedRole, user.role: ${user.role}');
         if (selectedRole != null && user.role != selectedRole) {
-          print(
-              '🔐 AuthService: Selected role ($selectedRole) differs from user role (${user.role}), updating...');
           final updatedUser = await _updateUserRole(user.id, selectedRole);
-          print('🔐 AuthService: User role updated to: ${updatedUser.role}');
           return updatedUser;
-        } else if (selectedRole != null) {
-          print(
-              '🔐 AuthService: Selected role ($selectedRole) matches user role (${user.role}), no update needed');
         } else {
-          print(
-              '🔐 AuthService: No selectedRole provided, using stored role (${user.role})');
+          // Use stored role
         }
 
         return user;
       } catch (e) {
-        print('🔐 AuthService: Sign in failed with error: $e');
         throw _handleAuthError(e);
       }
     }
@@ -348,8 +276,6 @@ class AuthService {
   /// Sign out current user
   Future<void> signOut() async {
     try {
-      print('🔐 AuthService: Signing out from $_authProvider auth');
-
       if (_isFirebaseAuth) {
         await _firebaseAuth.signOut();
       } else {
@@ -359,9 +285,7 @@ class AuthService {
       }
 
       await _tokenManager.clearTokens();
-      print('🔐 AuthService: Sign out completed');
     } catch (e) {
-      print('🔐 AuthService: Sign out failed: $e');
       // Clear local tokens even if API call fails
       await _tokenManager.clearTokens();
       rethrow;
@@ -370,10 +294,7 @@ class AuthService {
 
   /// Get current authenticated user
   Future<User?> getCurrentUser() async {
-    print('🔐 AuthService: Getting current user from $_authProvider');
-
     if (_isFirebaseAuth) {
-      // Firebase auth - no backend call in Phase 4.2
       return await _firebaseAuth.getCurrentUser();
     } else {
       // Supabase auth - check token and fetch from backend

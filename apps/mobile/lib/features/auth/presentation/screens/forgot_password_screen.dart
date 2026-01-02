@@ -341,14 +341,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               null, // Will use default redirect URL configured in Supabase
         );
 
-        print('Password reset email sent to: ${_emailController.text}');
-
         setState(() {
           _isLoading = false;
           _emailSent = true;
         });
       } catch (e) {
-        print('Password reset failed: $e');
         setState(() {
           _isLoading = false;
         });
@@ -394,8 +391,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         redirectTo: null,
       );
 
-      print('Password reset email resent to: ${_emailController.text}');
-
       setState(() {
         _isLoading = false;
       });
@@ -406,7 +401,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         );
       }
     } catch (e) {
-      print('Password reset resend failed: $e');
       setState(() {
         _isLoading = false;
       });

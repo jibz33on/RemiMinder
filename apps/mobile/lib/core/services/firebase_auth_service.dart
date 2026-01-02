@@ -8,8 +8,8 @@ import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
 
-/// Firebase Authentication service for Email/Password auth
-/// This runs in parallel with Supabase auth during Phase 4.4 (now default)
+/// Firebase Authentication service for Email/Password authentication
+/// Supports Firebase Auth as one of multiple authentication providers
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final TokenManager _tokenManager;
@@ -31,8 +31,6 @@ class FirebaseAuthService {
     String? fullName,
   }) async {
     try {
-      print('🔥 FirebaseAuth: Starting sign up for $email');
-
       // Create Firebase account
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -43,25 +41,19 @@ class FirebaseAuthService {
         throw Exception('Firebase sign up failed - no user returned');
       }
 
-      print('🔥 FirebaseAuth: Account created successfully');
-
       // Get Firebase ID token
       final idToken = await userCredential.user!.getIdToken();
       if (idToken == null) {
         throw Exception('Failed to get Firebase ID token');
       }
 
-      print('🔥 FirebaseAuth: ID token obtained (length: ${idToken.length})');
-
-      // Store Firebase token (Phase 4.2 - not sent to backend yet)
+      // Store Firebase token securely
       await _tokenManager.saveTokens(
           idToken, ''); // Firebase doesn't provide refresh tokens
       await _secureStorage.write('firebase_uid', userCredential.user!.uid);
       await _secureStorage.write('auth_provider', 'firebase');
 
-      print('🔥 FirebaseAuth: Tokens stored securely');
-
-      // Create User object (similar to Supabase logic)
+      // Create User object
       final user = User(
         id: userCredential.user!.uid, // Firebase UID
         email: email,
@@ -70,13 +62,10 @@ class FirebaseAuthService {
         authUid: userCredential.user!.uid,
       );
 
-      print('🔥 FirebaseAuth: Sign up completed successfully');
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {
-      print('🔥 FirebaseAuth: Sign up failed - ${e.code}: ${e.message}');
       throw _handleFirebaseAuthError(e);
     } catch (e) {
-      print('🔥 FirebaseAuth: Sign up failed - $e');
       throw Exception('Firebase sign up failed: $e');
     }
   }
@@ -85,8 +74,6 @@ class FirebaseAuthService {
   Future<User> signIn(String email, String password,
       {UserRole? selectedRole}) async {
     try {
-      print('🔥 FirebaseAuth: Starting sign in for $email');
-
       // Sign in with Firebase
       final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
@@ -97,23 +84,17 @@ class FirebaseAuthService {
         throw Exception('Firebase sign in failed - no user returned');
       }
 
-      print('🔥 FirebaseAuth: Sign in successful');
-
       // Get Firebase ID token
       final idToken = await userCredential.user!.getIdToken();
       if (idToken == null) {
         throw Exception('Failed to get Firebase ID token');
       }
 
-      print('🔥 FirebaseAuth: ID token obtained (length: ${idToken.length})');
-
-      // Store Firebase token (Phase 4.2 - not sent to backend yet)
+      // Store Firebase token securely
       await _tokenManager.saveTokens(
           idToken, ''); // Firebase doesn't provide refresh tokens
       await _secureStorage.write('firebase_uid', userCredential.user!.uid);
       await _secureStorage.write('auth_provider', 'firebase');
-
-      print('🔥 FirebaseAuth: Tokens stored securely');
 
       // Create User object
       final user = User(
@@ -124,13 +105,10 @@ class FirebaseAuthService {
         authUid: userCredential.user!.uid,
       );
 
-      print('🔥 FirebaseAuth: Sign in completed successfully');
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {
-      print('🔥 FirebaseAuth: Sign in failed - ${e.code}: ${e.message}');
       throw _handleFirebaseAuthError(e);
     } catch (e) {
-      print('🔥 FirebaseAuth: Sign in failed - $e');
       throw Exception('Firebase sign in failed: $e');
     }
   }
@@ -138,14 +116,11 @@ class FirebaseAuthService {
   /// Sign out from Firebase
   Future<void> signOut() async {
     try {
-      print('🔥 FirebaseAuth: Signing out');
       await _firebaseAuth.signOut();
       await _tokenManager.clearTokens();
       await _secureStorage.delete('firebase_uid');
       await _secureStorage.delete('auth_provider');
-      print('🔥 FirebaseAuth: Sign out completed');
     } catch (e) {
-      print('🔥 FirebaseAuth: Sign out failed - $e');
       // Clear local tokens even if Firebase sign out fails
       await _tokenManager.clearTokens();
       await _secureStorage.delete('firebase_uid');
@@ -159,18 +134,14 @@ class FirebaseAuthService {
     try {
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) {
-        print('🔥 FirebaseAuth: No current user');
         return null;
       }
 
       // Check if we have stored tokens
       final hasToken = await _tokenManager.isTokenValid();
       if (!hasToken) {
-        print('🔥 FirebaseAuth: No valid stored tokens');
         return null;
       }
-
-      print('🔥 FirebaseAuth: Current user found - ${firebaseUser.email}');
 
       return User(
         id: firebaseUser.uid,
@@ -180,7 +151,6 @@ class FirebaseAuthService {
         authUid: firebaseUser.uid,
       );
     } catch (e) {
-      print('🔥 FirebaseAuth: Error getting current user - $e');
       return null;
     }
   }
@@ -189,27 +159,21 @@ class FirebaseAuthService {
   Future<bool> isAuthenticated() async {
     try {
       final user = await getCurrentUser();
-      final result = user != null;
-      print('🔥 FirebaseAuth: isAuthenticated = $result');
-      return result;
+      return user != null;
     } catch (e) {
-      print('🔥 FirebaseAuth: isAuthenticated check failed - $e');
       return false;
     }
   }
 
-  /// Get Firebase ID token (for future backend integration)
+  /// Get Firebase ID token
   Future<String?> getIdToken() async {
     try {
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) return null;
 
       final token = await firebaseUser.getIdToken();
-      print(
-          '🔥 FirebaseAuth: Retrieved ID token (length: ${token?.length ?? 0})');
       return token;
     } catch (e) {
-      print('🔥 FirebaseAuth: Failed to get ID token - $e');
       return null;
     }
   }
@@ -217,11 +181,8 @@ class FirebaseAuthService {
   /// Reset password via Firebase
   Future<void> resetPassword(String email) async {
     try {
-      print('🔥 FirebaseAuth: Sending password reset to $email');
       await _firebaseAuth.sendPasswordResetEmail(email: email);
-      print('🔥 FirebaseAuth: Password reset email sent');
     } catch (e) {
-      print('🔥 FirebaseAuth: Password reset failed - $e');
       rethrow;
     }
   }

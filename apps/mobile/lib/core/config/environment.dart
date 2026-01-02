@@ -11,7 +11,7 @@ class Environment {
   static String get supabaseAnonKey =>
       _isLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? '') : '';
 
-  // Auth Provider Configuration (Phase 4.4)
+  // Auth Provider Configuration
   static String get authProvider =>
       _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'firebase') : 'firebase';
 
@@ -36,21 +36,18 @@ class Environment {
     try {
       // Load the .env inside the mobile folder FIRST
       await dotenv.load(fileName: '.env');
-      print('Environment: .env loaded from mobile folder');
       _isLoaded = true;
       return;
     } catch (e) {
-      print("Environment: Failed to load mobile .env: $e");
+      // Fallback to root .env ONLY if mobile .env missing
     }
 
-    // Fallback to root .env ONLY if mobile .env missing
     try {
       await dotenv.load(
           fileName: '/Users/jibinkunjumon/developments/MediMinder/.env');
-      print('Environment: .env loaded from project root');
       _isLoaded = true;
     } catch (e) {
-      print('Environment: No .env found. Running with defaults.');
+      // No .env found. Running with defaults.
       _isLoaded = false;
     }
   }
@@ -59,7 +56,6 @@ class Environment {
   static void validate() {
     // Skip validation if not loaded - we're in development mode
     if (!_isLoaded) {
-      print('Environment: Running in development mode with default values');
       return;
     }
 
@@ -69,9 +65,6 @@ class Environment {
         dotenv.env[varName] == null || dotenv.env[varName]!.isEmpty);
 
     if (missing.isNotEmpty) {
-      print(
-          'Environment: Missing required environment variables: ${missing.join(', ')}');
-      print('Environment: Using default values for missing variables');
       // Don't throw exception in development - use defaults
       if (flutterEnv == 'production') {
         throw Exception(

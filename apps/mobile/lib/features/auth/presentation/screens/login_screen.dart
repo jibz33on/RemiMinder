@@ -84,22 +84,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    print('🔐 Login: _signIn method called');
-
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    print('🔐 Login: Email: "$email", Password length: ${password.length}');
-
     if (email.isEmpty || password.isEmpty) {
-      print('🔐 Login: Email or password is empty - showing validation error');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
-
-    print('🔐 Login: Validation passed, calling auth provider...');
 
     try {
       print('🔐 Login: Starting sign in process...');
@@ -108,24 +101,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (_userRole != null) {
         selectedRole =
             _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
-        print(
-            '🔐 Login: URL role parameter: $_userRole, converted to selectedRole: $selectedRole');
-      } else {
-        print('🔐 Login: No role parameter in URL, selectedRole is null');
       }
       await ref
           .read(authNotifierProvider.notifier)
           .signIn(email, password, selectedRole: selectedRole);
-      print('🔐 Login: Auth provider call completed');
 
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
-      print(
-          '🔐 Login: Auth state - status: ${authState.status}, isAuthenticated: ${authState.isAuthenticated}, hasError: ${authState.hasError}');
 
       if (authState.hasError) {
-        print(
-            '🔐 Login: Authentication error detected: ${authState.errorMessage}');
         if (mounted) {
           final errorMessage = _getUserFriendlyErrorMessage(
               authState.errorMessage ?? 'Authentication failed');
@@ -138,35 +122,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (authState.isAuthenticated) {
         final user = authState.user;
-        print(
-            '🔐 Login: User data - email: ${user?.email}, role: ${user?.role}, isPatient: ${user?.isPatient}, isCaregiver: ${user?.isCaregiver}');
 
         // Save remember me preference
         await SecureStorage().saveRememberMe(_rememberMe);
-        print('🔐 Login: Remember me preference saved: $_rememberMe');
 
         if (user?.isPatient ?? false) {
-          print('🔐 Login: Navigating to patient home...');
           if (mounted) {
             context.go('/patient/home');
-            print('🔐 Login: Navigation to /patient/home completed');
-          } else {
-            print('🔐 Login: Widget not mounted, cannot navigate');
           }
         } else if (user?.isCaregiver ?? false) {
-          print('🔐 Login: Navigating to caregiver home...');
           if (mounted) {
             context.go('/caregiver/home');
-            print('🔐 Login: Navigation to /caregiver/home completed');
-          } else {
-            print('🔐 Login: Widget not mounted, cannot navigate');
           }
-        } else {
-          print(
-              '🔐 Login: User role not recognized or null - staying on login screen');
         }
       } else {
-        print('🔐 Login: Authentication failed or auth state not set');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -175,7 +144,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       }
     } catch (e) {
-      print('🔐 Login: Unexpected exception caught: $e');
       if (mounted) {
         final errorMessage = _getUserFriendlyErrorMessage(e);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -235,7 +203,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onChanged: (value) {
                       setState(() {
                         _rememberMe = value ?? false;
-                        print('🔐 Remember me toggled: $_rememberMe');
                       });
                     },
                   ),
@@ -582,6 +549,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    // Show user-friendly message that Google Sign-In is disabled
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Google Sign-In is currently disabled. Please use Email/Password authentication.',
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+
+    // Early return - don't attempt Google sign-in
+    return;
+
+    // Original code (commented out for Phase 4.4):
+    /*
     print('🔐 Login: Starting Google Sign-In process...');
     try {
       print('🔐 Login: Calling auth provider signInWithGoogle...');
@@ -640,6 +624,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         SnackBar(content: Text('Google Sign In failed: ${e.toString()}')),
       );
     }
+    */
   }
 
   void _signInWithApple() {

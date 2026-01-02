@@ -14,14 +14,11 @@ Future<void> main() async {
   await Environment.load();
   Environment.validate(); // Ensure required vars are set
 
-  print("🚀 USING API BASE URL = ${Environment.apiBaseUrl}");
-
   // Initialize Supabase
   await SupabaseConfig.initialize();
 
-  // Initialize Firebase (setup only, not used for auth yet)
+  // Initialize Firebase
   await Firebase.initializeApp();
-  print("🔥 Firebase initialized (ready but unused)");
 
   runApp(
     const ProviderScope(

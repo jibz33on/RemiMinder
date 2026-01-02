@@ -61,8 +61,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // treat as unauthenticated rather than error
       if (e.toString().contains('Supabase') ||
           e.toString().contains('not available')) {
-        print(
-            'AuthNotifier: Authentication not configured - treating as unauthenticated');
         state = AuthState.unauthenticated();
       } else {
         state = AuthState.error(e.toString());
@@ -93,13 +91,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Sign in with email and password
-  Future<void> signIn(String email, String password, {UserRole? selectedRole}) async {
-    print('🔐 AuthProvider: Starting sign in for email: $email, selectedRole: $selectedRole');
+  Future<void> signIn(String email, String password,
+      {UserRole? selectedRole}) async {
     state = AuthState.loading();
 
     try {
       print('🔐 AuthProvider: Calling auth repository signIn...');
-      final user = await _authRepository.signIn(email, password, selectedRole: selectedRole);
+      final user = await _authRepository.signIn(email, password,
+          selectedRole: selectedRole);
       print(
           '🔐 AuthProvider: Sign in successful, user: ${user.email}, role: ${user.role}');
       state = AuthState.authenticated(user);
@@ -119,7 +118,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       print('🔐 AuthProvider: Calling auth repository signInWithGoogle...');
       final user = await _authRepository.signInWithGoogle();
-      print('🔐 AuthProvider: Auth repository returned user: ${user.email}, role: ${user.role}');
+      print(
+          '🔐 AuthProvider: Auth repository returned user: ${user.email}, role: ${user.role}');
       print('🔐 AuthProvider: Setting authenticated state...');
       state = AuthState.authenticated(user);
       print('🔐 AuthProvider: State set to authenticated');

@@ -24,16 +24,18 @@ class AuthRepository {
   }
 
   /// Sign in with email and password
-  Future<User> signIn(String email, String password, {UserRole? selectedRole}) async {
-    print('🔐 AuthRepository: Calling auth service signIn with selectedRole: $selectedRole...');
-    final user = await _authService.signIn(email, password, selectedRole: selectedRole);
-    print('🔐 AuthRepository: Auth service returned user: ${user.email}, role: ${user.role}');
-    return user;
+  Future<User> signIn(String email, String password,
+      {UserRole? selectedRole}) async {
+    return await _authService.signIn(email, password,
+        selectedRole: selectedRole);
   }
 
   /// Sign in with Google OAuth
+  /// Currently disabled due to dependency conflicts
   Future<User> signInWithGoogle() async {
-    return await _authService.signInWithGoogle();
+    throw Exception(
+        'Google Sign-In is currently disabled. Use Email/Password authentication instead.');
+    // return await _authService.signInWithGoogle();
   }
 
   /// Sign out current user
