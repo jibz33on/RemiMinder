@@ -315,11 +315,14 @@ def get_current_user_with_db_lookup(token: str) -> str:
 
 def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str) -> str:
     """
-    Get or create user for Firebase authentication.
+    Get or create user for Firebase authentication with identity hardening.
 
-    Lookup order:
+    Lookup order with conflict prevention:
     1. Direct firebase_uid match
-    2. Email match (auto-link existing user)
+    2. Email match with identity conflict checking:
+       - Same firebase_uid: return existing user
+       - NULL firebase_uid: safe to link
+       - Different firebase_uid: raise identity conflict error
     3. Create new user
 
     Args:
@@ -329,6 +332,9 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
 
     Returns:
         Internal user ID string
+
+    Raises:
+        HTTPException: For identity conflicts or creation failures
     """
     # 1. Try direct firebase_uid lookup
     try:
@@ -345,26 +351,60 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
         # User not found by firebase_uid, continue to email lookup
         pass
 
-    # 2. Try email-based auto-linking
+    # 2. Try email-based identity resolution
     if email:
         try:
-            user_data = supabase_client.table("users").select("id,email").eq("email", email).single().execute()
+            # Get full user data including firebase_uid to check for conflicts
+            user_data = supabase_client.table("users").select("id,email,firebase_uid").eq("email", email).single().execute()
             if user_data.data:
-                # Link Firebase UID to existing user
-                update_result = supabase_client.table("users").update({
-                    "firebase_uid": firebase_uid
-                }).eq("id", user_data.data["id"]).execute()
+                existing_firebase_uid = user_data.data.get("firebase_uid")
 
-                if update_result.data:
-                    logger.info("Firebase user linked to existing account", extra={
+                if existing_firebase_uid == firebase_uid:
+                    # Same Firebase UID - this user is already properly linked
+                    logger.info("Firebase user identity confirmed", extra={
                         "auth_provider": "firebase",
                         "user_resolved": True,
-                        "linked_existing": True,
+                        "identity_confirmed": True,
                         "firebase_uid": firebase_uid,
                         "email": email
                     })
                     return user_data.data["id"]
+
+                elif existing_firebase_uid is None:
+                    # No Firebase UID set - safe to link
+                    update_result = supabase_client.table("users").update({
+                        "firebase_uid": firebase_uid
+                    }).eq("id", user_data.data["id"]).execute()
+
+                    if update_result.data:
+                        logger.info("Firebase user linked to existing account", extra={
+                            "auth_provider": "firebase",
+                            "user_resolved": True,
+                            "linked_existing": True,
+                            "firebase_uid": firebase_uid,
+                            "email": email
+                        })
+                        return user_data.data["id"]
+
+                else:
+                    # Different Firebase UID - identity conflict
+                    logger.warning("Firebase identity conflict detected", extra={
+                        "auth_provider": "firebase",
+                        "identity_conflict": True,
+                        "attempted_firebase_uid": firebase_uid,
+                        "existing_firebase_uid": existing_firebase_uid,
+                        "email": email,
+                        "conflict_type": "different_firebase_uid"
+                    })
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Identity conflict: This email is already associated with a different Firebase account. Please contact support if you believe this is an error."
+                    )
+        except HTTPException:
+            # Re-raise identity conflicts
+            raise
         except Exception as e:
+            # Log but don't fail on lookup errors - continue to user creation
             logger.warning(f"Email lookup failed for Firebase user {firebase_uid}: {str(e)}")
 
     # 3. Create new user
