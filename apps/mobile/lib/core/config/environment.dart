@@ -5,15 +5,7 @@ class Environment {
   // Track if environment has been loaded
   static bool _isLoaded = false;
 
-  // Supabase Configuration
-  static String get supabaseUrl =>
-      _isLoaded ? (dotenv.env['SUPABASE_URL'] ?? '') : '';
-  static String get supabaseAnonKey =>
-      _isLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? '') : '';
-
   // Auth Provider Configuration
-  // AUTH_PROVIDER=firebase (default) - Use Firebase Auth
-  // AUTH_PROVIDER=supabase (legacy) - Use Supabase Auth (rollback only)
   static String get authProvider =>
       _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'firebase') : 'firebase';
 
@@ -61,7 +53,7 @@ class Environment {
       return;
     }
 
-    final requiredVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+    final requiredVars = <String>[];
 
     final missing = requiredVars.where((String varName) =>
         dotenv.env[varName] == null || dotenv.env[varName]!.isEmpty);

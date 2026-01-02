@@ -24,7 +24,7 @@
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
 	<array>
-		<!-- Supabase deep link -->
+		<!-- App deep link -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>

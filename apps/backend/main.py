@@ -15,7 +15,7 @@ except (FileNotFoundError, PermissionError):
     logger.warning(f"Could not load .env file from {env_path}. Make sure environment variables are set.")
 
 # Verify critical environment variables are loaded
-required_vars = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GCS_BUCKET_NAME"]
+required_vars = ["GCS_BUCKET_NAME"]
 for var in required_vars:
     if not os.getenv(var):
         raise RuntimeError(f"Critical environment variable {var} is not set. Check your .env file.")
@@ -43,14 +43,7 @@ if cloud_sql_configured:
 else:
     logger.info("Cloud SQL PostgreSQL environment variables not set (optional for read-only testing)")
 
-# Check database provider setting
-db_provider = os.getenv("DB_PROVIDER", "supabase").lower()
-if db_provider == "cloudsql":
-    logger.info("Database provider set to: Cloud SQL")
-elif db_provider == "supabase":
-    logger.info("Database provider set to: Supabase (default)")
-else:
-    logger.warning(f"Unknown DB_PROVIDER '{db_provider}', will default to 'supabase'")
+logger.info("Database provider: Cloud SQL")
 
 logger.info("Environment variables verified")
 

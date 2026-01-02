@@ -240,10 +240,12 @@ def get_current_user_with_db_lookup(token: str) -> str:
         )
 
     # Perform database lookup for Firebase user
-    from .supabase_client import supabase
+    from .cloud_sql_engine import get_cloud_sql_engine
+    from sqlalchemy import text
 
+    engine = get_cloud_sql_engine()
     try:
-        return _get_or_create_firebase_user(supabase, firebase_uid, user_email)
+        return _get_or_create_firebase_user(engine, firebase_uid, user_email)
 
     except Exception as e:
         logger.error(f"Database lookup failed for Firebase user {firebase_uid}: {str(e)}")
@@ -253,7 +255,7 @@ def get_current_user_with_db_lookup(token: str) -> str:
         )
 
 
-def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str) -> str:
+def _get_or_create_firebase_user(engine, firebase_uid: str, email: str) -> str:
     """
     Get or create user for Firebase authentication with identity hardening.
 
@@ -266,7 +268,7 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
     3. Create new user
 
     Args:
-        supabase_client: Supabase client instance
+        engine: SQLAlchemy engine instance
         firebase_uid: Firebase UID string
         email: User email from token
 
@@ -278,15 +280,20 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
     """
     # 1. Try direct firebase_uid lookup
     try:
-        user_data = supabase_client.table("users").select("id,email").eq("firebase_uid", firebase_uid).single().execute()
-        if user_data.data:
-            logger.info("Firebase user resolved", extra={
-                "auth_provider": "firebase",
-                "user_resolved": True,
-                "linked_existing": False,
-                "firebase_uid": firebase_uid
-            })
-            return user_data.data["id"]
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT id, email FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
+                {"firebase_uid": firebase_uid}
+            )
+            row = result.fetchone()
+            if row:
+                logger.info("Firebase user resolved", extra={
+                    "auth_provider": "firebase",
+                    "user_resolved": True,
+                    "linked_existing": False,
+                    "firebase_uid": firebase_uid
+                })
+                return str(row[0])
     except Exception:
         # User not found by firebase_uid, continue to email lookup
         pass
@@ -295,28 +302,34 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
     if email:
         try:
             # Get full user data including firebase_uid to check for conflicts
-            user_data = supabase_client.table("users").select("id,email,firebase_uid").eq("email", email).single().execute()
-            if user_data.data:
-                existing_firebase_uid = user_data.data.get("firebase_uid")
+            with engine.connect() as conn:
+                result = conn.execute(
+                    text("SELECT id, email, firebase_uid FROM users WHERE email = :email LIMIT 1"),
+                    {"email": email}
+                )
+                row = result.fetchone()
+                if row:
+                    existing_firebase_uid = row[2]
 
-                if existing_firebase_uid == firebase_uid:
-                    # Same Firebase UID - this user is already properly linked
-                    logger.info("Firebase user identity confirmed", extra={
-                        "auth_provider": "firebase",
-                        "user_resolved": True,
-                        "identity_confirmed": True,
-                        "firebase_uid": firebase_uid,
-                        "email": email
-                    })
-                    return user_data.data["id"]
+                    if existing_firebase_uid == firebase_uid:
+                        # Same Firebase UID - this user is already properly linked
+                            logger.info("Firebase user identity confirmed", extra={
+                                "auth_provider": "firebase",
+                                "user_resolved": True,
+                                "identity_confirmed": True,
+                                "firebase_uid": firebase_uid,
+                                "email": email
+                            })
+                            return str(row[0])
 
-                elif existing_firebase_uid is None:
-                    # No Firebase UID set - safe to link
-                    update_result = supabase_client.table("users").update({
-                        "firebase_uid": firebase_uid
-                    }).eq("id", user_data.data["id"]).execute()
+                    elif existing_firebase_uid is None:
+                        # No Firebase UID set - safe to link
+                        conn.execute(
+                            text("UPDATE users SET firebase_uid = :firebase_uid WHERE id = :user_id"),
+                            {"firebase_uid": firebase_uid, "user_id": row[0]}
+                        )
+                        conn.commit()
 
-                    if update_result.data:
                         logger.info("Firebase user linked to existing account", extra={
                             "auth_provider": "firebase",
                             "user_resolved": True,
@@ -324,7 +337,7 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
                             "firebase_uid": firebase_uid,
                             "email": email
                         })
-                        return user_data.data["id"]
+                        return str(row[0])
 
                 else:
                     # Different Firebase UID - identity conflict
@@ -361,23 +374,28 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
     }
 
     try:
-        create_result = supabase_client.table("users").insert(new_user).execute()
-
-        if create_result.data:
-            new_user_id = create_result.data[0]["id"]
-            logger.info("New Firebase user created", extra={
-                "auth_provider": "firebase",
-                "user_resolved": True,
-                "linked_existing": False,
-                "firebase_uid": firebase_uid,
-                "email": email
-            })
-            return new_user_id
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create Firebase user record"
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("INSERT INTO users (firebase_uid, email, role) VALUES (:firebase_uid, :email, :role) RETURNING id"),
+                {"firebase_uid": firebase_uid, "email": email, "role": "user"}
             )
+            new_user_row = result.fetchone()
+            if new_user_row:
+                new_user_id = str(new_user_row[0])
+                conn.commit()
+                logger.info("New Firebase user created", extra={
+                    "auth_provider": "firebase",
+                    "user_resolved": True,
+                    "linked_existing": False,
+                    "firebase_uid": firebase_uid,
+                    "email": email
+                })
+                return new_user_id
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create Firebase user record"
+                )
     except Exception as e:
         logger.error(f"Failed to create Firebase user {firebase_uid}: {str(e)}")
         raise HTTPException(

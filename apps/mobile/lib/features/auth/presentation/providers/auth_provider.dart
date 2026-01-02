@@ -57,10 +57,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState.unauthenticated();
       }
     } catch (e) {
-      // If auth services are not available (e.g., Supabase not configured),
-      // treat as unauthenticated rather than error
-      if (e.toString().contains('Supabase') ||
-          e.toString().contains('not available')) {
+      // If auth services are not available, treat as unauthenticated
+      if (e.toString().contains('not available')) {
         state = AuthState.unauthenticated();
       } else {
         state = AuthState.error(e.toString());

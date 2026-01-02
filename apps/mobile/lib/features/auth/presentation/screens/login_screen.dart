@@ -588,7 +588,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _signInWithApple() {
-    // TODO: Implement Apple Sign In with Supabase
+    // TODO: Implement Apple Sign In with Firebase
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Apple Sign In - Coming Soon!')),
     );

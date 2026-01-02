@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../core/config/supabase_config.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -327,18 +326,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       });
 
       try {
-        // Check if Supabase is available
-        final supabaseClient = SupabaseConfig.client;
-        if (supabaseClient == null) {
-          throw Exception(
-              'Authentication service not available. Please try again later.');
-        }
-
-        // Send password reset email via Supabase
-        await supabaseClient.auth.resetPasswordForEmail(
-          _emailController.text.trim(),
-          redirectTo:
-              null, // Will use default redirect URL configured in Supabase
+        // Send password reset email via Firebase Auth
+        await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(
+          email: _emailController.text.trim(),
         );
 
         setState(() {
@@ -352,8 +342,25 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
         // Show error message to user
         String errorMessage = 'Failed to send reset email. Please try again.';
-        if (e.toString().contains('Invalid email')) {
-          errorMessage = 'Please enter a valid email address.';
+
+        if (e is firebase_auth.FirebaseAuthException) {
+          switch (e.code) {
+            case 'invalid-email':
+              errorMessage = 'Please enter a valid email address.';
+              break;
+            case 'user-not-found':
+              errorMessage = 'No account found with this email address.';
+              break;
+            case 'too-many-requests':
+              errorMessage = 'Too many requests. Please try again later.';
+              break;
+            case 'network-request-failed':
+              errorMessage =
+                  'Network error. Please check your internet connection.';
+              break;
+            default:
+              errorMessage = 'Failed to send reset email. Please try again.';
+          }
         } else if (e.toString().contains('network') ||
             e.toString().contains('connection')) {
           errorMessage =
@@ -378,17 +385,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     });
 
     try {
-      // Check if Supabase is available
-      final supabaseClient = SupabaseConfig.client;
-      if (supabaseClient == null) {
-        throw Exception(
-            'Authentication service not available. Please try again later.');
-      }
-
-      // Resend password reset email via Supabase
-      await supabaseClient.auth.resetPasswordForEmail(
-        _emailController.text.trim(),
-        redirectTo: null,
+      // Resend password reset email via Firebase Auth
+      await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
       );
 
       setState(() {
@@ -405,10 +404,34 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         _isLoading = false;
       });
 
+      // Show error message to user
+      String errorMessage = 'Failed to resend reset email. Please try again.';
+
+      if (e is firebase_auth.FirebaseAuthException) {
+        switch (e.code) {
+          case 'invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'user-not-found':
+            errorMessage = 'No account found with this email address.';
+            break;
+          case 'too-many-requests':
+            errorMessage = 'Too many requests. Please try again later.';
+            break;
+          case 'network-request-failed':
+            errorMessage =
+                'Network error. Please check your internet connection.';
+            break;
+        }
+      } else if (e.toString().contains('network') ||
+          e.toString().contains('connection')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to resend reset email. Please try again.'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );

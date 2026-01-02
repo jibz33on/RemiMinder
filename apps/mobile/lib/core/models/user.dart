@@ -47,7 +47,7 @@ class User extends Equatable {
   final String _displayName; // Backend-resolved display name
   final UserRole role;
   final DateTime? createdAt;
-  final String? authUid; // Supabase auth UID
+  final String? authUid;
 
   const User({
     required this.id,

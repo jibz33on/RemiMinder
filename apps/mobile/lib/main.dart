@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'app.dart';
 import 'core/config/environment.dart';
-import 'core/config/supabase_config.dart';
 
 /// App entry point with Riverpod state management
 Future<void> main() async {
@@ -13,9 +12,6 @@ Future<void> main() async {
   // Load environment variables
   await Environment.load();
   Environment.validate(); // Ensure required vars are set
-
-  // Initialize Supabase
-  await SupabaseConfig.initialize();
 
   // Initialize Firebase
   await Firebase.initializeApp();
