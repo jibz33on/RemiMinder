@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import cast, Dict
 from services.supabase_client import supabase
-from utils.auth import get_current_user
+from services.auth_gateway import get_current_user_jwt as get_current_user
 
 router = APIRouter(prefix="/api/linked", tags=["Caregiver-Patient Linkage"])
 

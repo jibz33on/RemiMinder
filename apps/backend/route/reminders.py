@@ -29,7 +29,7 @@ from services.db_reminders import (
     get_caregiver_alerts,
     mark_alert_as_read
 )
-from services.auth import get_current_user
+from services.auth_gateway import get_current_user
 
 logger = logging.getLogger(__name__)
 

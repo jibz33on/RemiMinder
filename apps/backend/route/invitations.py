@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import uuid
 from typing import cast, Dict
 from services.supabase_client import supabase
-from utils.auth import get_current_user
+from services.auth_gateway import get_current_user_jwt as get_current_user
 from services.invitation_email_service import send_invite_email
 from services.invitation_verify_service import verify_invitation_token
 import asyncio

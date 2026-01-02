@@ -19,7 +19,7 @@ from services.db_service import (
     get_supabase_client,
 )
 from services.gcs_service import upload_audio
-from utils.auth import get_current_user
+from services.auth_gateway import get_current_user_jwt as get_current_user
 
 logger = logging.getLogger(__name__)
 

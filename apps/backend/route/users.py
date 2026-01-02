@@ -4,7 +4,7 @@ User management routes for authentication
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from utils.auth import get_current_user
+from services.auth_gateway import get_current_user_jwt as get_current_user
 from services.supabase_client import supabase, check_table_exists
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
