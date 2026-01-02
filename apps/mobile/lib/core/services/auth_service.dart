@@ -12,14 +12,14 @@ import 'secure_storage.dart';
 import 'firebase_auth_service.dart';
 
 /// Authentication service handling Supabase auth and API integration
-/// Phase 4.2: Supports both Supabase and Firebase auth providers
+/// Phase 4.4: Supports both Supabase and Firebase auth providers (Firebase is default)
 class AuthService {
   final supabase.SupabaseClient? _supabase;
   final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
   final SecureStorage _secureStorage;
 
-  // Native Google Sign-In instance (disabled for Phase 4.2)
+  // Native Google Sign-In instance (disabled for Phase 4.x)
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );

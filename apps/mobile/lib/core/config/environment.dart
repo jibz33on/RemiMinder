@@ -11,9 +11,9 @@ class Environment {
   static String get supabaseAnonKey =>
       _isLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? '') : '';
 
-  // Auth Provider Configuration (Phase 4.2)
+  // Auth Provider Configuration (Phase 4.4)
   static String get authProvider =>
-      _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'supabase') : 'supabase';
+      _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'firebase') : 'firebase';
 
   // API Configuration
   static String get apiBaseUrl => _isLoaded

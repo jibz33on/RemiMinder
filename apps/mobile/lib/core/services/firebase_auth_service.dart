@@ -9,7 +9,7 @@ import 'token_manager.dart';
 import 'secure_storage.dart';
 
 /// Firebase Authentication service for Email/Password auth
-/// This runs in parallel with Supabase auth during Phase 4.2
+/// This runs in parallel with Supabase auth during Phase 4.4 (now default)
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final TokenManager _tokenManager;
