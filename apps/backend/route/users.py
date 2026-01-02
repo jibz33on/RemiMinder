@@ -116,54 +116,12 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
 
 @router.post("/")
 def create_user_profile(request: CreateUserRequest):
-    """Create user profile after signup"""
-    try:
-        print(f"Received user creation request: {request.dict()}")
-
-        # Check if users table exists
-        if not check_table_exists("users"):
-            print("ERROR: Users table does not exist in Supabase!")
-            raise HTTPException(
-                500,
-                "Database setup incomplete: Please create the 'users' table in Supabase. "
-                "See documentation for required table schema."
-            )
-
-        # Check if user exists
-        existing = supabase.table("users").select("id").eq("auth_uid", request.auth_uid).execute()
-        if existing.data:
-            print(f"User already exists: {request.auth_uid}")
-            raise HTTPException(409, "User already exists")
-
-        # Create user
-        user_data = {
-            "auth_uid": request.auth_uid,
-            "email": request.email,
-            "role": request.role,
-            "full_name": request.full_name,
-        }
-
-        print(f"Creating user with data: {user_data}")
-        result = supabase.table("users").insert(user_data).execute()
-
-        if not result.data:
-            print("Failed to create user in database")
-            raise HTTPException(500, "Failed to create user")
-
-        print(f"User created successfully: {result.data[0]}")
-
-        # Resolve display name for response
-        display_name = resolve_display_name(result.data[0].get("full_name"))
-
-        # Add display_name to response
-        response_data = result.data[0].copy()
-        response_data["display_name"] = display_name
-
-        return UserResponse(**response_data)
-
-    except Exception as e:
-        print(f"Error creating user: {str(e)}")
-        raise HTTPException(500, f"Internal server error: {str(e)}")
+    """Create user profile after signup - SUPABASE AUTH DECOMMISSIONED"""
+    # SUPABASE AUTH DECOMMISSIONED: Block all new user creation via Supabase
+    raise HTTPException(
+        status_code=410,  # Gone
+        detail="Supabase authentication is no longer available for new users. Please use modern authentication methods."
+    )
 
 
 @router.put("/{target_auth_uid}/role")

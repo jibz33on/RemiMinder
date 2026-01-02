@@ -448,7 +448,10 @@ def _get_or_create_firebase_user(supabase_client, firebase_uid: str, email: str)
 
 def _get_or_create_supabase_user(supabase_client, auth_uid: str, email: str) -> str:
     """
-    Get or create user for Supabase authentication (original logic).
+    Get existing user for Supabase authentication (legacy support only).
+
+    Supabase auth is decommissioned - only existing users can authenticate.
+    New user creation via Supabase is blocked.
 
     Args:
         supabase_client: Supabase client instance
@@ -457,46 +460,34 @@ def _get_or_create_supabase_user(supabase_client, auth_uid: str, email: str) -> 
 
     Returns:
         Internal user ID string
+
+    Raises:
+        HTTPException: If user doesn't exist (410 Gone - decommissioned)
     """
     try:
         user_data = supabase_client.table("users").select("id,email").eq("auth_uid", auth_uid).single().execute()
 
         if user_data.data:
-            logger.info("Supabase user resolved", extra={
+            logger.info("Supabase user authenticated", extra={
                 "auth_provider": "supabase",
                 "user_resolved": True,
+                "legacy_auth": True,
                 "auth_uid": auth_uid
             })
             return user_data.data["id"]
 
-        # User not found, create new record (same logic as original)
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Supabase token: missing email claim"
-            )
-
-        new_user = {
+        # SUPABASE AUTH DECOMMISSIONED: No new user creation allowed
+        logger.warning("Supabase user creation blocked - auth decommissioned", extra={
+            "auth_provider": "supabase",
+            "user_creation_blocked": True,
+            "legacy_auth": True,
             "auth_uid": auth_uid,
-            "email": email,
-            "role": "user"  # Default role - matches database constraint
-        }
-        create_result = supabase_client.table("users").insert(new_user).execute()
-
-        if create_result.data:
-            new_user_id = create_result.data[0]["id"]
-            logger.info("New Supabase user created", extra={
-                "auth_provider": "supabase",
-                "user_resolved": True,
-                "auth_uid": auth_uid,
-                "email": email
-            })
-            return new_user_id
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create Supabase user record"
-            )
+            "email": email
+        })
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Supabase authentication is no longer available for new users. Please use modern authentication methods. Contact support if you need access to an existing account."
+        )
 
     except Exception as e:
         logger.error(f"Failed to get/create Supabase user {auth_uid}: {str(e)}")
