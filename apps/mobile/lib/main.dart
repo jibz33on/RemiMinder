@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'app.dart';
 import 'core/config/environment.dart';
@@ -17,6 +18,10 @@ Future<void> main() async {
 
   // Initialize Supabase
   await SupabaseConfig.initialize();
+
+  // Initialize Firebase (setup only, not used for auth yet)
+  await Firebase.initializeApp();
+  print("🔥 Firebase initialized (ready but unused)");
 
   runApp(
     const ProviderScope(

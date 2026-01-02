@@ -23,6 +23,10 @@ dependencies:
   google_sign_in: ^6.2.1  # Native Google Sign-In for iOS/Android
   flutter_dotenv: ^5.1.0
 
+  # Firebase (initialized but not used for auth yet)
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+
   # Secure Storage (for JWT tokens)
   flutter_secure_storage: ^9.0.0
 
