@@ -9,10 +9,30 @@ from services.supabase_client import supabase, check_table_exists
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
+
+def resolve_display_name(full_name: str | None) -> str:
+    """
+    Centralized display name resolution logic.
+
+    Resolution order:
+    1. users.full_name (if non-null and non-empty)
+    2. "User" (final fallback)
+
+    Args:
+        full_name: The full_name field from database
+
+    Returns:
+        Resolved display name (never empty)
+    """
+    if full_name and full_name.strip():
+        return full_name.strip()
+    return "User"
+
 class UserResponse(BaseModel):
     id: str
     email: str
     full_name: Optional[str] = None
+    display_name: str
     role: str
 
 class CreateUserRequest(BaseModel):
@@ -51,11 +71,15 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
                 if not row:
                     raise HTTPException(404, "User not found")
 
+                # Resolve display name
+                display_name = resolve_display_name(row[2])
+
                 # Convert row to dict matching the expected response format
                 user_data = {
                     "id": str(row[0]),
                     "email": row[1],
                     "full_name": row[2],
+                    "display_name": display_name,
                     "role": row[3]
                 }
 
@@ -80,7 +104,14 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
         if not user_data.data:
             raise HTTPException(404, "User not found")
 
-        return UserResponse(**user_data.data)
+        # Resolve display name
+        display_name = resolve_display_name(user_data.data.get("full_name"))
+
+        # Add display_name to response
+        response_data = user_data.data.copy()
+        response_data["display_name"] = display_name
+
+        return UserResponse(**response_data)
 
 
 @router.post("/")
@@ -120,7 +151,15 @@ def create_user_profile(request: CreateUserRequest):
             raise HTTPException(500, "Failed to create user")
 
         print(f"User created successfully: {result.data[0]}")
-        return UserResponse(**result.data[0])
+
+        # Resolve display name for response
+        display_name = resolve_display_name(result.data[0].get("full_name"))
+
+        # Add display_name to response
+        response_data = result.data[0].copy()
+        response_data["display_name"] = display_name
+
+        return UserResponse(**response_data)
 
     except Exception as e:
         print(f"Error creating user: {str(e)}")
@@ -172,7 +211,14 @@ def update_user_role(target_auth_uid: str, request: UpdateRoleRequest, current_u
         if not user_data.data:
             raise HTTPException(404, "User not found after update")
 
-        return UserResponse(**user_data.data)
+        # Resolve display name
+        display_name = resolve_display_name(user_data.data.get("full_name"))
+
+        # Add display_name to response
+        response_data = user_data.data.copy()
+        response_data["display_name"] = display_name
+
+        return UserResponse(**response_data)
 
     except Exception as e:
         print(f"Error updating user role: {str(e)}")

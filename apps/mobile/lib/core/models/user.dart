@@ -9,7 +9,7 @@ enum UserRole {
   static UserRole fromString(String value) {
     switch (value.toLowerCase()) {
       case 'patient':
-      case 'user':  // Database uses 'user' but we map it to patient
+      case 'user': // Database uses 'user' but we map it to patient
         return UserRole.patient;
       case 'caregiver':
         return UserRole.caregiver;
@@ -44,6 +44,7 @@ class User extends Equatable {
   final String id;
   final String email;
   final String? fullName;
+  final String _displayName; // Backend-resolved display name
   final UserRole role;
   final DateTime? createdAt;
   final String? authUid; // Supabase auth UID
@@ -52,10 +53,11 @@ class User extends Equatable {
     required this.id,
     required this.email,
     this.fullName,
+    required String displayName,
     required this.role,
     this.createdAt,
     this.authUid,
-  });
+  }) : _displayName = displayName;
 
   /// Create User from JSON (API response)
   factory User.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,7 @@ class User extends Equatable {
       id: json['id'] as String,
       email: json['email'] as String,
       fullName: json['full_name'] as String?,
+      displayName: json['display_name'] as String,
       role: UserRole.fromString(json['role'] as String),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -88,6 +91,7 @@ class User extends Equatable {
     String? id,
     String? email,
     String? fullName,
+    String? displayName,
     UserRole? role,
     DateTime? createdAt,
     String? authUid,
@@ -96,14 +100,15 @@ class User extends Equatable {
       id: id ?? this.id,
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
+      displayName: displayName ?? this.displayName,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       authUid: authUid ?? this.authUid,
     );
   }
 
-  /// Get display name for UI
-  String get displayName => fullName ?? email;
+  /// Get display name for UI (from backend)
+  String get displayName => _displayName;
 
   /// Check if user is a patient
   bool get isPatient => role == UserRole.patient;
@@ -112,7 +117,8 @@ class User extends Equatable {
   bool get isCaregiver => role == UserRole.caregiver;
 
   @override
-  List<Object?> get props => [id, email, fullName, role, createdAt, authUid];
+  List<Object?> get props =>
+      [id, email, fullName, _displayName, role, createdAt, authUid];
 
   @override
   String toString() {

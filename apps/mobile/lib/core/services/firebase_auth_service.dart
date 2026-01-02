@@ -59,6 +59,8 @@ class FirebaseAuthService {
         email: email,
         role: role,
         fullName: fullName,
+        displayName:
+            fullName ?? "User", // Temporary, will be replaced by backend
         authUid: userCredential.user!.uid,
       );
 
@@ -102,6 +104,8 @@ class FirebaseAuthService {
         email: email,
         role: selectedRole ?? UserRole.patient, // Default role
         fullName: userCredential.user!.displayName,
+        displayName: userCredential.user!.displayName ??
+            "User", // Temporary, will be replaced by backend
         authUid: userCredential.user!.uid,
       );
 
@@ -148,6 +152,8 @@ class FirebaseAuthService {
         email: firebaseUser.email ?? '',
         role: UserRole.patient, // Default role
         fullName: firebaseUser.displayName,
+        displayName: firebaseUser.displayName ??
+            "User", // Temporary, will be replaced by backend
         authUid: firebaseUser.uid,
       );
     } catch (e) {
