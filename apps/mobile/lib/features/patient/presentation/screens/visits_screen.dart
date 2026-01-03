@@ -63,11 +63,11 @@ class _VisitsScreenState extends State<VisitsScreen> {
                         ),
                         const SizedBox(height: 20),
                         QuickActionItem(
-                          label: 'Scan Documents',
-                          icon: Icons.qr_code_scanner,
-                          color: Colors.purple,
+                          label: 'Camera',
+                          icon: Icons.camera_alt,
+                          color: Colors.blue,
                           onTap: () {
-                            _showScanOptions(context);
+                            context.go('/patient/camera');
                           },
                         ),
                       ],
@@ -303,65 +303,6 @@ class _VisitsScreenState extends State<VisitsScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showScanOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Capture Document',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Take a photo of reports, pill bottles, or medical documents',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go('/patient/capture');
-                },
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Open Camera'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

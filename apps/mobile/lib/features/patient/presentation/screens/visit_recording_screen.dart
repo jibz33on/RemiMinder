@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/audio_service.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/consent_service.dart';
 import '../../../../core/config/environment.dart';
 
 class VisitRecordingScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class VisitRecordingScreen extends StatefulWidget {
 class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   final AudioService _audioService = AudioService();
   final AuthService _authService = AuthService();
+  final ConsentService _consentService = ConsentService();
   final ScrollController _transcriptionScrollController = ScrollController();
   RecordingState _recordingState = RecordingState.ready;
   Timer? _timer;
@@ -473,6 +475,15 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   void _startRecording() async {
+    // Check if user has accepted audio consent
+    final hasConsent = await _consentService.hasAcceptedAudioConsent();
+    if (!hasConsent) {
+      final accepted = await _showAudioConsentDialog();
+      if (!accepted) {
+        return; // User declined consent
+      }
+    }
+
     print('🎬 Starting recording...');
     final success = await _audioService.startRecording(context);
     print('🎬 Recording start success: $success');
@@ -1083,6 +1094,39 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       case RecordingState.completed:
         return 'Recording complete! Ready to save';
     }
+  }
+
+  Future<bool> _showAudioConsentDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Audio Recording'),
+              content: const Text(
+                'Recording helps create visit notes, summaries, and reminders.\n\n'
+                '• Audio is recorded only when you tap Record\n'
+                '• Recordings are processed securely and deleted from your phone\n'
+                '• You can stop recording at any time\n\n'
+                'Would you like to proceed?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Not Now'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _consentService.acceptAudioConsent();
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text('Yes, Record'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 }
 

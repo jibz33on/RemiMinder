@@ -15,8 +15,7 @@ import '../features/caregiver/presentation/screens/accept_invitations_screen.dar
 import '../features/patient/presentation/screens/visit_recording_screen.dart';
 import '../features/patient/presentation/screens/visit_details_screen.dart';
 import '../features/patient/presentation/screens/reminders_screen.dart';
-import '../features/patient/presentation/screens/scan_screen.dart';
-import '../features/patient/presentation/screens/capture_screen.dart';
+import '../features/patient/presentation/screens/camera_screen.dart';
 import '../features/patient/presentation/screens/history_list_screen.dart';
 import '../features/patient/presentation/screens/care_team_screen.dart';
 import '../features/patient/presentation/screens/profile_screen.dart';
@@ -86,12 +85,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/patient/capture',
-        builder: (context, state) => const CaptureScreen(),
-      ),
-      GoRoute(
         path: '/patient/history-list',
         builder: (context, state) => const HistoryListScreen(),
+      ),
+      GoRoute(
+        path: '/patient/camera',
+        builder: (context, state) => const CameraScreen(),
+      ),
+      GoRoute(
+        path: '/patient/scan',
+        builder: (context, state) => const CameraScreen(),
       ),
       GoRoute(
         path: '/patient/visit-details',
@@ -100,10 +103,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/reminders',
         builder: (context, state) => const RemindersScreen(),
-      ),
-      GoRoute(
-        path: '/patient/scan',
-        builder: (context, state) => const ScanScreen(),
       ),
       GoRoute(
         path: '/patient/care-team',

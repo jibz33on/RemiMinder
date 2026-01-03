@@ -1,17 +1,21 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:camera/camera.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../../../core/services/consent_service.dart';
 
-class ScanScreen extends StatefulWidget {
+class CameraScreen extends StatefulWidget {
   final ScanMode? initialMode;
 
-  const ScanScreen({
+  const CameraScreen({
     super.key,
     this.initialMode,
   });
 
   @override
-  State<ScanScreen> createState() => _ScanScreenState();
+  State<CameraScreen> createState() => _CameraScreenState();
 }
 
 ScanMode _parseScanMode(String? modeString) {
@@ -26,18 +30,24 @@ ScanMode _parseScanMode(String? modeString) {
   }
 }
 
-class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
-  late AnimationController _scanAnimationController;
-  late Animation<double> _scanAnimation;
+class _CameraScreenState extends State<CameraScreen>
+    with TickerProviderStateMixin {
   late AnimationController _processingController;
 
   late ScanMode _selectedMode;
   ScanState _scanState = ScanState.ready;
   Map<String, dynamic>? _scanResults;
   Timer? _scanTimer;
+  final ConsentService _consentService = ConsentService();
+
+  // Camera related
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  String? _lastCapturedImagePath;
 
   @override
   void initState() {
+    debugPrint('🔍 SCAN_SCREEN: initState called');
     super.initState();
 
     // Initialize selected mode based on parameter or default
@@ -55,50 +65,81 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
       }
     });
 
-    _scanAnimationController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-          parent: _scanAnimationController, curve: Curves.easeInOut),
-    );
-
     _processingController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     );
+
+    // Initialize camera
+    _initializeCamera();
+  }
+
+  Future<void> _initializeCamera() async {
+    debugPrint('🔍 SCAN_SCREEN: _initializeCamera started');
+    try {
+      // Get available cameras
+      debugPrint('🔍 SCAN_SCREEN: Calling availableCameras()');
+      final cameras = await availableCameras();
+      debugPrint(
+          '🔍 SCAN_SCREEN: availableCameras() returned ${cameras.length} cameras');
+
+      // Select back camera (preferred for document scanning)
+      final backCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first, // Fallback to first available
+      );
+      debugPrint(
+          '🔍 SCAN_SCREEN: Selected camera - lens: ${backCamera.lensDirection}, name: ${backCamera.name}');
+
+      // Create camera controller
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.high, // High resolution for document scanning
+        enableAudio: false, // No audio needed for scanning
+      );
+      debugPrint(
+          '🔍 SCAN_SCREEN: CameraController created, calling initialize()');
+
+      // Initialize camera
+      await _cameraController!.initialize();
+      debugPrint(
+          '🔍 SCAN_SCREEN: CameraController.initialize() completed successfully');
+
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('🔍 SCAN_SCREEN: Failed to initialize camera: $e');
+      // Camera initialization failed, but don't block the app
+      // User can still use the scan interface (though it won't work)
+    }
   }
 
   @override
   void dispose() {
-    _scanAnimationController.dispose();
     _processingController.dispose();
     _scanTimer?.cancel();
+    _cameraController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🔥🔥🔥 REAL CameraScreen is rendering');
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.close,
             color: Colors.white,
+            size: 28,
           ),
           onPressed: () => context.go('/patient/home'),
-        ),
-        title: const Text(
-          'Scan Document',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
         ),
         actions: [
           if (_scanState == ScanState.completed)
@@ -109,6 +150,7 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -116,145 +158,82 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
       ),
       body: _scanState == ScanState.completed
           ? _buildResultsView()
-          : _buildScanView(),
+          : _buildCameraView(),
     );
   }
 
-  Widget _buildScanView() {
-    return Column(
+  Widget _buildCameraView() {
+    return Stack(
       children: [
-        // Scan Mode Selector
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          color: Colors.black,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildModeButton(
-                  ScanMode.prescription, 'Prescription', Icons.receipt),
-              _buildModeButton(ScanMode.labReport, 'Lab Report', Icons.science),
-              _buildModeButton(
-                  ScanMode.medication, 'Medication', Icons.medication),
-            ],
-          ),
-        ),
-
-        // Camera Preview Area
-        Expanded(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Simulated Camera Feed
-              Container(
-                color: Colors.grey[900],
-                child: const Center(
-                  child: Icon(
-                    Icons.camera_alt,
-                    color: Colors.white54,
-                    size: 80,
-                  ),
-                ),
-              ),
-
-              // Scan Frame
-              Container(
-                margin: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _scanState == ScanState.scanning
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white,
-                    width: 2,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: Container(
-                      color: Colors.transparent,
-                      child: _scanState == ScanState.scanning
-                          ? AnimatedBuilder(
-                              animation: _scanAnimation,
-                              builder: (context, child) {
-                                return CustomPaint(
-                                  painter: ScanLinePainter(
-                                    progress: _scanAnimation.value,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Scan Instructions
-              if (_scanState == ScanState.ready)
-                Positioned(
-                  bottom: 100,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Text(
-                      _getScanInstructions(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+        // Full-screen Camera Preview
+        Positioned.fill(
+          child: () {
+            final shouldShowPreview =
+                _isCameraInitialized && _cameraController != null;
+            debugPrint(
+                '🔍 SCAN_SCREEN: Building camera preview - initialized: $_isCameraInitialized, controller exists: ${_cameraController != null}, showing preview: $shouldShowPreview');
+            return shouldShowPreview
+                ? CameraPreview(_cameraController!)
+                : Container(
+                    color: Colors.grey[900],
+                    child: const Center(
+                      child: Icon(
+                        Icons.camera_alt,
+                        color: Colors.white54,
+                        size: 80,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ),
+                  );
+          }(),
+        ),
 
-              // Processing Indicator
-              if (_scanState == ScanState.processing)
-                Container(
-                  color: Colors.black.withOpacity(0.8),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Processing...',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        // Scan Frame (subtle overlay)
+        if (_scanState == ScanState.ready)
+          Positioned.fill(
+            child: Container(
+              margin: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1,
                 ),
-            ],
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+
+        // Mode Selector (top center, subtle)
+        Positioned(
+          top: 120,
+          left: 20,
+          right: 20,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildCompactModeButton(ScanMode.prescription, 'Rx'),
+                _buildCompactModeButton(ScanMode.labReport, 'Lab'),
+                _buildCompactModeButton(ScanMode.medication, 'Med'),
+              ],
+            ),
           ),
         ),
 
-        // Bottom Controls
-        Container(
-          padding: const EdgeInsets.all(24),
-          color: Colors.black,
+        // Capture Button (bottom center)
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
           child: Column(
             children: [
               // Capture Button
               GestureDetector(
-                onTap: _scanState == ScanState.ready ? _startScan : null,
+                onTap: _scanState == ScanState.ready ? _captureImage : null,
                 child: Container(
                   width: 80,
                   height: 80,
@@ -281,71 +260,58 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
 
               const SizedBox(height: 16),
 
-              // Status Text
-              Text(
-                _getStatusText(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              // Helper Text
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Tips
-              Text(
-                _getScanTips(),
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 14,
+                child: Text(
+                  _scanState == ScanState.ready
+                      ? 'Tap to capture'
+                      : 'Processing...',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
+
+        // Processing Indicator
+        if (_scanState == ScanState.processing)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Processing image...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
-    );
-  }
-
-  Widget _buildModeButton(ScanMode mode, String label, IconData icon) {
-    final isSelected = _selectedMode == mode;
-
-    return GestureDetector(
-      onTap: _scanState == ScanState.ready
-          ? () => setState(() => _selectedMode = mode)
-          : null,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white.withOpacity(0.7),
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -604,13 +570,50 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _startScan() {
-    setState(() {
-      _scanState = ScanState.scanning;
-    });
+  void _captureImage() async {
+    // Check if user has accepted camera consent
+    final hasConsent = await _consentService.hasAcceptedCameraConsent();
+    if (!hasConsent) {
+      final accepted = await _showCameraConsentDialog();
+      if (!accepted) {
+        return; // User declined consent
+      }
+    }
 
-    // Simulate scan time
-    _scanTimer = Timer(const Duration(seconds: 3), _completeScan);
+    if (!_isCameraInitialized || _cameraController == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera not ready. Please try again.')),
+      );
+      return;
+    }
+
+    try {
+      setState(() {
+        _scanState = ScanState.scanning;
+      });
+
+      // Take picture with camera
+      final XFile imageFile = await _cameraController!.takePicture();
+
+      // Save to app-controlled storage
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final newPath = '${directory.path}/scan_$timestamp.jpg';
+      await imageFile.saveTo(newPath);
+
+      _lastCapturedImagePath = newPath;
+
+      // Complete the scan process
+      _completeScan();
+    } catch (e) {
+      setState(() {
+        _scanState = ScanState.ready;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to capture image: $e')),
+      );
+    }
   }
 
   void _completeScan() {
@@ -624,6 +627,21 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
         _scanState = ScanState.completed;
         _scanResults = _generateMockResults();
       });
+
+      // Clean up the captured image file after processing
+      if (_lastCapturedImagePath != null) {
+        // Note: In a real implementation, this would be passed to OCR processing
+        // For now, we clean it up since we don't have OCR yet
+        try {
+          final file = File(_lastCapturedImagePath!);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          // Silent cleanup failure
+        }
+        _lastCapturedImagePath = null;
+      }
     });
   }
 
@@ -651,41 +669,6 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
     );
   }
 
-  String _getScanInstructions() {
-    switch (_selectedMode) {
-      case ScanMode.prescription:
-        return 'Position prescription within the frame\nEnsure all text is visible';
-      case ScanMode.labReport:
-        return 'Center the lab report in the frame\nHold steady for clear scan';
-      case ScanMode.medication:
-        return 'Position pill bottle label clearly\nInclude dosage and instructions';
-    }
-  }
-
-  String _getStatusText() {
-    switch (_scanState) {
-      case ScanState.ready:
-        return 'Tap to scan';
-      case ScanState.scanning:
-        return 'Scanning...';
-      case ScanState.processing:
-        return 'Processing document...';
-      case ScanState.completed:
-        return 'Scan complete';
-    }
-  }
-
-  String _getScanTips() {
-    switch (_selectedMode) {
-      case ScanMode.prescription:
-        return 'Make sure prescription number and doctor signature are visible';
-      case ScanMode.labReport:
-        return 'Ensure all test results and reference ranges are captured';
-      case ScanMode.medication:
-        return 'Include drug name, strength, and usage instructions';
-    }
-  }
-
   String _getResultTitle() {
     switch (_selectedMode) {
       case ScanMode.prescription:
@@ -695,6 +678,65 @@ class _ScanScreenState extends State<ScanScreen> with TickerProviderStateMixin {
       case ScanMode.medication:
         return 'Medication information extracted';
     }
+  }
+
+  Widget _buildCompactModeButton(ScanMode mode, String label) {
+    final isSelected = _selectedMode == mode;
+    return GestureDetector(
+      onTap: _scanState == ScanState.ready
+          ? () => setState(() => _selectedMode = mode)
+          : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+              : Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showCameraConsentDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Document Scanning'),
+              content: const Text(
+                'The camera helps scan medical documents like prescriptions and lab reports.\n\n'
+                '• Camera is used only when you choose to scan\n'
+                '• Images are processed securely and deleted from your phone\n'
+                '• Photos are never saved to your device gallery\n\n'
+                'Would you like to proceed?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Not Now'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await _consentService.acceptCameraConsent();
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text('Yes, Scan'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 }
 

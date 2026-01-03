@@ -111,7 +111,7 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
                       Colors.green,
                       () {
                         Navigator.of(context).pop();
-                        context.go('/patient/capture');
+                        context.go('/patient/camera');
                       },
                     ),
                   ],
