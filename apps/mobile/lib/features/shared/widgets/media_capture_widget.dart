@@ -209,6 +209,9 @@ class _MediaCaptureWidgetState extends State<MediaCaptureWidget> {
       if (imagePath != null) {
         widget.onPhotoCaptured?.call(imagePath);
         _showSuccessSnackBar('Document scanned successfully!');
+
+        // Clean up temporary image file after processing
+        await _cameraService.cleanupImageFile(imagePath);
       }
     } catch (e) {
       _showErrorSnackBar('Failed to scan document: ${e.toString()}');

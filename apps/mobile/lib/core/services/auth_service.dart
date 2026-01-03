@@ -3,20 +3,28 @@ import 'token_manager.dart';
 import 'secure_storage.dart';
 import 'firebase_auth_service.dart';
 import '../../features/patient/data/services/local_storage_service.dart';
+import 'audio_service.dart';
+import 'video_service.dart';
 
 /// Firebase authentication service with API integration
 class AuthService {
   final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
   final LocalStorageService _localStorage;
+  final AudioService _audioService;
+  final VideoService _videoService;
 
   AuthService({
     FirebaseAuthService? firebaseAuth,
     TokenManager? tokenManager,
     LocalStorageService? localStorage,
+    AudioService? audioService,
+    VideoService? videoService,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuthService(),
         _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
-        _localStorage = localStorage ?? LocalStorageService();
+        _localStorage = localStorage ?? LocalStorageService(),
+        _audioService = audioService ?? AudioService(),
+        _videoService = videoService ?? VideoService();
 
   /// Sign up a new user
   Future<User> signUp({
@@ -50,6 +58,18 @@ class AuthService {
     await _firebaseAuth.signOut();
     await _localStorage.clearAllData();
     await _tokenManager.clearTokens();
+
+    // Clean up any remaining audio recordings
+    final savedRecordings = await _audioService.getSavedRecordings();
+    for (final file in savedRecordings) {
+      await _audioService.deleteRecording(file.path);
+    }
+
+    // Clean up any remaining video recordings
+    final savedVideos = await _videoService.getSavedVideos();
+    for (final file in savedVideos) {
+      await _videoService.deleteVideo(file.path);
+    }
   }
 
   /// Get current authenticated user

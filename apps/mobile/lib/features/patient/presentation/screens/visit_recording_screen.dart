@@ -634,11 +634,14 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Audio uploaded successfully!')),
       );
+
+      // Clean up local audio file after successful upload
+      await _audioService.deleteRecording(_audioFilePath!);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to upload audio: $e')),
       );
-      return; // Don't proceed if upload fails
+      return; // Don't proceed if upload fails (keep file for potential retry)
     }
 
     ScaffoldMessenger.of(context).showSnackBar(

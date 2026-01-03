@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,11 +30,12 @@ class CameraService {
         return null;
       }
 
-      // Open camera
+      // Open camera - prevent automatic gallery save for medical scanning
       final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.rear,
         imageQuality: 85, // Good quality for OCR
+        requestFullMetadata: false, // Prevent unnecessary metadata
       );
 
       return photo;
@@ -66,6 +68,21 @@ class CameraService {
       return photo.path;
     }
     return null;
+  }
+
+  /// Clean up temporary image file after processing
+  Future<bool> cleanupImageFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error cleaning up image file: $e');
+      return false;
+    }
   }
 
   /// Show camera/gallery picker dialog

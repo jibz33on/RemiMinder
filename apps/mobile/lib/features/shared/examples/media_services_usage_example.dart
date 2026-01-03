@@ -235,6 +235,9 @@ class _MediaServicesExampleScreenState
         _handlePhotoCaptured(imagePath);
         // Here you could add OCR processing for prescription data
         _showPrescriptionProcessingDialog(imagePath);
+
+        // Clean up temporary image file after processing
+        await _cameraService.cleanupImageFile(imagePath);
       }
     } catch (e) {
       _showErrorDialog('Failed to scan prescription', e.toString());
