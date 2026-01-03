@@ -1,6 +1,12 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/models.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/medication.dart';
+import '../models/reminder.dart';
+import '../models/appointment.dart';
+import '../models/visit.dart';
+import '../models/caregiver.dart';
 
 class LocalStorageService {
   static const String _medicationsKey = 'medications';
@@ -9,21 +15,64 @@ class LocalStorageService {
   static const String _visitsKey = 'visits';
   static const String _caregiversKey = 'caregivers';
 
+  // Encryption key for PHI data
+  static const String _encryptionKeyName = 'phi_encryption_key';
+
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
+
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  Future<encrypt.Key> _getEncryptionKey() async {
+    final keyString = await _secureStorage.read(key: _encryptionKeyName);
+    if (keyString != null) {
+      return encrypt.Key(base64.decode(keyString));
+    }
+
+    final key = encrypt.Key.fromSecureRandom(32);
+    await _secureStorage.write(
+      key: _encryptionKeyName,
+      value: base64.encode(key.bytes),
+    );
+    return key;
+  }
+
+  Future<String> _encryptData(String plainText) async {
+    final key = await _getEncryptionKey();
+    final iv = encrypt.IV.fromSecureRandom(16);
+
+    final encrypted =
+        encrypt.Encrypter(encrypt.AES(key)).encrypt(plainText, iv: iv);
+    return '${base64.encode(iv.bytes)}:${encrypted.base64}';
+  }
+
+  Future<String> _decryptData(String encryptedText) async {
+    final key = await _getEncryptionKey();
+    final parts = encryptedText.split(':');
+    if (parts.length != 2) throw Exception('Invalid encrypted data format');
+
+    final iv = encrypt.IV(base64.decode(parts[0]));
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+    final decrypted = encrypter.decrypt64(parts[1], iv: iv);
+    return decrypted;
+  }
 
   // Medications
   Future<void> saveMedications(List<Medication> medications) async {
     final prefs = await _prefs;
     final medicationsJson = medications.map((m) => m.toJson()).toList();
-    await prefs.setString(_medicationsKey, json.encode(medicationsJson));
+    final jsonString = json.encode(medicationsJson);
+    final encryptedData = await _encryptData(jsonString);
+    await prefs.setString(_medicationsKey, encryptedData);
   }
 
   Future<List<Medication>> getMedications() async {
     final prefs = await _prefs;
-    final medicationsString = prefs.getString(_medicationsKey);
-    if (medicationsString == null) return [];
+    final encryptedData = prefs.getString(_medicationsKey);
+    if (encryptedData == null) return [];
 
-    final List<dynamic> medicationsJson = json.decode(medicationsString);
+    final jsonString = await _decryptData(encryptedData);
+    final List<dynamic> medicationsJson = json.decode(jsonString);
     return medicationsJson.map((json) => Medication.fromJson(json)).toList();
   }
 
@@ -31,15 +80,18 @@ class LocalStorageService {
   Future<void> saveReminders(List<Reminder> reminders) async {
     final prefs = await _prefs;
     final remindersJson = reminders.map((r) => r.toJson()).toList();
-    await prefs.setString(_remindersKey, json.encode(remindersJson));
+    final jsonString = json.encode(remindersJson);
+    final encryptedData = await _encryptData(jsonString);
+    await prefs.setString(_remindersKey, encryptedData);
   }
 
   Future<List<Reminder>> getReminders() async {
     final prefs = await _prefs;
-    final remindersString = prefs.getString(_remindersKey);
-    if (remindersString == null) return [];
+    final encryptedData = prefs.getString(_remindersKey);
+    if (encryptedData == null) return [];
 
-    final List<dynamic> remindersJson = json.decode(remindersString);
+    final jsonString = await _decryptData(encryptedData);
+    final List<dynamic> remindersJson = json.decode(jsonString);
     return remindersJson.map((json) => Reminder.fromJson(json)).toList();
   }
 
@@ -47,15 +99,18 @@ class LocalStorageService {
   Future<void> saveAppointments(List<Appointment> appointments) async {
     final prefs = await _prefs;
     final appointmentsJson = appointments.map((a) => a.toJson()).toList();
-    await prefs.setString(_appointmentsKey, json.encode(appointmentsJson));
+    final jsonString = json.encode(appointmentsJson);
+    final encryptedData = await _encryptData(jsonString);
+    await prefs.setString(_appointmentsKey, encryptedData);
   }
 
   Future<List<Appointment>> getAppointments() async {
     final prefs = await _prefs;
-    final appointmentsString = prefs.getString(_appointmentsKey);
-    if (appointmentsString == null) return [];
+    final encryptedData = prefs.getString(_appointmentsKey);
+    if (encryptedData == null) return [];
 
-    final List<dynamic> appointmentsJson = json.decode(appointmentsString);
+    final jsonString = await _decryptData(encryptedData);
+    final List<dynamic> appointmentsJson = json.decode(jsonString);
     return appointmentsJson.map((json) => Appointment.fromJson(json)).toList();
   }
 
@@ -63,15 +118,18 @@ class LocalStorageService {
   Future<void> saveVisits(List<Visit> visits) async {
     final prefs = await _prefs;
     final visitsJson = visits.map((v) => v.toJson()).toList();
-    await prefs.setString(_visitsKey, json.encode(visitsJson));
+    final jsonString = json.encode(visitsJson);
+    final encryptedData = await _encryptData(jsonString);
+    await prefs.setString(_visitsKey, encryptedData);
   }
 
   Future<List<Visit>> getVisits() async {
     final prefs = await _prefs;
-    final visitsString = prefs.getString(_visitsKey);
-    if (visitsString == null) return [];
+    final encryptedData = prefs.getString(_visitsKey);
+    if (encryptedData == null) return [];
 
-    final List<dynamic> visitsJson = json.decode(visitsString);
+    final jsonString = await _decryptData(encryptedData);
+    final List<dynamic> visitsJson = json.decode(jsonString);
     return visitsJson.map((json) => Visit.fromJson(json)).toList();
   }
 
@@ -79,26 +137,36 @@ class LocalStorageService {
   Future<void> saveCaregivers(List<Caregiver> caregivers) async {
     final prefs = await _prefs;
     final caregiversJson = caregivers.map((c) => c.toJson()).toList();
-    await prefs.setString(_caregiversKey, json.encode(caregiversJson));
+    final jsonString = json.encode(caregiversJson);
+    final encryptedData = await _encryptData(jsonString);
+    await prefs.setString(_caregiversKey, encryptedData);
   }
 
   Future<List<Caregiver>> getCaregivers() async {
     final prefs = await _prefs;
-    final caregiversString = prefs.getString(_caregiversKey);
-    if (caregiversString == null) return [];
+    final encryptedData = prefs.getString(_caregiversKey);
+    if (encryptedData == null) return [];
 
-    final List<dynamic> caregiversJson = json.decode(caregiversString);
+    final jsonString = await _decryptData(encryptedData);
+    final List<dynamic> caregiversJson = json.decode(jsonString);
     return caregiversJson.map((json) => Caregiver.fromJson(json)).toList();
   }
 
-  // Clear all data
   Future<void> clearAllData() async {
     final prefs = await _prefs;
-    await prefs.remove(_medicationsKey);
-    await prefs.remove(_remindersKey);
-    await prefs.remove(_appointmentsKey);
-    await prefs.remove(_visitsKey);
-    await prefs.remove(_caregiversKey);
+    final phiKeys = [
+      _medicationsKey,
+      _remindersKey,
+      _appointmentsKey,
+      _visitsKey,
+      _caregiversKey
+    ];
+
+    for (final key in phiKeys) {
+      await prefs.remove(key);
+    }
+
+    await _secureStorage.delete(key: _encryptionKeyName);
   }
 
   // Get last sync timestamp

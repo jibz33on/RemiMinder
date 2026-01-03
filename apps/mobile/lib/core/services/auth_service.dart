@@ -2,17 +2,21 @@ import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
 import 'firebase_auth_service.dart';
+import '../../features/patient/data/services/local_storage_service.dart';
 
 /// Firebase authentication service with API integration
 class AuthService {
   final FirebaseAuthService _firebaseAuth;
   final TokenManager _tokenManager;
+  final LocalStorageService _localStorage;
 
   AuthService({
     FirebaseAuthService? firebaseAuth,
     TokenManager? tokenManager,
+    LocalStorageService? localStorage,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuthService(),
-        _tokenManager = tokenManager ?? TokenManager(SecureStorage());
+        _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
+        _localStorage = localStorage ?? LocalStorageService();
 
   /// Sign up a new user
   Future<User> signUp({
@@ -44,6 +48,7 @@ class AuthService {
   /// Sign out current user
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
+    await _localStorage.clearAllData();
     await _tokenManager.clearTokens();
   }
 
