@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 import '../widgets/widgets.dart';
+import '../../../../core/services/visit_context.dart';
 
 class VisitsScreen extends StatefulWidget {
   const VisitsScreen({super.key});
@@ -56,8 +56,8 @@ class _VisitsScreenState extends State<VisitsScreen> {
                           icon: Icons.mic,
                           color: Colors.blue,
                           onTap: () {
-                            // Generate proper UUID v4 for visit ID
-                            final visitId = const Uuid().v4();
+                            // Start a new visit and navigate to recording
+                            final visitId = VisitContext().startNewVisit();
                             context.go('/patient/record-visit/$visitId');
                           },
                         ),
@@ -67,7 +67,11 @@ class _VisitsScreenState extends State<VisitsScreen> {
                           icon: Icons.camera_alt,
                           color: Colors.blue,
                           onTap: () {
-                            context.go('/patient/camera');
+                            // Use current visit or start new one for camera
+                            final visitContext = VisitContext();
+                            final visitId = visitContext.getCurrentVisitId() ??
+                                visitContext.startNewVisit();
+                            context.go('/patient/camera/$visitId');
                           },
                         ),
                       ],

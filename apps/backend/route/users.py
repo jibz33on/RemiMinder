@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from services.auth_gateway import get_current_user_jwt as get_current_user
 from services.db_provider import get_cloud_sql_engine
+from services.db_service import ensure_user_exists
 from sqlalchemy import text
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
@@ -157,3 +158,26 @@ def update_user_role(target_firebase_uid: str, request: UpdateRoleRequest, curre
         raise
     except Exception as e:
         raise HTTPException(500, f"Database error: {str(e)}")
+
+
+@router.post("/bootstrap")
+async def bootstrap_user(current_user: dict = Depends(get_current_user)):
+    """Bootstrap user in Cloud SQL after Firebase authentication"""
+    firebase_uid = current_user.get("sub")
+    if not firebase_uid:
+        raise HTTPException(401, "Invalid token: missing user ID")
+
+    email = current_user.get("email")
+    if not email:
+        raise HTTPException(400, "Email missing from Firebase token")
+
+    try:
+        created = await ensure_user_exists(firebase_uid, email)
+
+        if created:
+            return {"status": "created"}
+
+        return {"status": "exists"}
+
+    except Exception as e:
+        raise HTTPException(500, f"Bootstrap failed: {str(e)}")

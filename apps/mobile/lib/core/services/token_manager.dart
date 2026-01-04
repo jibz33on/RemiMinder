@@ -25,11 +25,22 @@ class TokenManager {
   /// Check if the current access token is valid (not expired)
   Future<bool> isTokenValid() async {
     final token = await getAccessToken();
-    if (token == null) return false;
+    if (token == null) {
+      print('🔐 TokenManager: No token found');
+      return false;
+    }
 
     try {
-      return !JwtDecoder.isExpired(token);
+      final isExpired = JwtDecoder.isExpired(token);
+      print('🔐 TokenManager: Token expired check: $isExpired');
+      if (isExpired) {
+        print('🔐 TokenManager: Token is expired');
+      } else {
+        print('🔐 TokenManager: Token is valid');
+      }
+      return !isExpired;
     } catch (e) {
+      print('🔐 TokenManager: Error validating token: $e');
       return false;
     }
   }

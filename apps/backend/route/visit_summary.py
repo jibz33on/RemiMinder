@@ -16,9 +16,11 @@ from services.db_service import (
     update_visit_audio_url,
     upsert_visit_audio_url,
     get_visit_audio_url,
-    get_supabase_client,
+    upsert_visit_image_url,
+    get_visit_image_url,
+    ensure_visit_exists,
 )
-from services.gcs_service import upload_audio
+from services.gcs_service import upload_audio, upload_image
 from services.auth_gateway import get_current_user_jwt as get_current_user
 
 logger = logging.getLogger(__name__)
@@ -27,13 +29,9 @@ router = APIRouter(prefix="/api", tags=["Visit Summaries"])
 
 
 def get_user_id(current_user=Depends(get_current_user)) -> str:
-    """Extract user_id from authenticated user"""
-    auth_uid = current_user["sub"]
-    supabase = get_supabase_client()
-    user_res = supabase.table("users").select("id").eq("auth_uid", auth_uid).execute()
-    if not user_res.data:
-        raise HTTPException(status_code=404, detail="User not found in database")
-    return user_res.data[0]["id"]
+    """Extract firebase_uid from authenticated user"""
+    # Firebase UID is the canonical user identity
+    return current_user["sub"]
 
 @router.post("/generate-summary/{visit_id}", response_model=VisitSummaryPayload)
 async def create_visit_summary(visit_id: str, user_id: str, transcript_id: str):
@@ -102,23 +100,13 @@ async def upload_audio_for_visit(
     user_id: str = Depends(get_user_id)
 ):
     try:
-        # Ensure visit exists to prevent foreign key errors during AI processing
-        supabase = get_supabase_client()
-        existing_visit = supabase.table("visits").select("id").eq("id", visit_id).execute()
+        # Ensure visit exists before storing transcript data
+        await ensure_visit_exists(visit_id, user_id)
 
-        if not existing_visit.data:
-            visit_data = {
-                "id": visit_id,
-                "user_id": user_id,
-                "title": "Audio Visit",
-                "status": "processing",
-                "doctor": "Processing",
-                "specialty": "Audio Analysis"
-            }
-            supabase.table("visits").insert(visit_data).execute()
-
-        # Upload to GCS and save URL
+        # Upload to GCS
         audio_url = await upload_audio(file, visit_id)
+
+        # Store audio URL in database
         db_result = await upsert_visit_audio_url(visit_id, user_id, audio_url)
 
         if db_result is None:
@@ -137,6 +125,47 @@ async def upload_audio_for_visit(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Audio upload failed: {str(e)}")
+
+
+@router.post("/visits/{visit_id}/image/upload")
+async def upload_image_for_visit(
+    visit_id: str,
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_user_id)
+):
+    try:
+        # Ensure visit exists before storing transcript data
+        await ensure_visit_exists(visit_id, user_id)
+
+        # Upload to GCS
+        image_result = await upload_image(file, visit_id)
+
+        metadata = {
+            "blob_name": image_result["blob_name"],
+            "content_type": image_result["content_type"],
+            "file_size": image_result["file_size"],
+            "uploaded_at": datetime.now().isoformat()
+        }
+
+        db_result = await upsert_visit_image_url(visit_id, user_id, image_result["signed_url"], metadata)
+
+        if db_result is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Image uploaded to storage but failed to update visit record in database"
+            )
+
+        return {
+            "message": "Image uploaded successfully",
+            "image_url": image_result["signed_url"],
+            "metadata": metadata,
+            "expires_in": "24 hours"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
 
 @router.post("/visits/{visit_id}/process-audio")

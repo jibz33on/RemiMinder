@@ -1,8 +1,12 @@
+import json
 import logging
 import random
 from typing import List, Optional, Dict, Any
 
-from .supabase_client import get_supabase_client
+# TODO: Replace with Cloud SQL implementation
+# from .supabase_client import get_supabase_client
+from .cloud_sql_engine import get_cloud_sql_engine
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -225,29 +229,36 @@ async def update_visit_audio_url(visit_id: str, audio_url: str) -> Optional[Dict
 
 async def upsert_visit_audio_url(visit_id: str, user_id: str, audio_url: str) -> Optional[Dict[str, Any]]:
     """Insert or update audio_url in visit_transcripts table. Creates record if it doesn't exist."""
-    supabase = get_supabase_client()
     try:
-        # First try to update existing record
-        response = (
-            supabase.table("visit_transcripts")
-            .update({"audio_url": audio_url})
-            .eq("visit_id", visit_id)
-            .execute()
-        )
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            # First try to update existing record
+            update_query = text("""
+                UPDATE visit_transcripts
+                SET audio_url = :audio_url
+                WHERE visit_id = :visit_id
+                RETURNING *
+            """)
 
-        # If no record was updated, create a new one
-        if not response.data:
-            response = (
-                supabase.table("visit_transcripts")
-                .insert({
+            result = conn.execute(update_query, {"audio_url": audio_url, "visit_id": visit_id})
+            row = result.fetchone()
+
+            # If no record was updated, create a new one
+            if not row:
+                insert_query = text("""
+                    INSERT INTO visit_transcripts (visit_id, user_id, audio_url)
+                    VALUES (:visit_id, :user_id, :audio_url)
+                    RETURNING *
+                """)
+
+                result = conn.execute(insert_query, {
                     "visit_id": visit_id,
                     "user_id": user_id,
                     "audio_url": audio_url
                 })
-                .execute()
-            )
+                row = result.fetchone()
 
-        return response.data[0] if response.data else None
+            return dict(row._mapping) if row else None
     except Exception as e:
         logger.error(f"Error upserting audio_url for visit {visit_id}: {e}")
         return None
@@ -272,6 +283,73 @@ async def get_visit_audio_url(visit_id: str, user_id: str) -> Optional[str]:
         return None
     except Exception as e:
         logger.error(f"Error fetching audio_url for visit {visit_id}: {e}")
+        return None
+
+
+async def upsert_visit_image_url(visit_id: str, user_id: str, image_url: str, metadata: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Insert or update image_url and metadata in visit_transcripts table. Creates record if it doesn't exist."""
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            # First try to update existing record
+            update_query = text("""
+                UPDATE visit_transcripts
+                SET image_url = :image_url, image_metadata = :metadata
+                WHERE visit_id = :visit_id
+                RETURNING *
+            """)
+
+            result = conn.execute(update_query, {
+                "image_url": image_url,
+                "metadata": json.dumps(metadata),
+                "visit_id": visit_id
+            })
+            row = result.fetchone()
+
+            # If no record was updated, create a new one
+            if not row:
+                insert_query = text("""
+                    INSERT INTO visit_transcripts (visit_id, user_id, image_url, image_metadata)
+                    VALUES (:visit_id, :user_id, :image_url, :metadata)
+                    RETURNING *
+                """)
+
+                result = conn.execute(insert_query, {
+                    "visit_id": visit_id,
+                    "user_id": user_id,
+                    "image_url": image_url,
+                    "metadata": json.dumps(metadata)
+                })
+                row = result.fetchone()
+
+            return dict(row._mapping) if row else None
+    except Exception as e:
+        logger.error(f"Error upserting image_url for visit {visit_id}: {e}")
+        return None
+
+
+async def get_visit_image_url(visit_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch image_url and metadata for a specific visit from visit_transcripts table."""
+    supabase = get_supabase_client()
+    try:
+        response = (
+            supabase.table("visit_transcripts")
+            .select("image_url, image_metadata")
+            .eq("visit_id", visit_id)
+            .eq("user_id", user_id)
+            .single()
+            .execute()
+        )
+
+        if response.data and response.data.get("image_url"):
+            return {
+                "image_url": response.data["image_url"],
+                "metadata": response.data.get("image_metadata", {})
+            }
+
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching image_url for visit {visit_id}: {e}")
         return None
 
 
@@ -345,3 +423,79 @@ def get_prompt_text_supabase(category: str, limit: int = 2) -> tuple[str, list]:
         base_prompt = ""
 
     return base_prompt, examples
+
+
+async def ensure_visit_exists(visit_id: str, user_id: str) -> None:
+    """Ensure a visit record exists. Creates it if it doesn't exist."""
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            # First, get the user UUID from firebase_uid
+            # If user doesn't exist, this will cause FK violation (which is correct)
+            select_user_query = text("""
+                SELECT id FROM users WHERE firebase_uid = :firebase_uid
+            """)
+
+            result = conn.execute(select_user_query, {"firebase_uid": user_id})
+            row = result.fetchone()
+
+            if not row:
+                raise Exception(f"User not found for firebase_uid={user_id}")
+
+            user_uuid = str(row[0])
+
+            # Insert visit record, ignore if it already exists
+            insert_query = text("""
+                INSERT INTO visits (id, user_id, title, status)
+                VALUES (:visit_id, :user_uuid, 'Media Upload Visit', 'active')
+                ON CONFLICT (id) DO NOTHING
+            """)
+
+            result = conn.execute(insert_query, {
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Check if a row was actually inserted (not just ignored)
+            if result.rowcount > 0:
+                logger.info(f"Visit auto-created for visit_id={visit_id}")
+
+            conn.commit()
+
+    except Exception as e:
+        logger.error(f"Error ensuring visit exists for visit_id={visit_id}: {e}")
+        raise
+
+
+async def ensure_user_exists(firebase_uid: str, email: str) -> bool:
+    """Ensure a user record exists. Returns True if created, False if already exists."""
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            # First, check if user exists
+            select_query = text("""
+                SELECT id FROM users WHERE firebase_uid = :firebase_uid
+            """)
+
+            result = conn.execute(select_query, {"firebase_uid": firebase_uid})
+            row = result.fetchone()
+
+            if row:
+                logger.info(f"User exists: firebase_uid={firebase_uid}")
+                return False
+
+            # User doesn't exist, create one
+            insert_query = text("""
+                INSERT INTO users (firebase_uid, email, role, is_active)
+                VALUES (:firebase_uid, :email, 'user', true)
+            """)
+
+            conn.execute(insert_query, {"firebase_uid": firebase_uid, "email": email})
+            conn.commit()
+
+            logger.info(f"User created: firebase_uid={firebase_uid}, email={email}")
+            return True
+
+    except Exception as e:
+        logger.error(f"Error ensuring user exists for firebase_uid={firebase_uid}: {e}")
+        raise

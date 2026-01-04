@@ -5,13 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/services/consent_service.dart';
+import '../../../../core/services/backend_api_service.dart';
 
 class CameraScreen extends StatefulWidget {
   final ScanMode? initialMode;
+  final String visitId;
 
   const CameraScreen({
     super.key,
     this.initialMode,
+    required this.visitId,
   });
 
   @override
@@ -39,6 +42,7 @@ class _CameraScreenState extends State<CameraScreen>
   Map<String, dynamic>? _scanResults;
   Timer? _scanTimer;
   final ConsentService _consentService = ConsentService();
+  final BackendApiService _backendApiService = BackendApiService();
 
   // Camera related
   CameraController? _cameraController;
@@ -622,16 +626,34 @@ class _CameraScreenState extends State<CameraScreen>
     });
 
     // Simulate processing time
-    Timer(const Duration(seconds: 2), () {
+    Timer(const Duration(seconds: 2), () async {
       setState(() {
         _scanState = ScanState.completed;
         _scanResults = _generateMockResults();
       });
 
-      // Clean up the captured image file after processing
+      // Upload image to backend
       if (_lastCapturedImagePath != null) {
-        // Note: In a real implementation, this would be passed to OCR processing
-        // For now, we clean it up since we don't have OCR yet
+        try {
+          await _backendApiService.uploadImage(
+            visitId: widget.visitId,
+            imageFile: File(_lastCapturedImagePath!),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image uploaded successfully!')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload image: $e')),
+          );
+          // Don't delete the file if upload failed
+          _lastCapturedImagePath = null;
+          return;
+        }
+      }
+
+      // Clean up the captured image file after processing/upload
+      if (_lastCapturedImagePath != null) {
         try {
           final file = File(_lastCapturedImagePath!);
           if (file.existsSync()) {

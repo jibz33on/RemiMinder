@@ -55,18 +55,17 @@ def get_cloud_sql_engine() -> Engine:
         )
 
         # Create engine with connection pooling
-        # Note: This is configured for read-only testing as requested
         _cloud_sql_engine = create_engine(
             database_url,
             poolclass=QueuePool,
-            pool_size=5,  # Small pool for read-only operations
+            pool_size=5,
             max_overflow=10,
             pool_timeout=30,
             pool_recycle=3600,  # Recycle connections every hour
             echo=False,  # Set to True for SQL debugging
             connect_args={
                 "connect_timeout": 10,
-                "application_name": "MediMinder-Backend-ReadOnly",
+                "application_name": "MediMinder-Backend",
                 "sslmode": "require"
             }
         )
@@ -74,7 +73,7 @@ def get_cloud_sql_engine() -> Engine:
         # Test the connection
         with _cloud_sql_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-            logger.info("Cloud SQL PostgreSQL connection established successfully (read-only)")
+            logger.info("Cloud SQL PostgreSQL connection established successfully")
 
         return _cloud_sql_engine
 

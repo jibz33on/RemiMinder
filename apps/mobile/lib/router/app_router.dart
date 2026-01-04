@@ -89,12 +89,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const HistoryListScreen(),
       ),
       GoRoute(
-        path: '/patient/camera',
-        builder: (context, state) => const CameraScreen(),
+        path: '/patient/camera/:visitId',
+        builder: (context, state) {
+          final visitId = state.pathParameters['visitId']!;
+          return CameraScreen(visitId: visitId);
+        },
       ),
       GoRoute(
-        path: '/patient/scan',
-        builder: (context, state) => const CameraScreen(),
+        path: '/patient/scan/:visitId',
+        builder: (context, state) {
+          final visitId = state.pathParameters['visitId']!;
+          return CameraScreen(visitId: visitId);
+        },
       ),
       GoRoute(
         path: '/patient/visit-details',

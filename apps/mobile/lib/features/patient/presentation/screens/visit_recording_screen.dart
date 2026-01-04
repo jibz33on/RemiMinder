@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/services/audio_service.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/consent_service.dart';
+import '../../../../core/services/visit_context.dart';
 import '../../../../core/config/environment.dart';
 
 class VisitRecordingScreen extends StatefulWidget {
@@ -36,6 +37,13 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   // Mock doctor info (would come from navigation params)
   final String _doctorName = 'Dr. Sarah Johnson';
   final String _specialty = 'Cardiology';
+
+  @override
+  void initState() {
+    super.initState();
+    // Establish this visit as the current visit context
+    VisitContext().setCurrentVisit(widget.visitId);
+  }
 
   @override
   void dispose() {

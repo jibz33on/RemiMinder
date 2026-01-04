@@ -16,49 +16,52 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    print('🔄 LoadingScreen: Initializing app...');
   }
 
-  Future<void> _initializeApp() async {
-    print('🔄 LoadingScreen: Initializing app, waiting for auth check...');
-    // Wait for authentication check to complete
-    await Future.delayed(const Duration(seconds: 2));
+  void _handleAuthState(AuthState authState) {
+    print('🔄 LoadingScreen: Auth state changed - Status: ${authState.status}');
+    print(
+        '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
 
-    if (mounted) {
-      final authState = ref.read(authNotifierProvider);
-      print('🔄 LoadingScreen: Auth state check - Status: ${authState.status}');
+    if (!mounted) {
+      print('🔄 LoadingScreen: Widget not mounted, cannot navigate');
+      return;
+    }
+
+    if (authState.status == AuthStatus.authenticated) {
       print(
-          '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
-
-      if (authState.status == AuthStatus.authenticated) {
-        print(
-            '🔄 LoadingScreen: User authenticated, navigating to home screen...');
-        // Navigate to appropriate home screen based on role
-        final user = authState.user;
-        if (user?.isPatient ?? false) {
-          print('🔄 LoadingScreen: Navigating to patient home...');
-          context.go('/patient/home');
-        } else if (user?.isCaregiver ?? false) {
-          print('🔄 LoadingScreen: Navigating to caregiver home...');
-          context.go('/caregiver/home');
-        } else {
-          print(
-              '🔄 LoadingScreen: User role not recognized, navigating to welcome...');
-          context.go('/welcome'); // Fallback
-        }
+          '🔄 LoadingScreen: User authenticated, navigating to home screen...');
+      // Navigate to appropriate home screen based on role
+      final user = authState.user;
+      if (user?.isPatient ?? false) {
+        print('🔄 LoadingScreen: Navigating to patient home...');
+        context.go('/patient/home');
+      } else if (user?.isCaregiver ?? false) {
+        print('🔄 LoadingScreen: Navigating to caregiver home...');
+        context.go('/caregiver/home');
       } else {
         print(
-            '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
-        // Go to welcome/onboarding flow
-        context.go('/welcome');
+            '🔄 LoadingScreen: User role not recognized, navigating to welcome...');
+        context.go('/welcome'); // Fallback
       }
-    } else {
-      print('🔄 LoadingScreen: Widget not mounted, cannot navigate');
+    } else if (authState.status == AuthStatus.unauthenticated ||
+        authState.status == AuthStatus.error) {
+      print(
+          '🔄 LoadingScreen: User not authenticated or error, going to welcome screen...');
+      // Go to welcome/onboarding flow
+      context.go('/welcome');
     }
+    // If still loading, continue showing loading screen
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen to auth state changes
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      _handleAuthState(next);
+    });
+
     return Scaffold(
       backgroundColor: Theme.of(context)
           .scaffoldBackgroundColor, // Consistent with all other screens

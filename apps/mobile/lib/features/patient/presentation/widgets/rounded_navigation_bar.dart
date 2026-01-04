@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
+import '../../../../core/services/visit_context.dart';
 
 enum NavigationItem {
   home,
@@ -98,8 +98,8 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
                       Colors.blue,
                       () {
                         Navigator.of(context).pop();
-                        // Generate proper UUID v4 for visit ID
-                        final visitId = const Uuid().v4();
+                        // Start a new visit and navigate to recording
+                        final visitId = VisitContext().startNewVisit();
                         context.go('/patient/record-visit/$visitId');
                       },
                     ),
@@ -111,7 +111,11 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
                       Colors.green,
                       () {
                         Navigator.of(context).pop();
-                        context.go('/patient/camera');
+                        // Use current visit or start new one for camera
+                        final visitContext = VisitContext();
+                        final visitId = visitContext.getCurrentVisitId() ??
+                            visitContext.startNewVisit();
+                        context.go('/patient/camera/$visitId');
                       },
                     ),
                   ],

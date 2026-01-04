@@ -5,6 +5,7 @@ import 'firebase_auth_service.dart';
 import '../../features/patient/data/services/local_storage_service.dart';
 import 'audio_service.dart';
 import 'video_service.dart';
+import 'visit_context.dart';
 
 /// Firebase authentication service with API integration
 class AuthService {
@@ -70,6 +71,9 @@ class AuthService {
     for (final file in savedVideos) {
       await _videoService.deleteVideo(file.path);
     }
+
+    // Clear visit context on logout
+    VisitContext().clearVisit();
   }
 
   /// Get current authenticated user

@@ -4,6 +4,7 @@ import '../../data/models/auth_state.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/models/user.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/services/token_manager.dart';
 import '../../../../core/services/secure_storage.dart';
 
@@ -26,6 +27,11 @@ final _authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(tokenManager: tokenManager);
 });
 
+final _backendApiServiceProvider = Provider<BackendApiService>((ref) {
+  final authService = ref.watch(_authServiceProvider);
+  return BackendApiService(authService: authService);
+});
+
 // Repository provider
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final authService = ref.watch(_authServiceProvider);
@@ -39,8 +45,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 /// Authentication state notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
+  final BackendApiService _backendApiService;
 
-  AuthNotifier(this._authRepository) : super(AuthState.initial()) {
+  AuthNotifier(this._authRepository, this._backendApiService)
+      : super(AuthState.initial()) {
     _checkAuthStatus();
   }
 
@@ -96,6 +104,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _authRepository.signIn(email, password,
           selectedRole: selectedRole);
+
+      // Bootstrap user in backend
+      await _backendApiService.bootstrapUser();
+
       state = AuthState.authenticated(user);
     } catch (e) {
       state = AuthState.error(e.toString());
@@ -108,6 +120,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final user = await _authRepository.signInWithGoogle();
+
+      // Bootstrap user in backend
+      await _backendApiService.bootstrapUser();
+
       state = AuthState.authenticated(user);
     } catch (e) {
       state = AuthState.error(e.toString());
@@ -174,7 +190,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
+  final backendApiService = ref.watch(_backendApiServiceProvider);
+  return AuthNotifier(authRepository, backendApiService);
 });
 
 // =============================================================================

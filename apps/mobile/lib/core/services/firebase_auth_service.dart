@@ -199,16 +199,45 @@ class FirebaseAuthService {
   /// Get current Firebase user
   Future<User?> getCurrentUser() async {
     try {
+      print('🔥 FirebaseAuthService: Checking current Firebase user...');
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser == null) {
+        print('🔥 FirebaseAuthService: No Firebase current user found');
+
+        // Check if we have stored tokens - if so, Firebase session might not be restored yet
+        final hasToken = await _tokenManager.isTokenValid();
+        if (hasToken) {
+          print('🔥 FirebaseAuthService: Valid token found but no Firebase user - session not restored yet');
+          // Try to wait a bit for Firebase to restore the session
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          final firebaseUserRetry = _firebaseAuth.currentUser;
+          if (firebaseUserRetry != null) {
+            print('🔥 FirebaseAuthService: Firebase user found after retry: ${firebaseUserRetry.email ?? firebaseUserRetry.uid}');
+            return User(
+              id: firebaseUserRetry.uid,
+              email: firebaseUserRetry.email ?? '',
+              role: UserRole.patient, // Default role
+              fullName: firebaseUserRetry.displayName,
+              displayName: firebaseUserRetry.displayName ??
+                  "User", // Temporary, will be replaced by backend
+              authUid: firebaseUserRetry.uid,
+            );
+          }
+        }
+
+        print('🔥 FirebaseAuthService: No Firebase user and no valid token recovery');
         return null;
       }
+      print('🔥 FirebaseAuthService: Firebase user found: ${firebaseUser.email ?? firebaseUser.uid}');
 
       // Check if we have stored tokens
       final hasToken = await _tokenManager.isTokenValid();
       if (!hasToken) {
+        print('🔥 FirebaseAuthService: Token is not valid');
         return null;
       }
+      print('🔥 FirebaseAuthService: Token is valid, creating User object');
 
       return User(
         id: firebaseUser.uid,
@@ -220,6 +249,7 @@ class FirebaseAuthService {
         authUid: firebaseUser.uid,
       );
     } catch (e) {
+      print('🔥 FirebaseAuthService: Error getting current user: $e');
       return null;
     }
   }
