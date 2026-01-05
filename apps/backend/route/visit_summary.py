@@ -221,10 +221,10 @@ async def upload_image_for_visit(
                 "user_uuid": user_uuid
             })
 
-            # Update image_url and metadata - this MUST affect exactly 1 row
+            # Update image_url, metadata, and OCR status - this MUST affect exactly 1 row
             update_query = text("""
                 UPDATE visit_transcripts
-                SET image_url = :image_url, image_metadata = :metadata
+                SET image_url = :image_url, image_metadata = :metadata, ocr_status = 'pending'
                 WHERE visit_id = :visit_id AND user_id = :user_uuid
             """)
             result = conn.execute(update_query, {
@@ -242,10 +242,8 @@ async def upload_image_for_visit(
         logger.info(f"Image upload completed: visit={visit_id}, user={user_uuid}")
 
         return {
-            "message": "Image uploaded successfully",
             "image_url": image_result["signed_url"],
-            "metadata": metadata,
-            "expires_in": "24 hours"
+            "expires_in_hours": 24
         }
 
     except HTTPException:
@@ -253,6 +251,39 @@ async def upload_image_for_visit(
     except Exception as e:
         logger.error(f"Image upload failed for visit {visit_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
+
+@router.post("/visits/{visit_id}/ocr")
+async def process_visit_ocr(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Process uploaded image with OCR using Google Vision API.
+    Thin route that delegates to image pipeline.
+    """
+    try:
+        # Step 1: Resolve user UUID (for future validation if needed)
+        from services.db_service import get_user_uuid
+        await get_user_uuid(user_id)  # Validate user exists
+
+        # Step 2: Run OCR pipeline
+        from services.media.image_pipeline import run_ocr_for_visit
+        result = await run_ocr_for_visit(visit_id)
+
+        return result
+
+    except ValueError as e:
+        # Pipeline validation errors
+        if "not found" in str(e):
+            raise HTTPException(status_code=404, detail=str(e))
+        elif "already" in str(e):
+            raise HTTPException(status_code=409, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception(f"OCR route failed for visit {visit_id}")
+        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
 
 
 @router.post("/visits/{visit_id}/process-audio")
