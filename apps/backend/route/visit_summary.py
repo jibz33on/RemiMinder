@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -6,20 +7,13 @@ from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 
 from schemas.schemas import VisitSummary, VisitSummaryPayload
 from services.ai_service import generate_ai_summary
-from services.db_service import (
-    fetch_visit_transcript,
-    fetch_visit_summary,
-    insert_visit_summary,
-    insert_visit_transcript,
-    update_transcript_visit_id,
-    fetch_all_visit_summaries,
-    update_visit_audio_url,
-    upsert_visit_audio_url,
-    get_visit_audio_url,
-    upsert_visit_image_url,
-    get_visit_image_url,
-    ensure_visit_exists,
-)
+# REMOVED: Legacy summary functions deleted during Supabase cleanup
+# from services.db_service import (
+#     fetch_visit_transcript,
+#     fetch_visit_summary,
+#     insert_visit_summary,
+#     fetch_all_visit_summaries,
+# )
 from services.gcs_service import upload_audio, upload_image
 from services.auth_gateway import get_current_user_jwt as get_current_user
 
@@ -33,64 +27,67 @@ def get_user_id(current_user=Depends(get_current_user)) -> str:
     # Firebase UID is the canonical user identity
     return current_user["sub"]
 
-@router.post("/generate-summary/{visit_id}", response_model=VisitSummaryPayload)
-async def create_visit_summary(visit_id: str, user_id: str, transcript_id: str):
-    visit = await fetch_visit_transcript(visit_id, user_id, transcript_id)
-    if not visit or not visit.get("transcript_text"):
-        raise HTTPException(status_code=404, detail="Transcript not found")
+# DISABLED: Legacy summary generation route - functions removed during Supabase cleanup
+# @router.post("/generate-summary/{visit_id}", response_model=VisitSummaryPayload)
+# async def create_visit_summary(visit_id: str, user_id: str, transcript_id: str):
+#     visit = await fetch_visit_transcript(visit_id, user_id, transcript_id)
+#     if not visit or not visit.get("transcript_text"):
+#         raise HTTPException(status_code=404, detail="Transcript not found")
 
-    ai_output = await generate_ai_summary({
-        "transcript": visit["transcript_text"],
-        "visit_id": visit_id,
-        "user_id": user_id,
-        "transcript_id": visit["transcript_id"]
-    })
+#     ai_output = await generate_ai_summary({
+#         "transcript": visit["transcript_text"],
+#         "visit_id": visit_id,
+#         "user_id": user_id,
+#         "transcript_id": visit["transcript_id"]
+#     })
 
-    await insert_visit_summary(visit_id, user_id, visit["transcript_id"], ai_output)
+#     await insert_visit_summary(visit_id, user_id, visit["transcript_id"], ai_output)
 
-    return {
-        "message": "Summary generated successfully",
-        "data": {
-            "visit_id": visit_id,
-            "user_id": user_id,
-            "transcript_id": transcript_id,
-            **ai_output,
-        }
-    }
+#     return {
+#         "message": "Summary generated successfully",
+#         "data": {
+#             "visit_id": visit_id,
+#             "user_id": user_id,
+#             "transcript_id": transcript_id,
+#             **ai_output,
+#         }
+#     }
 
-@router.get("/visit-summaries/{visit_id}", response_model=VisitSummary)
-async def get_visit_summary(visit_id: int, user_id: int):
-    row = await fetch_visit_summary(visit_id, user_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Summary not found")
-    return row
+# DISABLED: Legacy summary retrieval route - functions removed during Supabase cleanup
+# @router.get("/visit-summaries/{visit_id}", response_model=VisitSummary)
+# async def get_visit_summary(visit_id: int, user_id: int):
+#     row = await fetch_visit_summary(visit_id, user_id)
+#     if not row:
+#         raise HTTPException(status_code=404, detail="Summary not found")
+#     return row
 
-@router.get("/visit-summaries")
-async def get_all_summaries(user_id: str = Depends(get_user_id)):
-    logger.info(f"Fetching visit summaries for user_id: {user_id}")
-    summaries = await fetch_all_visit_summaries(user_id)
-    logger.info(f"Found {len(summaries)} raw summaries from database")
-    formatted_summaries = []
+# DISABLED: Legacy all summaries route - functions removed during Supabase cleanup
+# @router.get("/visit-summaries")
+# async def get_all_summaries(user_id: str = Depends(get_user_id)):
+#     logger.info(f"Fetching visit summaries for user_id: {user_id}")
+#     summaries = await fetch_all_visit_summaries(user_id)
+#     logger.info(f"Found {len(summaries)} raw summaries from database")
+#     formatted_summaries = []
 
-    for item in summaries:
-        visit_data = item.get('visits', {})
-        date_source = item.get('created_at')
-        visit_dt = datetime.now() if not date_source else datetime.fromisoformat(date_source.replace('Z', '+00:00'))
+#     for item in summaries:
+#         visit_data = item.get('visits', {})
+#         date_source = item.get('created_at')
+#         visit_dt = datetime.now() if not date_source else datetime.fromisoformat(date_source.replace('Z', '+00:00'))
 
-        formatted_summaries.append({
-            "id": item.get('visit_id'),
-            "title": visit_data.get('title', 'Untitled Visit'),
-            "status": visit_data.get('status', 'Completed'),
-            "doctor": visit_data.get('doctor', 'N/A'),
-            "specialty": visit_data.get('specialty', 'General'),
-            "date": visit_dt.strftime("%b %d, %Y"),
-            "time": visit_dt.strftime("%I:%M %p"),
-            "duration": visit_data.get('duration', 'N/A'),
-            "summary": item.get('summary', 'No summary available.'),
-            "keyPoints": item.get('action_items', '').split(', ') if item.get('action_items') else [],
-        })
+#         formatted_summaries.append({
+#             "id": item.get('visit_id'),
+#             "title": visit_data.get('title', 'Untitled Visit'),
+#             "status": visit_data.get('status', 'Completed'),
+#             "doctor": visit_data.get('doctor', 'N/A'),
+#             "specialty": visit_data.get('specialty', 'General'),
+#             "date": visit_dt.strftime("%b %d, %Y"),
+#             "time": visit_dt.strftime("%I:%M %p"),
+#             "duration": visit_data.get('duration', 'N/A'),
+#             "summary": item.get('summary', 'No summary available.'),
+#             "keyPoints": item.get('action_items', '').split(', ') if item.get('action_items') else [],
+#         })
 
-    return formatted_summaries
+#     return formatted_summaries
 
 
 @router.post("/visits/{visit_id}/audio/upload")
@@ -99,21 +96,64 @@ async def upload_audio_for_visit(
     file: UploadFile = File(...),
     user_id: str = Depends(get_user_id)
 ):
+    """
+    Upload audio file with transactional database consistency.
+    Creates visit and visit_transcripts rows if needed, then persists audio_url.
+    """
     try:
-        # Ensure visit exists before storing transcript data
-        await ensure_visit_exists(visit_id, user_id)
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid
+        user_uuid = await get_user_uuid(user_id)
 
-        # Upload to GCS
+        # Step 2: Upload to GCS first (fail fast if storage fails)
         audio_url = await upload_audio(file, visit_id)
 
-        # Store audio URL in database
-        db_result = await upsert_visit_audio_url(visit_id, user_id, audio_url)
+        # Step 3: Single transaction for all database operations
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text
 
-        if db_result is None:
-            raise HTTPException(
-                status_code=500,
-                detail="Audio uploaded to storage but failed to update visit record in database"
-            )
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            # Create visit if it doesn't exist
+            visit_query = text("""
+                INSERT INTO visits (id, user_id, title, status)
+                VALUES (:visit_id, :user_uuid, 'Audio Visit', 'active')
+                ON CONFLICT (id) DO NOTHING
+            """)
+            conn.execute(visit_query, {
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Create visit_transcripts row if it doesn't exist
+            transcript_query = text("""
+                INSERT INTO visit_transcripts (visit_id, user_id)
+                VALUES (:visit_id, :user_uuid)
+                ON CONFLICT (visit_id, user_id) DO NOTHING
+            """)
+            conn.execute(transcript_query, {
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Update audio_url - this MUST affect exactly 1 row
+            update_query = text("""
+                UPDATE visit_transcripts
+                SET audio_url = :audio_url
+                WHERE visit_id = :visit_id AND user_id = :user_uuid
+            """)
+            result = conn.execute(update_query, {
+                "audio_url": audio_url,
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Verify exactly 1 row was updated
+            if result.rowcount != 1:
+                raise Exception(f"Expected 1 row updated, got {result.rowcount}")
+
+        # Step 4: Log success
+        logger.info(f"Audio upload completed: visit={visit_id}, user={user_uuid}")
 
         return {
             "message": "Audio uploaded successfully",
@@ -124,6 +164,7 @@ async def upload_audio_for_visit(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Audio upload failed for visit {visit_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Audio upload failed: {str(e)}")
 
 
@@ -133,11 +174,16 @@ async def upload_image_for_visit(
     file: UploadFile = File(...),
     user_id: str = Depends(get_user_id)
 ):
+    """
+    Upload image file with transactional database consistency.
+    Creates visit and visit_transcripts rows if needed, then persists image_url and metadata.
+    """
     try:
-        # Ensure visit exists before storing transcript data
-        await ensure_visit_exists(visit_id, user_id)
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid
+        user_uuid = await get_user_uuid(user_id)
 
-        # Upload to GCS
+        # Step 2: Upload to GCS first (fail fast if storage fails)
         image_result = await upload_image(file, visit_id)
 
         metadata = {
@@ -147,13 +193,53 @@ async def upload_image_for_visit(
             "uploaded_at": datetime.now().isoformat()
         }
 
-        db_result = await upsert_visit_image_url(visit_id, user_id, image_result["signed_url"], metadata)
+        # Step 3: Single transaction for all database operations
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text
 
-        if db_result is None:
-            raise HTTPException(
-                status_code=500,
-                detail="Image uploaded to storage but failed to update visit record in database"
-            )
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            # Create visit if it doesn't exist
+            visit_query = text("""
+                INSERT INTO visits (id, user_id, title, status)
+                VALUES (:visit_id, :user_uuid, 'Image Visit', 'active')
+                ON CONFLICT (id) DO NOTHING
+            """)
+            conn.execute(visit_query, {
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Create visit_transcripts row if it doesn't exist
+            transcript_query = text("""
+                INSERT INTO visit_transcripts (visit_id, user_id)
+                VALUES (:visit_id, :user_uuid)
+                ON CONFLICT (visit_id, user_id) DO NOTHING
+            """)
+            conn.execute(transcript_query, {
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Update image_url and metadata - this MUST affect exactly 1 row
+            update_query = text("""
+                UPDATE visit_transcripts
+                SET image_url = :image_url, image_metadata = :metadata
+                WHERE visit_id = :visit_id AND user_id = :user_uuid
+            """)
+            result = conn.execute(update_query, {
+                "image_url": image_result["signed_url"],
+                "metadata": json.dumps(metadata),
+                "visit_id": visit_id,
+                "user_uuid": user_uuid
+            })
+
+            # Verify exactly 1 row was updated
+            if result.rowcount != 1:
+                raise Exception(f"Expected 1 row updated, got {result.rowcount}")
+
+        # Step 4: Log success
+        logger.info(f"Image upload completed: visit={visit_id}, user={user_uuid}")
 
         return {
             "message": "Image uploaded successfully",
@@ -165,6 +251,7 @@ async def upload_image_for_visit(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Image upload failed for visit {visit_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
 
@@ -173,46 +260,42 @@ async def process_visit_audio(
     visit_id: str,
     user_id: str = Depends(get_user_id)
 ):
+    """
+    Process uploaded audio file with Speech-to-Text and save transcript.
+    Simple synchronous pipeline: GCS -> STT -> Cloud SQL.
+    """
     try:
-        # Ensure visit exists to prevent foreign key errors
-        supabase = get_supabase_client()
-        existing_visit = supabase.table("visits").select("id").eq("id", visit_id).execute()
+        # Step 1: Get user UUID from Firebase UID
+        from services.db_service import get_user_uuid
+        user_uuid = await get_user_uuid(user_id)  # user_id is Firebase UID from JWT
 
-        if not existing_visit.data:
-            visit_data = {
-                "id": visit_id,
-                "user_id": user_id,
-                "title": "Audio Visit",
-                "status": "processing",
-                "doctor": "AI Processing",
-                "specialty": "Audio Analysis"
-            }
-            supabase.table("visits").insert(visit_data).execute()
-            logger.info(f"Created visit record {visit_id} for AI processing")
+        # Step 2: Run STT pipeline
+        from services.media.audio_pipeline import run_audio_stt_pipeline
+        stt_result = await run_audio_stt_pipeline(visit_id, user_id)
 
-        # Process audio and save results
-        from services.transcription_service import process_visit_audio as run_audio_processing
-        result = await run_audio_processing(visit_id, user_id)
+        # Step 3: Save transcript to database
+        from services.db_service import save_raw_transcript
+        await save_raw_transcript(
+            visit_id=visit_id,
+            user_id=user_uuid,  # Use UUID for database operations
+            transcript=stt_result["transcript"],
+            confidence=stt_result["confidence"],
+            language=stt_result["language"]
+        )
 
-        transcript_record = await insert_visit_transcript(result["transcription"])
-        if not transcript_record:
-            raise HTTPException(status_code=500, detail="Failed to store transcript")
-
-        transcript_id = transcript_record['transcript_id']
-        await update_transcript_visit_id(transcript_id, visit_id, user_id)
-        await insert_visit_summary(visit_id, user_id, transcript_id, result["ai_summary"])
-
-        logger.info(f"Successfully processed audio for visit {visit_id}")
-
+        # Step 3: Return simple success response
         return {
-            "message": "Audio processed successfully",
+            "status": "completed",
             "visit_id": visit_id,
-            "transcription": result["transcription"],
-            "summary": result["ai_summary"]
+            "has_transcript": True
         }
 
-    except HTTPException:
-        raise
+    except ValueError as e:
+        # Audio not found or STT failed
+        if "No audio file found" in str(e):
+            raise HTTPException(status_code=404, detail=f"Audio file not found for visit {visit_id}")
+        raise HTTPException(status_code=500, detail=f"Speech-to-text failed: {str(e)}")
+
     except Exception as e:
         logger.error(f"Audio processing failed for visit {visit_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Audio processing failed: {str(e)}")
@@ -224,9 +307,12 @@ async def get_visit_audio_url_endpoint(
     user_id: str = Depends(get_user_id)
 ):
     try:
-        audio_url = await get_visit_audio_url(visit_id, user_id)
-        if audio_url is None:
-            raise HTTPException(status_code=404, detail="No audio found for this visit")
+        # Get user UUID from Firebase UID
+        from services.db_service import get_user_uuid
+        user_uuid = await get_user_uuid(user_id)  # user_id is Firebase UID from JWT
+
+        from services.db_service import get_audio_gcs_url
+        audio_url = await get_audio_gcs_url(visit_id, user_uuid)
 
         return {
             "visit_id": visit_id,
@@ -235,5 +321,7 @@ async def get_visit_audio_url_endpoint(
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")

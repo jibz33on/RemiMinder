@@ -7,7 +7,7 @@ from typing import Dict
 
 import google.generativeai as genai
 
-from .db_service import log_ai_usage
+# from .db_service import log_ai_usage  # REMOVED: log_ai_usage was deleted during Supabase cleanup
 from .db_reminders import insert_ai_reminders
 
 # Import prompt template
@@ -59,15 +59,15 @@ async def generate_ai_summary(data: dict) -> Dict:
         output_cost = (output_tokens / 1_000_000) * output_cost_per_m
         total_cost = input_cost + output_cost
 
-        # Log AI usage
-        await log_ai_usage({
-            "visit_id": visit_id,
-            "user_id": data.get("user_id"),
-            "transcript_id": data.get("transcript_id"),
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_cost": total_cost,
-        })
+        # Log AI usage - DISABLED: log_ai_usage was deleted during Supabase cleanup
+        # await log_ai_usage({
+        #     "visit_id": visit_id,
+        #     "user_id": data.get("user_id"),
+        #     "transcript_id": data.get("transcript_id"),
+        #     "input_tokens": input_tokens,
+        #     "output_tokens": output_tokens,
+        #     "total_cost": total_cost,
+        # })
 
         # Parse JSON response
         text_output = response.text.strip()

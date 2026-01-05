@@ -15,15 +15,20 @@ logger = logging.getLogger(__name__)
 # CAREGIVER ALERT LOGIC
 # ============================================================================
 
+# LEGACY SUPABASE PATH — TEMPORARILY DISABLED
 async def get_patient_caregiver(user_id: str) -> Optional[dict]:
     """
     Get caregiver info for a patient from patient_caregiver relationship.
     Returns caregiver_id and email, or None if no caregiver assigned.
     """
+    raise RuntimeError("Legacy Supabase path disabled. Patient-caregiver lookup temporarily unavailable.")
+
+    """
+    DISABLED LEGACY CODE - DO NOT ENABLE
     from .db_reminders import get_supabase_client
-    
+
     supabase = get_supabase_client()
-    
+
     try:
         # Query patient_caregiver join caregivers table
         response = (
@@ -33,7 +38,7 @@ async def get_patient_caregiver(user_id: str) -> Optional[dict]:
             .single()
             .execute()
         )
-        
+
         if response.data:
             caregiver_data = response.data.get('caregivers')
             return {
@@ -41,12 +46,13 @@ async def get_patient_caregiver(user_id: str) -> Optional[dict]:
                 'email': caregiver_data.get('email'),
                 'full_name': caregiver_data.get('full_name')
             }
-        
+
         return None
-        
+
     except Exception as e:
         logger.warning(f"No caregiver found for patient {user_id}: {str(e)}")
         return None
+    """
 
 async def check_and_send_caregiver_alerts(
     reminder_id: str,

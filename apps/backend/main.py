@@ -52,7 +52,11 @@ sys.path.append('..')
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from route import invitations, patient_register, caregiver_patient, caregivers, visit_summary, reminders, users
+from route import visit_summary, users
+# DISABLED: Other routes temporarily disabled to focus on audio + STT features
+# from route import invitations, patient_register, caregiver_patient, caregivers
+# DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
+# from route import reminders
 
 app = FastAPI()
 
@@ -66,13 +70,15 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(invitations.router)        # Caregiver invitations
-app.include_router(patient_register.router)   # Patient registration
-app.include_router(caregivers.router)         # Caregiver registration
-app.include_router(caregiver_patient.router)  # Caregiver-patient linking
-app.include_router(visit_summary.router)      # Visit summaries
-app.include_router(reminders.router)          # Reminders
+# DISABLED: Other routes temporarily disabled to focus on audio + STT features
+# app.include_router(invitations.router)        # Caregiver invitations
+# app.include_router(patient_register.router)   # Patient registration
+# app.include_router(caregivers.router)         # Caregiver registration
+# app.include_router(caregiver_patient.router)  # Caregiver-patient linking
+app.include_router(visit_summary.router)      # Visit summaries (audio + STT only)
 app.include_router(users.router)              # User authentication
+# DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
+# app.include_router(reminders.router)          # Reminders
 
 @app.get("/")
 def root() -> Dict[str, str]:
