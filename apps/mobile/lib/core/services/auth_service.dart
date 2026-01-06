@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
@@ -98,7 +100,8 @@ class AuthService {
 
   /// Get access token for API calls
   Future<String?> getAccessToken() async {
-    return await _firebaseAuth.getIdToken();
+    final token = await _firebaseAuth.getIdToken();
+    return token;
   }
 
   /// Get authenticated headers for API calls

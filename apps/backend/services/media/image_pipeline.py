@@ -5,13 +5,11 @@ Reads images from Google Cloud Storage, processes with Google Vision, returns ex
 
 import logging
 import json
-from typing import Dict, Any
-from google.cloud import vision
 
 logger = logging.getLogger(__name__)
 
 
-async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
+async def run_ocr_for_visit(visit_id: str) -> dict:
     """
     Run synchronous OCR pipeline for a visit's image file.
     Validates preconditions, processes with Google Vision, stores results.
@@ -50,16 +48,29 @@ async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
             if not image_metadata:
                 raise ValueError(f"No image uploaded for visit {visit_id}")
 
-            # Validate OCR status
+            # Handle idempotent states gracefully
             if ocr_status == 'completed':
-                raise ValueError(f"OCR already completed for visit {visit_id}")
+                logger.info(f"OCR already completed for visit {visit_id} - returning existing result")
+                return {
+                    "status": "completed",
+                    "visit_id": visit_id,
+                    "text_length": 0,  # We don't have the text length without querying
+                    "confidence": None,
+                    "pages": 0
+                }
 
             if ocr_status == 'processing':
-                raise ValueError(f"OCR already in progress for visit {visit_id}")
+                logger.info(f"OCR already in progress for visit {visit_id} - returning processing status")
+                return {
+                    "status": "processing",
+                    "visit_id": visit_id
+                }
 
-            # Extract blob_name from metadata
-            import json
-            metadata_dict = json.loads(image_metadata)
+            # Extract blob_name from metadata (already parsed as dict from JSONB)
+            if not isinstance(image_metadata, dict):
+                raise ValueError(f"image_metadata is not a dict for visit {visit_id}")
+
+            metadata_dict = image_metadata
             blob_name = metadata_dict.get("blob_name")
             if not blob_name:
                 raise ValueError(f"Blob name not found in image metadata for visit {visit_id}")

@@ -76,6 +76,29 @@ class BackendApiService {
     }
   }
 
+  /// Trigger OCR processing for uploaded image
+  Future<void> triggerOcr({required String visitId}) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri = Uri.parse('${Environment.apiBaseUrl}/api/visits/$visitId/ocr');
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'OCR trigger failed: ${response.statusCode} - ${response.body}');
+    }
+  }
+
   /// Bootstrap user in backend after Firebase authentication
   Future<void> bootstrapUser() async {
     final accessToken = await _authService.getAccessToken();

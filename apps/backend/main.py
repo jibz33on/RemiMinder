@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from typing import Dict, Any
 
 from dotenv import load_dotenv
 
@@ -19,20 +18,6 @@ required_vars = ["GCS_BUCKET_NAME"]
 for var in required_vars:
     if not os.getenv(var):
         raise RuntimeError(f"Critical environment variable {var} is not set. Check your .env file.")
-
-# Check AI API keys (optional but logged)
-openai_key = os.getenv("OPENAI_API_KEY")
-gemini_key = os.getenv("GEMINI_API_KEY")
-
-if openai_key:
-    logger.info("OPENAI_API_KEY loaded")
-else:
-    logger.warning("OPENAI_API_KEY not set - will use mock transcription")
-
-if gemini_key:
-    logger.info("GEMINI_API_KEY loaded")
-else:
-    logger.warning("GEMINI_API_KEY not set - AI summaries will fail")
 
 # Check Cloud SQL environment variables (optional for read-only testing)
 cloud_sql_vars = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
@@ -81,7 +66,7 @@ app.include_router(users.router)              # User authentication
 # app.include_router(reminders.router)          # Reminders
 
 @app.get("/")
-def root() -> Dict[str, str]:
+def root() -> dict:
     """Health check endpoint."""
     return {"message": "Backend running!"}
 

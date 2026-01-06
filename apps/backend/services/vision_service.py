@@ -4,13 +4,12 @@ Processes images from Google Cloud Storage.
 """
 
 import logging
-from typing import Dict, Any
 from google.cloud import vision
 
 logger = logging.getLogger(__name__)
 
 
-async def extract_text_from_gcs_uri(gcs_uri: str) -> Dict[str, Any]:
+async def extract_text_from_gcs_uri(gcs_uri: str) -> dict:
     """
     Perform OCR on an image stored in Google Cloud Storage using Google Vision API.
 

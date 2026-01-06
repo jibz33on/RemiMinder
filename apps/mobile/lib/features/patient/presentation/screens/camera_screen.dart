@@ -51,7 +51,6 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   void initState() {
-    debugPrint('🔍 SCAN_SCREEN: initState called');
     super.initState();
 
     // Initialize selected mode based on parameter or default
@@ -79,21 +78,15 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Future<void> _initializeCamera() async {
-    debugPrint('🔍 SCAN_SCREEN: _initializeCamera started');
     try {
       // Get available cameras
-      debugPrint('🔍 SCAN_SCREEN: Calling availableCameras()');
       final cameras = await availableCameras();
-      debugPrint(
-          '🔍 SCAN_SCREEN: availableCameras() returned ${cameras.length} cameras');
 
       // Select back camera (preferred for document scanning)
       final backCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first, // Fallback to first available
       );
-      debugPrint(
-          '🔍 SCAN_SCREEN: Selected camera - lens: ${backCamera.lensDirection}, name: ${backCamera.name}');
 
       // Create camera controller
       _cameraController = CameraController(
@@ -101,13 +94,9 @@ class _CameraScreenState extends State<CameraScreen>
         ResolutionPreset.high, // High resolution for document scanning
         enableAudio: false, // No audio needed for scanning
       );
-      debugPrint(
-          '🔍 SCAN_SCREEN: CameraController created, calling initialize()');
 
       // Initialize camera
       await _cameraController!.initialize();
-      debugPrint(
-          '🔍 SCAN_SCREEN: CameraController.initialize() completed successfully');
 
       if (mounted) {
         setState(() {
@@ -115,7 +104,6 @@ class _CameraScreenState extends State<CameraScreen>
         });
       }
     } catch (e) {
-      debugPrint('🔍 SCAN_SCREEN: Failed to initialize camera: $e');
       // Camera initialization failed, but don't block the app
       // User can still use the scan interface (though it won't work)
     }
@@ -131,7 +119,6 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔥🔥🔥 REAL CameraScreen is rendering');
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -174,8 +161,6 @@ class _CameraScreenState extends State<CameraScreen>
           child: () {
             final shouldShowPreview =
                 _isCameraInitialized && _cameraController != null;
-            debugPrint(
-                '🔍 SCAN_SCREEN: Building camera preview - initialized: $_isCameraInitialized, controller exists: ${_cameraController != null}, showing preview: $shouldShowPreview');
             return shouldShowPreview
                 ? CameraPreview(_cameraController!)
                 : Container(
@@ -676,11 +661,20 @@ class _CameraScreenState extends State<CameraScreen>
     };
   }
 
-  void _saveScan() {
+  void _saveScan() async {
+    // Trigger OCR processing before navigation
+    try {
+      await _backendApiService.triggerOcr(visitId: widget.visitId);
+    } catch (e) {
+      // OCR trigger failed, but don't block navigation
+    }
+
     // TODO: Save scan results
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Scan saved successfully!')),
     );
+
+    if (!mounted) return;
     context.go('/patient/home');
   }
 

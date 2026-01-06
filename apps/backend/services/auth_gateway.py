@@ -7,7 +7,6 @@ This module provides Firebase ID token verification and user resolution.
 import os
 import time
 import logging
-from typing import Dict, Any
 from fastapi import HTTPException, status, Request
 
 import jwt
@@ -21,7 +20,7 @@ _firebase_jwks_cache_time = 0
 JWKS_CACHE_DURATION = 3600  # 1 hour in seconds
 
 
-def _get_firebase_jwks() -> Dict[str, Any]:
+def _get_firebase_jwks() -> dict:
     """
     Fetch and cache Firebase JWKS (JSON Web Key Set).
 
@@ -53,7 +52,7 @@ def _get_firebase_jwks() -> Dict[str, Any]:
         )
 
 
-def _verify_google_token(token: str) -> Dict[str, Any]:
+def _verify_google_token(token: str) -> dict:
     """
     Verify Firebase/Google Identity Platform ID token using JWKS.
 
@@ -96,9 +95,6 @@ def _verify_google_token(token: str) -> Dict[str, Any]:
                 detail="Invalid token: unknown key ID"
             )
 
-        # Get expected audience (configurable, but not enforced if unknown)
-        expected_audience = os.getenv("GOOGLE_CLIENT_ID")
-
         # First decode to check issuer (Firebase uses project-specific issuers)
         decoded = jwt.decode(
             token,
@@ -109,7 +105,7 @@ def _verify_google_token(token: str) -> Dict[str, Any]:
                 "verify_iat": True,
                 "verify_nbf": True,
                 "verify_signature": True,
-                "verify_aud": expected_audience is not None,
+                "verify_aud": False,  # We'll check audience manually after issuer check
                 "verify_iss": False,  # We'll check issuer manually
             }
         )
@@ -131,14 +127,29 @@ def _verify_google_token(token: str) -> Dict[str, Any]:
                 detail="Invalid token issuer"
             )
 
-        # Verify audience if configured
-        if expected_audience:
-            audience = decoded.get("aud")
-            if audience != expected_audience:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token audience"
-                )
+        # Verify audience based on issuer type
+        audience = decoded.get("aud")
+        if not audience:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: missing audience"
+            )
+
+        # Determine expected audience based on issuer
+        expected_audience = None
+        if issuer.startswith("https://securetoken.google.com/"):
+            # Firebase ID token - audience should be Firebase project ID
+            expected_audience = os.getenv("FIREBASE_PROJECT_ID")
+        else:
+            # Google OAuth token - audience should be Google OAuth client ID
+            expected_audience = os.getenv("GOOGLE_CLIENT_ID")
+
+        # Verify audience if we have an expected value
+        if expected_audience and audience != expected_audience:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token audience"
+            )
 
         return decoded
 
@@ -165,7 +176,7 @@ def _verify_google_token(token: str) -> Dict[str, Any]:
         )
 
 
-def verify_auth_token(token: str) -> Dict[str, Any]:
+def verify_auth_token(token: str) -> dict:
     """
     Central authentication gateway for Firebase ID token verification.
 
@@ -424,7 +435,7 @@ def get_current_user(request: Request) -> str:
     return get_current_user_with_db_lookup(token)
 
 
-def get_current_user_jwt(request: Request) -> Dict[str, Any]:
+def get_current_user_jwt(request: Request) -> dict:
     """
     FastAPI dependency that returns decoded JWT claims.
 

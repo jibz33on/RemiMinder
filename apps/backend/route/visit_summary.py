@@ -1,12 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import List, Optional, Dict, Any
-
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
-
-from schemas.schemas import VisitSummary, VisitSummaryPayload
-from services.ai_service import generate_ai_summary
 # REMOVED: Legacy summary functions deleted during Supabase cleanup
 # from services.db_service import (
 #     fetch_visit_transcript,
@@ -262,6 +257,7 @@ async def process_visit_ocr(
     Process uploaded image with OCR using Google Vision API.
     Thin route that delegates to image pipeline.
     """
+    logger.info("OCR requested for visit_id=%s", visit_id)
     try:
         # Step 1: Resolve user UUID (for future validation if needed)
         from services.db_service import get_user_uuid
@@ -352,7 +348,5 @@ async def get_visit_audio_url_endpoint(
 
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
