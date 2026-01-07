@@ -47,7 +47,7 @@ dependencies:
   # Permissions & Media
   permission_handler: ^11.3.0
   camera: ^0.10.5+9
-  record: 4.4.4
+  record: 6.1.2
   speech_to_text: ^5.1.0
   image_picker: ^1.1.1
   path_provider: ^2.1.2
