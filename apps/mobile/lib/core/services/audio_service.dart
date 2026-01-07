@@ -12,7 +12,7 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal();
 
-  Record? _audioRecorder;
+  AudioRecorder? _audioRecorder;
   stt.SpeechToText? _speechToText;
   bool _isRecording = false;
   bool _isListening = false;
@@ -47,7 +47,7 @@ class AudioService {
       print('🎙️ Initializing audio service...');
 
       // Initialize record package first
-      _audioRecorder ??= Record();
+      _audioRecorder ??= AudioRecorder();
 
       // 🔥 iOS-safe: Use record package's hasPermission() as authoritative source
       final hasPermission = await _audioRecorder!.hasPermission();
@@ -131,12 +131,8 @@ class AudioService {
       debugPrint('🎙️ Starting recorder with path: $_currentRecordingPath');
 
       // Start recording with record package
-      await _audioRecorder!.start(
-        path: _currentRecordingPath!,
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        samplingRate: 44100,
-      );
+      await _audioRecorder!
+          .start(const RecordConfig(), path: _currentRecordingPath!);
 
       _isRecording = true;
       _recordingDuration = Duration.zero;

@@ -43,14 +43,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 // =============================================================================
 
 /// Authentication state notifier
-class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _authRepository;
-  final BackendApiService _backendApiService;
-
-  AuthNotifier(this._authRepository, this._backendApiService)
-      : super(AuthState.initial()) {
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() {
+    _authRepository = ref.watch(authRepositoryProvider);
+    _backendApiService = ref.watch(_backendApiServiceProvider);
     _checkAuthStatus();
+    return AuthState.initial();
   }
+
+  late final AuthRepository _authRepository;
+  late final BackendApiService _backendApiService;
 
   /// Check authentication status on app start
   Future<void> _checkAuthStatus() async {
@@ -187,11 +190,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // =============================================================================
 
 /// Main authentication provider
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  final backendApiService = ref.watch(_backendApiServiceProvider);
-  return AuthNotifier(authRepository, backendApiService);
+final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(() {
+  return AuthNotifier();
 });
 
 // =============================================================================
@@ -243,12 +243,13 @@ final isCaregiverProvider = Provider<bool>((ref) {
 
 /// Selected user role during onboarding
 final selectedRoleProvider =
-    StateNotifierProvider<SelectedRoleNotifier, UserRole?>((ref) {
+    NotifierProvider<SelectedRoleNotifier, UserRole?>(() {
   return SelectedRoleNotifier();
 });
 
-class SelectedRoleNotifier extends StateNotifier<UserRole?> {
-  SelectedRoleNotifier() : super(null);
+class SelectedRoleNotifier extends Notifier<UserRole?> {
+  @override
+  UserRole? build() => null;
 
   void selectRole(UserRole role) {
     state = role;

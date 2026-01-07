@@ -18,7 +18,7 @@ class FirebaseAuthService {
     TokenManager? tokenManager,
     SecureStorage? secureStorage,
   })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(),
+        _googleSignIn = googleSignIn ?? GoogleSignIn.standard(),
         _tokenManager = tokenManager ?? TokenManager(SecureStorage()),
         _secureStorage = secureStorage ?? SecureStorage();
 
@@ -129,14 +129,13 @@ class FirebaseAuthService {
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      if (googleAuth.idToken == null || googleAuth.accessToken == null) {
-        throw Exception('Missing Google authentication tokens');
+      if (googleAuth.idToken == null) {
+        throw Exception('Missing Google ID token');
       }
 
       // Create Firebase credential
       final firebase_auth.AuthCredential credential =
           firebase_auth.GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
@@ -207,13 +206,15 @@ class FirebaseAuthService {
         // Check if we have stored tokens - if so, Firebase session might not be restored yet
         final hasToken = await _tokenManager.isTokenValid();
         if (hasToken) {
-          print('🔥 FirebaseAuthService: Valid token found but no Firebase user - session not restored yet');
+          print(
+              '🔥 FirebaseAuthService: Valid token found but no Firebase user - session not restored yet');
           // Try to wait a bit for Firebase to restore the session
           await Future.delayed(const Duration(milliseconds: 500));
 
           final firebaseUserRetry = _firebaseAuth.currentUser;
           if (firebaseUserRetry != null) {
-            print('🔥 FirebaseAuthService: Firebase user found after retry: ${firebaseUserRetry.email ?? firebaseUserRetry.uid}');
+            print(
+                '🔥 FirebaseAuthService: Firebase user found after retry: ${firebaseUserRetry.email ?? firebaseUserRetry.uid}');
             return User(
               id: firebaseUserRetry.uid,
               email: firebaseUserRetry.email ?? '',
@@ -226,10 +227,12 @@ class FirebaseAuthService {
           }
         }
 
-        print('🔥 FirebaseAuthService: No Firebase user and no valid token recovery');
+        print(
+            '🔥 FirebaseAuthService: No Firebase user and no valid token recovery');
         return null;
       }
-      print('🔥 FirebaseAuthService: Firebase user found: ${firebaseUser.email ?? firebaseUser.uid}');
+      print(
+          '🔥 FirebaseAuthService: Firebase user found: ${firebaseUser.email ?? firebaseUser.uid}');
 
       // Check if we have stored tokens
       final hasToken = await _tokenManager.isTokenValid();
