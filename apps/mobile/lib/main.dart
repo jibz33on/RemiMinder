@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,8 +14,14 @@ Future<void> main() async {
   await Environment.load();
   Environment.validate(); // Ensure required vars are set
 
-  // Initialize Firebase
-  await Firebase.initializeApp();
+  // Initialize Firebase with error handling
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // Log error but continue - app can still show welcome screen
+    // This prevents app crash on Firebase init failure
+    debugPrint('Firebase initialization failed: $e');
+  }
 
   runApp(
     const ProviderScope(

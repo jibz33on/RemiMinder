@@ -45,10 +45,14 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
             '🔄 LoadingScreen: User role not recognized, navigating to welcome...');
         context.go('/welcome'); // Fallback
       }
-    } else if (authState.status == AuthStatus.unauthenticated ||
-        authState.status == AuthStatus.error) {
+    } else if (authState.status == AuthStatus.unauthenticated) {
       print(
-          '🔄 LoadingScreen: User not authenticated or error, going to welcome screen...');
+          '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
+      // Go to welcome/onboarding flow
+      context.go('/welcome');
+    } else if (authState.status == AuthStatus.error) {
+      print(
+          '🔄 LoadingScreen: Auth error occurred, going to welcome screen...');
       // Go to welcome/onboarding flow
       context.go('/welcome');
     }

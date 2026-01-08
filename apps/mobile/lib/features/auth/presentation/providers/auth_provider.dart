@@ -60,20 +60,19 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState.loading();
 
     try {
-      // Check if authentication services are available
-      final user = await _authRepository.getCurrentUser();
+      // Check if authentication services are available with timeout
+      final user = await _authRepository
+          .getCurrentUser()
+          .timeout(const Duration(seconds: 10));
       if (user != null) {
         state = AuthState.authenticated(user);
       } else {
         state = AuthState.unauthenticated();
       }
     } catch (e) {
-      // If auth services are not available, treat as unauthenticated
-      if (e.toString().contains('not available')) {
-        state = AuthState.unauthenticated();
-      } else {
-        state = AuthState.error(e.toString());
-      }
+      // On ANY error or timeout, fallback to unauthenticated
+      // This ensures app never gets stuck in loading state
+      state = AuthState.unauthenticated();
     }
   }
 
