@@ -302,7 +302,7 @@ async def process_visit_audio(
 
         # Step 3: Save transcript to database
         from services.db_service import save_raw_transcript
-        await save_raw_transcript(
+        transcript_id = await save_raw_transcript(
             visit_id=visit_id,
             user_id=user_uuid,  # Use UUID for database operations
             transcript=stt_result["transcript"],
@@ -310,7 +310,16 @@ async def process_visit_audio(
             language=stt_result["language"]
         )
 
-        # Step 3: Return simple success response
+        # Step 4: Trigger AI summary pipeline
+        logger.info(f"Triggering AI summary pipeline for visit {visit_id}")
+        from services.ai_pipeline import run_ai_summary_pipeline
+        await run_ai_summary_pipeline(
+            visit_id=visit_id,
+            transcript_id=transcript_id,
+            user_id=user_uuid,
+        )
+
+        # Step 5: Return simple success response
         return {
             "status": "completed",
             "visit_id": visit_id,

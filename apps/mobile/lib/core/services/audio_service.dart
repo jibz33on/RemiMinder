@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// Service for handling audio recording operations (conversations, consultations)
 class AudioService {
@@ -13,16 +12,10 @@ class AudioService {
   AudioService._internal();
 
   AudioRecorder? _audioRecorder;
-  stt.SpeechToText? _speechToText;
   bool _isRecording = false;
-  bool _isListening = false;
   String? _currentRecordingPath;
   Timer? _recordingTimer;
   Duration _recordingDuration = Duration.zero;
-  String _transcription = '';
-  String _lastFinalTranscript = '';
-  String _currentSegment = '';
-  Function(String)? _onResultCallback;
 
   /// Check if currently recording
   bool get isRecording => _isRecording;
@@ -33,15 +26,8 @@ class AudioService {
   /// Get current recording path
   String? get currentRecordingPath => _currentRecordingPath;
 
-  /// Get current transcription
-  String get transcription => _transcription;
-
-  /// Check if currently listening for speech
-  bool get isListening => _isListening;
-
   /// Request microphone permission and initialize recorder
   /// Uses record package's hasPermission() as source of truth on iOS
-  /// NOTE: Speech-to-text is initialized separately on-demand to avoid iOS audio session conflicts
   Future<bool> initialize(BuildContext context) async {
     try {
       print('🎙️ Initializing audio service...');
@@ -68,9 +54,6 @@ class AudioService {
       }
 
       print('✅ Microphone permission granted! Audio recorder ready.');
-
-      // NOTE: Speech-to-text will be initialized on-demand when startListening() is called
-      // This prevents iOS audio session conflicts
 
       return true;
     } catch (e) {
@@ -136,9 +119,6 @@ class AudioService {
 
       _isRecording = true;
       _recordingDuration = Duration.zero;
-      _transcription = '';
-      _lastFinalTranscript = '';
-      _currentSegment = '';
       _startRecordingTimer();
 
       debugPrint('✅ Recording started successfully');
@@ -318,274 +298,10 @@ class AudioService {
     });
   }
 
-  /// Start real-time speech-to-text listening
-  /// Designed for continuous medical consultations (5-30+ minutes)
-  /// - No time limits: Auto-restarts when segments complete
-  /// - Only stops when user hits stop button
-  /// - Accumulates all segments for LLM processing
-  /// iOS-safe: Initializes on-demand and waits for recorder to stabilize
-  Future<bool> startListening(Function(String) onResult) async {
-    try {
-      // Store callback for auto-restart
-      _onResultCallback = onResult;
-
-      // Initialize speech-to-text on-demand if not already initialized
-      if (_speechToText == null) {
-        debugPrint('🎤 Initializing speech-to-text on-demand...');
-        _speechToText = stt.SpeechToText();
-
-        final available = await _speechToText!.initialize(
-          onStatus: (status) {
-            debugPrint(
-                '🔊 Speech status: $status | listening=$_isListening | recording=$_isRecording | transcript=${_transcription.length} chars');
-            // Auto-restart when done, if still recording
-            // This ensures continuous transcription throughout the entire consultation
-            if (status == 'done') {
-              if (_isListening && _isRecording) {
-                debugPrint(
-                    '✅ STATUS=DONE - Conditions met for restart. Auto-restarting in 1 second (allows proper finalization)...');
-                Future.delayed(const Duration(seconds: 1), () {
-                  if (_isListening && _isRecording) {
-                    debugPrint('🔄 Executing auto-restart now...');
-                    _restartListening();
-                  } else {
-                    debugPrint(
-                        '❌ Restart cancelled: listening=$_isListening, recording=$_isRecording');
-                  }
-                });
-              } else {
-                debugPrint(
-                    '⚠️ STATUS=DONE but NOT restarting: listening=$_isListening, recording=$_isRecording');
-              }
-            } else if (status == 'notListening') {
-              if (_isListening && _isRecording) {
-                debugPrint(
-                    '⚠️ STATUS=NOT_LISTENING - Unexpected stop, restarting in 1 second...');
-                Future.delayed(const Duration(seconds: 1), () {
-                  if (_isListening && _isRecording) {
-                    _restartListening();
-                  }
-                });
-              }
-            }
-          },
-          onError: (error) => debugPrint('Speech recognition error: $error'),
-        );
-
-        if (!available) {
-          debugPrint('❌ Speech recognition not available');
-          return false;
-        }
-
-        debugPrint('✅ Speech-to-text initialized successfully');
-      }
-
-      if (!_speechToText!.isAvailable) {
-        debugPrint('❌ Speech recognition not available');
-        return false;
-      }
-
-      // 🔥 iOS-CRITICAL: If recorder is running, wait for it to stabilize
-      // This prevents audio session conflicts
-      if (_isRecording) {
-        debugPrint(
-            '⏳ Waiting for recorder to stabilize before starting speech-to-text...');
-        await Future.delayed(const Duration(seconds: 1));
-      }
-
-      _isListening = true;
-      if (_lastFinalTranscript.isEmpty) {
-        _lastFinalTranscript = '';
-        _currentSegment = '';
-      }
-
-      debugPrint('🎤 Starting speech-to-text listening...');
-
-      await _speechToText!.listen(
-        onResult: (result) {
-          if (result.finalResult) {
-            // Final result - append to accumulated transcript
-            final segment = result.recognizedWords;
-            if (segment.isNotEmpty) {
-              _lastFinalTranscript += segment + ' ';
-              _currentSegment = '';
-              _transcription = _lastFinalTranscript;
-              debugPrint(
-                  '📝 Final segment added (${segment.length} chars): ${segment.length > 50 ? segment.substring(0, 50) + "..." : segment}');
-              debugPrint(
-                  '📊 Total transcription: ${_transcription.length} chars');
-            }
-          } else {
-            // Partial result - show temporarily without saving
-            _currentSegment = result.recognizedWords;
-            _transcription = _lastFinalTranscript + _currentSegment;
-          }
-          if (_onResultCallback != null) {
-            _onResultCallback!(_transcription);
-          }
-        },
-        listenFor: const Duration(
-            hours: 2), // No practical limit for medical consultations
-        pauseFor: const Duration(
-            seconds: 3), // Quick finalization, auto-restart handles continuity
-        partialResults: true,
-        cancelOnError: false, // Continue even on minor errors
-        localeId:
-            'en_US', // Explicit locale improves accuracy. Use 'en_IN' for Indian accents
-      );
-
-      debugPrint('✅ Speech-to-text listening started');
-      return true;
-    } catch (e) {
-      debugPrint('❌ Error starting speech listening: $e');
-      _isListening = false;
-      return false;
-    }
-  }
-
-  /// Internal method to restart listening after it auto-stops
-  /// This enables truly continuous transcription for long medical consultations
-  Future<void> _restartListening() async {
-    if (!_isListening || !_isRecording || _speechToText == null) {
-      debugPrint(
-          '⏹️ Not restarting: listening=$_isListening, recording=$_isRecording, speechToText=${_speechToText != null}');
-      return;
-    }
-
-    try {
-      debugPrint(
-          '🔄 Auto-restarting speech recognition (accumulated: ${_transcription.length} chars)...');
-
-      await _speechToText!.listen(
-        onResult: (result) {
-          if (result.finalResult) {
-            // Final result - append to accumulated transcript
-            final segment = result.recognizedWords;
-            if (segment.isNotEmpty) {
-              _lastFinalTranscript += segment + ' ';
-              _currentSegment = '';
-              _transcription = _lastFinalTranscript;
-              debugPrint(
-                  '📝 Final segment added (${segment.length} chars): ${segment.length > 50 ? segment.substring(0, 50) + "..." : segment}');
-              debugPrint(
-                  '📊 Total transcription: ${_transcription.length} chars');
-            }
-          } else {
-            // Partial result - show temporarily without saving
-            _currentSegment = result.recognizedWords;
-            _transcription = _lastFinalTranscript + _currentSegment;
-          }
-          if (_onResultCallback != null) {
-            _onResultCallback!(_transcription);
-          }
-        },
-        listenFor: const Duration(
-            hours: 2), // No practical limit for medical consultations
-        pauseFor: const Duration(
-            seconds: 3), // Quick finalization, auto-restart handles continuity
-        partialResults: true,
-        cancelOnError: false, // Continue even on minor errors
-        localeId:
-            'en_US', // Explicit locale improves accuracy. Use 'en_IN' for Indian accents
-      );
-
-      debugPrint('✅ Speech-to-text listening restarted');
-    } catch (e) {
-      debugPrint('❌ Error restarting speech listening: $e');
-    }
-  }
-
-  /// Stop speech-to-text listening
-  Future<void> stopListening() async {
-    if (_speechToText != null && _isListening) {
-      _isListening = false; // Set this first to prevent auto-restart
-      await _speechToText!.stop();
-      _onResultCallback = null;
-      // Keep the final transcription, just mark as not listening
-      debugPrint(
-          '🎤 Speech-to-text stopped. Final transcription length: ${_transcription.length} characters');
-    }
-  }
-
-  /// Transcribe recorded audio file (for post-processing if real-time fails)
-  Future<String?> transcribeAudioFile(String filePath) async {
-    // Note: This would require a speech-to-text service like Google Cloud Speech-to-Text
-    // For now, we'll rely on real-time transcription
-    // TODO: Implement file-based transcription using Google Cloud Speech API
-    debugPrint(
-        'File transcription not yet implemented. Use real-time transcription.');
-    return null;
-  }
-
-  /// Get cleaned transcription with formatting hints for LLM processing
-  /// This prepares the transcript for post-processing to improve accuracy
-  String getFormattedTranscriptForCleanup() {
-    if (_transcription.isEmpty) return '';
-
-    debugPrint(
-        '📝 Preparing transcript for LLM cleanup (${_transcription.length} chars)');
-
-    // Return transcript with metadata for LLM processing
-    return '''
-Medical Conversation Transcript (Raw)
-Duration: ${_recordingDuration.inMinutes} minutes ${_recordingDuration.inSeconds % 60} seconds
-Length: ${_transcription.length} characters
-
-Transcript:
-$_transcription
-
-Instructions for cleanup:
-- Fix grammar and punctuation
-- Normalize verb tenses (e.g., "continue" → "continues")
-- Add articles where missing (e.g., "after week" → "after a week")
-- Do NOT add or remove medical information
-- Do NOT change meaning or intent
-- Preserve all medical terms and symptoms mentioned
-- Return only the cleaned transcript, no additional commentary
-''';
-  }
-
-  /// Get transcript with basic speaker inference (heuristic-based)
-  /// This attempts to identify doctor vs patient speech patterns
-  String getTranscriptWithSpeakerLabels() {
-    if (_transcription.isEmpty) return '';
-
-    // Split by sentences and apply simple heuristics
-    final sentences = _transcription.split(RegExp(r'[.!?]\s+'));
-    final StringBuffer formatted = StringBuffer();
-
-    for (var sentence in sentences) {
-      if (sentence.trim().isEmpty) continue;
-
-      final lowerSentence = sentence.toLowerCase();
-      String speaker = 'Unknown';
-
-      // Simple heuristic rules (can be improved with ML)
-      if (lowerSentence
-          .contains(RegExp(r'\b(doctor|hi doctor|hello doctor)\b'))) {
-        speaker = 'Patient';
-      } else if (lowerSentence.contains(
-          RegExp(r'\b(bring you|what.*you|any.*you|prescribe|like you)\b'))) {
-        speaker = 'Doctor';
-      } else if (lowerSentence
-          .contains(RegExp(r'\b(i have|my|i feel|having)\b'))) {
-        speaker = 'Patient';
-      } else if (lowerSentence
-          .contains(RegExp(r'\b(prescribe|examine|test|scan|come back)\b'))) {
-        speaker = 'Doctor';
-      }
-
-      formatted.writeln('$speaker: ${sentence.trim()}');
-    }
-
-    return formatted.toString();
-  }
-
   /// Dispose resources
   void dispose() {
     _recordingTimer?.cancel();
     _audioRecorder?.dispose();
     _audioRecorder = null;
-    _speechToText = null;
   }
 }

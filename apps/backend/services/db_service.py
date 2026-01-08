@@ -45,8 +45,11 @@ async def save_raw_transcript(
     transcript: str,
     confidence: float | None = None,
     language: str | None = None
-) -> None:
-    """Save raw STT transcript to visit_transcripts table."""
+) -> str:
+    """Save raw STT transcript to visit_transcripts table.
+
+    Returns the transcript_id of the saved record.
+    """
     try:
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
@@ -62,9 +65,26 @@ async def save_raw_transcript(
                 "visit_id": visit_id
             })
 
-            conn.commit()
-            logger.info(f"Saved transcript for visit {visit_id}: {len(transcript)} characters")
+            # Get the transcript_id for the updated record
+            select_query = text("""
+                SELECT transcript_id FROM visit_transcripts
+                WHERE visit_id = :visit_id
+            """)
 
+            result = conn.execute(select_query, {"visit_id": visit_id})
+            row = result.fetchone()
+
+            if not row:
+                raise HTTPException(status_code=404, detail=f"No transcript record found for visit {visit_id}")
+
+            transcript_id = str(row[0])
+            conn.commit()
+            logger.info(f"Saved transcript for visit {visit_id}: {len(transcript)} characters, transcript_id: {transcript_id}")
+
+            return transcript_id
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error saving transcript for visit {visit_id}: {e}")
         raise
@@ -121,3 +141,61 @@ async def ensure_user_exists(firebase_uid: str, email: str) -> bool:
             {"firebase_uid": firebase_uid, "email": email},
         )
         return True
+
+
+async def get_transcript_text(transcript_id: str) -> str:
+    """
+    Fetch raw transcript text from visit_transcripts table.
+    Used by AI pipeline to get text for summarization.
+    """
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT transcript_text FROM visit_transcripts
+                WHERE transcript_id = :transcript_id
+            """)
+
+            result = conn.execute(query, {"transcript_id": transcript_id})
+            row = result.fetchone()
+
+            if not row or not row[0]:
+                raise HTTPException(status_code=404, detail=f"No transcript text found for transcript_id {transcript_id}")
+
+            return str(row[0])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching transcript text for transcript_id {transcript_id}: {e}")
+        raise
+
+
+async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str, summary_text: str) -> None:
+    """
+    Insert AI-generated summary into summaries_log table.
+    Used by AI pipeline to persist generated summaries.
+    """
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            insert_query = text("""
+                INSERT INTO summaries_log
+                (transcript_id, visit_id, user_id, model_name, summary_text, cost_usd)
+                VALUES (:transcript_id, :visit_id, :user_id, :model, :summary, :cost)
+            """)
+
+            conn.execute(insert_query, {
+                "transcript_id": transcript_id,
+                "visit_id": visit_id,
+                "user_id": user_id,
+                "model": "gemini-1.5-flash",
+                "summary": summary_text,
+                "cost": 0.001  # Placeholder cost, should be calculated properly
+            })
+
+            logger.info(f"Inserted AI summary for transcript {transcript_id}")
+
+    except Exception as e:
+        logger.error(f"Error inserting AI summary for transcript {transcript_id}: {e}")
+        raise
