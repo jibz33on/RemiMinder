@@ -31,6 +31,16 @@ Response Rules:
 
 "title": Generate a brief, descriptive title (3-5 words) for the visit based on the **type of visit** (Example: Annual Checkup, Follow-up Visit, Lab Results Review). Do not use the chief complaint for title. If a title cannot be clearly determined from the transcript, return "Doctor Office Visit".
 
+"doctor_name": The doctor's full name ONLY if it is explicitly mentioned in the transcript. If the name is not clearly stated, return null. Do NOT guess.
+
+"specialty": The doctor's specialty ONLY if it is explicitly mentioned or clearly implied in the transcript. Otherwise return null. Do NOT guess.
+
+"visit_display_title": A short, human-friendly title for the visit.
+Rules:
+- If doctor_name or specialty exists, format as: "Dr. Name — Specialty"
+- If only doctor_name exists, use: "Dr. Name"
+- If neither exists, return "Medical Visit"
+
 "reminders": List **all** reminders and only those that are STRICTLY TIME-BASED (MUST contain a date, time, or specific duration like "in next month"). Use Today's Date and Time to calculate precise future dates when a timeframe is mentioned.
 
 The reminder text **MUST** be a COMPLETE instruction, that answers:

@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any
 from fastapi import HTTPException
 from .cloud_sql_engine import get_cloud_sql_engine
 from sqlalchemy import text
+from .ai.vertex_gemini_service import GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -171,9 +172,9 @@ async def get_transcript_text(transcript_id: str) -> str:
         raise
 
 
-async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str, summary_text: str) -> None:
+async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str, summary_text: str, structured_data: dict = None) -> None:
     """
-    Insert AI-generated summary into summaries_log table.
+    Insert AI-generated summary into summaries_log table with structured data.
     Used by AI pipeline to persist generated summaries.
     """
     try:
@@ -181,23 +182,71 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
         with engine.begin() as conn:
             insert_query = text("""
                 INSERT INTO summaries_log
-                (transcript_id, visit_id, user_id, model_name, summary_text, cost_usd)
-                VALUES (:transcript_id, :visit_id, :user_id, :model, :summary, :cost)
+                (transcript_id, visit_id, user_id, model_name, summary_text, structured_data_json, cost_usd)
+                VALUES (:transcript_id, :visit_id, :user_id, :model, :summary, :structured_data, :cost)
             """)
+
+            # Convert structured_data dict to JSON string if provided
+            structured_data_json = None
+            if structured_data is not None:
+                structured_data_json = json.dumps(structured_data)
 
             conn.execute(insert_query, {
                 "transcript_id": transcript_id,
                 "visit_id": visit_id,
                 "user_id": user_id,
-                "model": "gemini-1.5-flash",
+                "model": GEMINI_MODEL,  # Updated to use structured model
                 "summary": summary_text,
+                "structured_data": structured_data_json,  # JSON string for JSONB column
                 "cost": 0.001  # Placeholder cost, should be calculated properly
             })
 
-            logger.info(f"Inserted AI summary for transcript {transcript_id}")
+            logger.info(f"Inserted AI summary with structured data for transcript {transcript_id}")
 
     except Exception as e:
         logger.error(f"Error inserting AI summary for transcript {transcript_id}: {e}")
+        raise
+
+
+async def update_visit_with_structured_data(visit_id: str, doctor_name: str = None, specialty: str = None, title: str = None) -> None:
+    """
+    Update visit table with structured data extracted from AI summary.
+    Only updates fields that are provided and not None.
+    """
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            # Build dynamic update query based on provided fields
+            update_fields = []
+            update_values = {"visit_id": visit_id}
+
+            if doctor_name is not None:
+                update_fields.append("doctor = :doctor")
+                update_values["doctor"] = doctor_name
+
+            if specialty is not None:
+                update_fields.append("specialty = :specialty")
+                update_values["specialty"] = specialty
+
+            if title is not None:
+                update_fields.append("title = :title")
+                update_values["title"] = title
+
+            if not update_fields:
+                logger.info(f"No structured data fields to update for visit {visit_id}")
+                return
+
+            update_query = text(f"""
+                UPDATE visits
+                SET {', '.join(update_fields)}
+                WHERE id = :visit_id
+            """)
+
+            conn.execute(update_query, update_values)
+            logger.info(f"Updated visit {visit_id} with structured data: {list(update_values.keys())}")
+
+    except Exception as e:
+        logger.error(f"Error updating visit {visit_id} with structured data: {e}")
         raise
 
 

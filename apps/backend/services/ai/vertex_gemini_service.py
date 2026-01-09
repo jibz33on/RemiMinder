@@ -5,54 +5,113 @@ This service provides a clean interface to Vertex AI Gemini models without
 any database operations or business logic. It focuses solely on LLM inference.
 """
 
+import json
 import logging
 import os
+import re
 from datetime import datetime
 
 from google.cloud import aiplatform
 from vertexai.generative_models import GenerativeModel  # type: ignore
+
+from utils.prompts.medical_summary import build_medical_summary_prompt
 
 # Constants
 GEMINI_MODEL = "gemini-2.5-flash"
 logger = logging.getLogger(__name__)
 
 
-def build_plain_text_summary_prompt(transcript: str) -> str:
+def extract_json_from_llm_response(text: str) -> dict:
     """
-    Build a simple prompt for generating plain-text medical visit summaries.
+    Extract and parse JSON from LLM response text.
+
+    Handles cases where LLM returns JSON wrapped in markdown code fences
+    or with extra text around the JSON object.
+
+    Args:
+        text: Raw response text from LLM
+
+    Returns:
+        Parsed JSON dictionary
+
+    Raises:
+        ValueError: If no valid JSON object is found
+        json.JSONDecodeError: If JSON parsing fails
     """
-    current_datetime = datetime.now().strftime("%A, %B %d, %Y, %I:%M %p")
+    original_text = text  # Keep for error logging
 
-    return f"""You are a helpful medical assistant. Please provide a clear, concise summary of this doctor-patient conversation.
+    # Strip markdown code fences if present
+    text = text.strip()
 
-Current date and time: {current_datetime}
+    # Remove markdown code blocks - handle various formats
+    # Remove ```json or ``` followed by optional language identifier
+    text = re.sub(r'```\w*\s*\n?', '', text)
+    # Remove any remaining ``` markers
+    text = re.sub(r'```', '', text)
 
-Please write a patient-friendly summary that covers:
-- What the patient discussed with the doctor
-- Any diagnoses or concerns mentioned
-- Medications discussed (if any)
-- Next steps or follow-up instructions
+    # Clean up extra whitespace
+    text = text.strip()
 
-Keep the summary clear, empathetic, and easy to understand. Write in plain language without medical jargon.
+    # Find the first JSON object (anything between { and })
+    # Use a more robust pattern that handles nested braces
+    json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
 
-Transcript:
-{transcript}
+    if not json_match:
+        # Try a simpler pattern as fallback
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
 
-Summary:"""
+    if not json_match:
+        logger.error(f"No JSON object found in response: {original_text[:500]}...")
+        logger.error(f"Cleaned text: {text[:500]}...")
+        raise ValueError("No JSON object found in LLM response")
+
+    json_str = json_match.group(0).strip()
+
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing failed for extracted string: {json_str[:500]}...")
+        logger.error(f"Original response: {original_text[:500]}...")
+        raise json.JSONDecodeError(f"Invalid JSON in LLM response: {str(e)}", json_str, e.pos)
 
 
-async def generate_visit_summary(raw_text: str) -> str:
+# COMMENTED OUT: Old plain-text summary prompt - keeping for safety
+# def build_plain_text_summary_prompt(transcript: str) -> str:
+#     """
+#     Build a simple prompt for generating plain-text medical visit summaries.
+#     """
+#     current_datetime = datetime.now().strftime("%A, %B %d, %Y, %I:%M %p")
+#
+#     return f"""You are a helpful medical assistant. Please provide a clear, concise summary of this doctor-patient conversation.
+#
+# Current date and time: {current_datetime}
+#
+# Please write a patient-friendly summary that covers:
+# - What the patient discussed with the doctor
+# - Any diagnoses or concerns mentioned
+# - Medications discussed (if any)
+# - Next steps or follow-up instructions
+#
+# Keep the summary clear, empathetic, and easy to understand. Write in plain language without medical jargon.
+#
+# Transcript:
+# {transcript}
+#
+# Summary:"""
+
+
+async def generate_visit_summary(raw_text: str) -> dict:
     """
-    Calls Vertex Gemini and returns a plain-text medical summary.
+    Calls Vertex Gemini with structured prompt and returns parsed JSON dict.
 
     Args:
         raw_text: The raw transcript text to summarize
 
     Returns:
-        Plain text summary from Gemini
+        Parsed Python dict from Gemini JSON response
 
     Raises:
-        Exception: If Gemini API call fails
+        Exception: If Gemini API call fails or JSON parsing fails
     """
     try:
         # Get configuration from environment
@@ -70,20 +129,28 @@ async def generate_visit_summary(raw_text: str) -> str:
         # Get the model
         model = GenerativeModel(GEMINI_MODEL)
 
-        # Build the prompt
-        prompt = build_plain_text_summary_prompt(raw_text)
+        # Build the structured prompt
+        prompt = build_medical_summary_prompt(raw_text)
 
-        logger.info(f"Sending prompt to Gemini (length: {len(prompt)} chars)")
+        logger.info(f"Sending structured prompt to Gemini (length: {len(prompt)} chars)")
 
         # Generate response
         response = model.generate_content(prompt)
 
-        # Extract and clean the text
-        summary_text = response.text.strip()
+        # Extract the text
+        response_text = response.text.strip()
 
-        logger.info(f"Generated summary (length: {len(summary_text)} chars)")
+        logger.info(f"Received response from Gemini (length: {len(response_text)} chars)")
 
-        return summary_text
+        # Parse JSON response using robust extraction
+        try:
+            parsed_result = extract_json_from_llm_response(response_text)
+            logger.info(f"Successfully parsed JSON response with keys: {list(parsed_result.keys())}")
+            return parsed_result
+        except (ValueError, json.JSONDecodeError) as json_error:
+            logger.error(f"Failed to parse JSON response: {str(json_error)}")
+            logger.error(f"Raw response text: {response_text[:500]}...")  # Log first 500 chars
+            raise Exception(f"Gemini returned invalid JSON: {str(json_error)}")
 
     except Exception as e:
         logger.error(f"Gemini API call failed: {str(e)}")

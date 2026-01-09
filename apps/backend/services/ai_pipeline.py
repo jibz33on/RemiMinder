@@ -11,14 +11,14 @@ This orchestrator contains no LLM code, no SQL strings, and no business logic.
 
 import logging
 from services.ai.vertex_gemini_service import generate_visit_summary
-from services.db_service import get_transcript_text, insert_ai_summary_log
+from services.db_service import get_transcript_text, insert_ai_summary_log, update_visit_with_structured_data
 
 logger = logging.getLogger(__name__)
 
 
 async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: str) -> str:
     """
-    Complete AI summary pipeline for a visit transcript.
+    Complete AI summary pipeline for a visit transcript with structured data.
 
     Args:
         visit_id: The visit identifier
@@ -26,7 +26,7 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
         user_id: The user identifier
 
     Returns:
-        Generated summary text
+        Generated summary text (for backward compatibility)
 
     Raises:
         Exception: If any step in the pipeline fails
@@ -43,17 +43,30 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
 
         logger.info(f"Retrieved transcript text (length: {len(raw_text)} chars)")
 
-        # Step B: Generate summary using Vertex Gemini
-        logger.info(f"Generating AI summary for visit {visit_id}")
-        summary_text = await generate_visit_summary(raw_text)
-        logger.info(f"Generated summary (length: {len(summary_text)} chars)")
+        # Step B: Generate structured summary using Vertex Gemini
+        logger.info(f"Generating AI structured summary for visit {visit_id}")
+        structured_result = await generate_visit_summary(raw_text)
 
-        # Step C: Save summary to database
-        logger.info(f"Saving summary to database for transcript {transcript_id}")
-        await insert_ai_summary_log(transcript_id, visit_id, user_id, summary_text)
-        logger.info(f"Summary saved successfully for visit {visit_id}")
+        # Extract summary text for backward compatibility
+        summary_text = structured_result.get("summary", "")
+        logger.info(f"Generated structured summary (length: {len(summary_text)} chars)")
 
-        # Step D: Return the summary
+        # Step C: Save structured summary to database
+        logger.info(f"Saving structured summary to database for transcript {transcript_id}")
+        await insert_ai_summary_log(transcript_id, visit_id, user_id, summary_text, structured_result)
+        logger.info(f"Structured summary saved successfully for visit {visit_id}")
+
+        # Step D: Update visit with structured data
+        logger.info(f"Updating visit {visit_id} with structured data")
+        await update_visit_with_structured_data(
+            visit_id=visit_id,
+            doctor_name=structured_result.get("doctor_name"),
+            specialty=structured_result.get("specialty"),
+            title=structured_result.get("visit_display_title")
+        )
+        logger.info(f"Visit {visit_id} updated with structured data")
+
+        # Step E: Return the summary text (for backward compatibility)
         return summary_text
 
     except Exception as e:
