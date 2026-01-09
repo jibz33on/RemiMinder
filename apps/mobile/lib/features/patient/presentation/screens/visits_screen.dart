@@ -153,7 +153,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
       String location, bool hasRecording) {
     return InkWell(
       onTap: () {
-        context.go('/patient/visit-details');
+        context.go('/patient/visit-details?visitId=mock-visit-002');
       },
       child: Row(
         children: [

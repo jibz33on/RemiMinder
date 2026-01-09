@@ -199,3 +199,90 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
     except Exception as e:
         logger.error(f"Error inserting AI summary for transcript {transcript_id}: {e}")
         raise
+
+
+async def get_latest_ai_summary_for_visit(visit_id: str, user_id: str) -> Optional[str]:
+    """
+    Get the latest AI-generated summary for a visit from summaries_log table.
+    Returns summary_text if exists, None if not found.
+    Used by visit summary API to fetch processed summaries.
+    """
+    try:
+        logger.info(f"Querying summaries_log for visit_id={visit_id}, user_id={user_id}")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT summary_text, created_at FROM summaries_log
+                WHERE visit_id = :visit_id AND user_id = :user_id
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+
+            result = conn.execute(query, {"visit_id": visit_id, "user_id": user_id})
+            row = result.fetchone()
+
+            if row and row[0]:
+                logger.info(f"Found summary for visit_id={visit_id}, user_id={user_id}: created_at={row[1]}")
+                return str(row[0])
+            else:
+                logger.info(f"No summary found for visit_id={visit_id}, user_id={user_id}")
+
+            return None
+
+    except Exception as e:
+        logger.error(f"Error fetching AI summary for visit {visit_id}: {e}")
+        raise
+
+
+async def get_user_summaries(user_uuid: str) -> list[dict]:
+    """
+    Get all summaries for a user by joining summaries_log and visits tables.
+    Returns list of summary objects with visit metadata, ordered by newest first.
+    """
+    try:
+        logger.info(f"Fetching summaries for user_uuid={user_uuid}")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT
+                    s.visit_id,
+                    s.created_at AS summary_created_at,
+                    s.model_name,
+                    s.summary_text,
+                    v.doctor AS doctor_name,
+                    v.specialty AS specialty,
+                    s.created_at AS visit_date
+                FROM summaries_log s
+                JOIN visits v ON v.id = s.visit_id
+                WHERE s.user_id = :user_uuid
+                ORDER BY s.created_at DESC;
+            """)
+
+            result = conn.execute(query, {"user_uuid": user_uuid})
+            rows = result.fetchall()
+
+            summaries = []
+            for row in rows:
+                visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, visit_date = row
+
+                # Truncate summary_text to ~160 characters for preview
+                summary_preview = summary_text[:160] + "..." if len(summary_text) > 160 else summary_text
+
+                summaries.append({
+                    "visit_id": str(visit_id),
+                    "doctor_name": doctor_name,
+                    "specialty": specialty,
+                    "visit_date": str(visit_date) if visit_date else None,
+                    "summary_created_at": str(summary_created_at),
+                    "summary_preview": summary_preview,
+                    "model_name": model_name,
+                })
+
+            logger.info(f"Found {len(summaries)} summaries for user_uuid={user_uuid}")
+            return summaries
+
+    except Exception as e:
+        logger.error(f"Error fetching user summaries for user_uuid={user_uuid}: {e}")
+        raise

@@ -13,7 +13,7 @@ from google.cloud import aiplatform
 from vertexai.generative_models import GenerativeModel  # type: ignore
 
 # Constants
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 logger = logging.getLogger(__name__)
 
 

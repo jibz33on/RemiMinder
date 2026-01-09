@@ -359,3 +359,71 @@ async def get_visit_audio_url_endpoint(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
+
+
+@router.get("/visits/{visit_id}/summary")
+async def get_visit_summary(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Get the latest AI-generated summary for a visit.
+    Returns processing status if not ready, or summary text if available.
+    """
+    try:
+        logger.info(f"Getting summary for visit_id={visit_id}, firebase_uid={user_id}")
+
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid, get_latest_ai_summary_for_visit
+        user_uuid = await get_user_uuid(user_id)
+
+        logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
+
+        # Step 2: Fetch latest summary for this visit
+        summary_text = await get_latest_ai_summary_for_visit(visit_id, user_uuid)
+
+        logger.info(f"DB query result for visit_id={visit_id}, user_uuid={user_uuid}: summary_text={summary_text is not None}")
+
+        # Step 3: Return appropriate response
+        if summary_text:
+            logger.info(f"Returning summary: {summary_text[:100]}...")
+            return {"summary": summary_text}
+        else:
+            logger.info("Returning processing status")
+            return {"status": "processing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get summary for visit {visit_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve summary: {str(e)}")
+
+
+@router.get("/summaries")
+async def get_user_summaries_endpoint(
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Get all summaries for the current user by joining summaries_log and visits tables.
+    Returns list of summaries with visit metadata, ordered by newest first.
+    """
+    try:
+        logger.info(f"Getting summaries list for firebase_uid={user_id}")
+
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid, get_user_summaries
+        user_uuid = await get_user_uuid(user_id)
+
+        logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
+
+        # Step 2: Fetch user summaries
+        summaries = await get_user_summaries(user_uuid)
+
+        logger.info(f"Returning {len(summaries)} summaries for user_uuid={user_uuid}")
+        return summaries
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get summaries for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve summaries: {str(e)}")

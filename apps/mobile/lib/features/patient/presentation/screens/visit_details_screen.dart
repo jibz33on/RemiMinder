@@ -1,59 +1,85 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
+import '../../data/services/patient_api_service.dart';
 
 class VisitDetailsScreen extends StatefulWidget {
-  const VisitDetailsScreen({super.key});
+  final String visitId;
+
+  VisitDetailsScreen({
+    super.key,
+    required this.visitId,
+  }) {
+    print("🧨🧨🧨 Opening VisitDetailsScreen with visitId = $visitId");
+  }
 
   @override
   State<VisitDetailsScreen> createState() => _VisitDetailsScreenState();
 }
 
 class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
-  bool _isExpanded = false;
+  // AI Summary state
+  String? _aiSummary;
+  bool _isLoadingSummary = true;
+  String _summaryStatus =
+      'loading'; // 'loading', 'processing', 'ready', 'error'
 
-  // Mock visit data (would come from API/navigation params)
-  final Map<String, dynamic> _visitData = {
-    'id': 'visit_001',
-    'doctor': 'Dr. Sarah Johnson',
-    'specialty': 'Cardiology',
-    'date': '2024-12-12',
-    'time': '10:30 AM',
-    'duration': '45 minutes',
-    'location': 'City Medical Center - Room 204',
-    'transcript': '''
-Doctor: Good morning, John. How have you been feeling since our last visit?
+  @override
+  void initState() {
+    super.initState();
+    _fetchAISummary();
+  }
 
-Patient: I've been doing okay, but I still get tired easily and sometimes have chest discomfort.
+  Future<void> _fetchAISummary() async {
+    print("🔍 _fetchAISummary called for visitId: ${widget.visitId}");
 
-Doctor: I see. Let's check your vitals and go over your recent test results. Your blood pressure is 128/82, which is better than last time. Your cholesterol levels have improved significantly with the medication. The Lisinopril is working well.
+    setState(() {
+      _isLoadingSummary = true;
+      _summaryStatus = 'loading';
+    });
 
-Patient: That's good to hear. Should I continue with the same dosage?
+    try {
+      final authToken = await AuthService().getAccessToken();
+      print("🔍 Auth token available: ${authToken != null}");
 
-Doctor: Yes, continue with Lisinopril 10mg daily. I'd also like you to start monitoring your blood pressure at home twice a week. I've prescribed a home blood pressure monitor.
+      final apiService = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: authToken ?? '',
+      );
 
-For your fatigue, I'd like you to increase your Metformin to 750mg twice daily. This should help with your energy levels.
+      print("🔥🔥🔥 Calling GET /api/visits/${widget.visitId}/summary");
+      final data = await apiService.getVisitSummary(widget.visitId);
+      print("🔍 API response: $data");
 
-Remember to take your medications at the same time each day. Call me immediately if you experience any severe chest pain or shortness of breath.
-
-Your next appointment is in 3 months. Please don't hesitate to call if you have any concerns.
-''',
-    'summary':
-        'Patient reports improved but still experiences fatigue and occasional chest discomfort. Blood pressure and cholesterol levels show improvement. Adjusted Metformin dosage and added home blood pressure monitoring.',
-    'instructions': [
-      'Continue Lisinopril 10mg daily',
-      'Increase Metformin to 750mg twice daily (morning and evening)',
-      'Monitor blood pressure at home twice weekly',
-      'Report any severe chest pain or shortness of breath immediately',
-      'Return for follow-up in 3 months'
-    ],
-    'keyTakeaways': [
-      'Blood pressure improved to 128/82',
-      'Cholesterol levels significantly better',
-      'Home monitoring recommended',
-      'Medication adjustments made'
-    ],
-    'remindersCreated': ['Blood Pressure Check', 'Medication Adjustment']
-  };
+      if (data.containsKey('summary')) {
+        print("🔍 Found summary, setting to ready state");
+        setState(() {
+          _aiSummary = data['summary'];
+          _summaryStatus = 'ready';
+          _isLoadingSummary = false;
+        });
+      } else if (data['status'] == 'processing') {
+        print("🔍 Summary still processing, setting processing state");
+        setState(() {
+          _summaryStatus = 'processing';
+          _isLoadingSummary = false;
+        });
+      } else {
+        print("🔍 Unexpected response format: $data");
+        setState(() {
+          _summaryStatus = 'error';
+          _isLoadingSummary = false;
+        });
+      }
+    } catch (e) {
+      print("🔍 Error fetching summary: $e");
+      setState(() {
+        _summaryStatus = 'error';
+        _isLoadingSummary = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,464 +101,30 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.share,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: _shareVisit,
-          ),
-        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
+        child: RefreshIndicator(
+          onRefresh: _fetchAISummary,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
 
-              // Visit Header
-              _buildVisitHeader(),
+                // AI Summary Card
+                _buildAISummaryCard(),
 
-              const SizedBox(height: 24),
-
-              // Summary Card
-              _buildSummaryCard(),
-
-              const SizedBox(height: 24),
-
-              // Doctor's Instructions
-              _buildInstructionsCard(),
-
-              const SizedBox(height: 24),
-
-              // Key Takeaways
-              _buildKeyTakeawaysCard(),
-
-              const SizedBox(height: 24),
-
-              // AI Insights Section
-              _buildAIInsightsSection(),
-
-              const SizedBox(height: 24),
-
-              // Health Trends
-              _buildHealthTrendsSection(),
-
-              const SizedBox(height: 24),
-
-              // Follow-up Recommendations
-              _buildFollowUpRecommendations(),
-
-              const SizedBox(height: 24),
-
-              // Transcript Section
-              _buildTranscriptSection(),
-
-              const SizedBox(height: 32),
-
-              // Action Buttons
-              _buildActionButtons(),
-
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVisitHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  Icons.medical_services,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _visitData['doctor'],
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    Text(
-                      _visitData['specialty'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildHeaderItem(
-                  Icons.calendar_today,
-                  'Date',
-                  _visitData['date'],
-                ),
-              ),
-              Expanded(
-                child: _buildHeaderItem(
-                  Icons.schedule,
-                  'Time',
-                  _visitData['time'],
-                ),
-              ),
-              Expanded(
-                child: _buildHeaderItem(
-                  Icons.timer,
-                  'Duration',
-                  _visitData['duration'],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 16,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _visitData['location'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderItem(IconData icon, String label, String value) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.secondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.summarize,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Visit Summary',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _visitData['summary'],
-            style: TextStyle(
-              fontSize: 16,
-              color: Theme.of(context).colorScheme.secondary,
-              height: 1.5,
+                const SizedBox(height: 40),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildInstructionsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.assignment,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Doctor\'s Instructions',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...(_visitData['instructions'] as List<String>).map((instruction) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      instruction,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.secondary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKeyTakeawaysCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lightbulb,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Key Takeaways',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                (_visitData['keyTakeaways'] as List<String>).map((takeaway) {
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  takeaway,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTranscriptSection() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Transcript Header
-          InkWell(
-            onTap: () {
-              setState(() {
-                _isExpanded = !_isExpanded;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.description,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Visit Transcript',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    _isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Transcript Content
-          if (_isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                _visitData['transcript'].trim(),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.secondary,
-                  height: 1.6,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAIInsightsSection() {
+  Widget _buildAISummaryCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -554,455 +146,165 @@ Your next appointment is in 3 months. Please don't hesitate to call if you have 
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
+                  color: Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
-                  Icons.psychology,
-                  color: Colors.purple,
+                  Icons.smart_toy,
+                  color: Colors.blue,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'AI Health Insights',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildInsightCard(
-            'Positive Progress',
-            'Blood pressure and cholesterol levels show significant improvement since last visit.',
-            Icons.trending_up,
-            Colors.green,
-          ),
-          const SizedBox(height: 12),
-          _buildInsightCard(
-            'Medication Adherence',
-            'Consistent medication timing detected. This contributes to stable health metrics.',
-            Icons.check_circle,
-            Colors.blue,
-          ),
-          const SizedBox(height: 12),
-          _buildInsightCard(
-            'Lifestyle Impact',
-            'Monitor fatigue levels closely. Consider light exercise and balanced nutrition.',
-            Icons.fitness_center,
-            Colors.orange,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInsightCard(
-      String title, String description, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
+              Expanded(
+                child: const Text(
+                  'AI Visit Summary',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: color,
+                    color: Colors.blue,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.secondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthTrendsSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.show_chart,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Health Trends',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              IconButton(
+                onPressed: _fetchAISummary,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh summary',
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildTrendItem(
-              'Blood Pressure', '128/82', '+5 points', true, Colors.green),
-          const SizedBox(height: 12),
-          _buildTrendItem('Cholesterol (Total)', '185 mg/dL', '-15 mg/dL', true,
-              Colors.green),
-          const SizedBox(height: 12),
-          _buildTrendItem(
-              'Heart Rate (Resting)', '72 bpm', 'Stable', false, Colors.blue),
-          const SizedBox(height: 12),
-          _buildTrendItem('Weight', '165 lbs', '-2 lbs', true, Colors.green),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrendItem(String metric, String value, String change,
-      bool isImprovement, Color color) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: Text(
-            metric,
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).colorScheme.secondary,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Icon(
-                isImprovement ? Icons.arrow_upward : Icons.arrow_forward,
-                size: 16,
-                color: color,
+          if (_isLoadingSummary)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
               ),
-              const SizedBox(width: 4),
-              Text(
-                change,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: color,
+            )
+          else if (_summaryStatus == 'processing')
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.withOpacity(0.3),
                 ),
               ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFollowUpRecommendations() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.calendar_view_week,
-                color: Theme.of(context).colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Follow-up Recommendations',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationItem(
-            'Schedule blood work in 3 months',
-            'Monitor cholesterol and kidney function',
-            DateTime.now().add(const Duration(days: 90)),
-            Colors.blue,
-          ),
-          const SizedBox(height: 12),
-          _buildRecommendationItem(
-            'Cardiac stress test if symptoms persist',
-            'Only if chest discomfort continues',
-            null,
-            Colors.orange,
-          ),
-          const SizedBox(height: 12),
-          _buildRecommendationItem(
-            'Nutrition consultation',
-            'Focus on heart-healthy diet',
-            DateTime.now().add(const Duration(days: 30)),
-            Colors.green,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItem(
-      String title, String description, DateTime? dueDate, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(top: 6),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.psychology,
+                    color: Colors.orange,
+                    size: 24,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-                if (dueDate != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Due: ${dueDate.month}/${dueDate.day}/${dueDate.year}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: color,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '🧠 Generating summary...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'This may take a minute.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        // Primary Action: Create Reminder
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _createReminder,
-            icon: const Icon(Icons.add_alarm),
-            label: const Text('Create Reminder from Instructions'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+              ),
+            )
+          else if (_summaryStatus == 'ready' && _aiSummary != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.green.withOpacity(0.2),
+                ),
+              ),
+              child: Text(
+                _aiSummary!,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.secondary,
+                  height: 1.5,
+                ),
+              ),
+            )
+          else if (_summaryStatus == 'error')
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.red.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: const Text(
+                      'Failed to load AI summary',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _fetchAISummary,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Secondary Actions
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _shareVisit,
-                icon: const Icon(Icons.share),
-                label: const Text('Share'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: Colors.grey,
+                    size: 20,
                   ),
-                ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Unable to load AI summary',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _exportVisit,
-                icon: const Icon(Icons.download),
-                label: const Text('Export'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12),
-
-        // Reminders Created
-        if ((_visitData['remindersCreated'] as List).isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Reminders Created',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...(_visitData['remindersCreated'] as List<String>)
-                    .map((reminder) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      '• $reminder',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
         ],
-      ],
-    );
-  }
-
-  void _createReminder() {
-    // TODO: Navigate to create reminder screen with pre-filled data from instructions
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create Reminder - Coming Soon!')),
-    );
-  }
-
-  void _shareVisit() {
-    // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share Visit Summary - Coming Soon!')),
-    );
-  }
-
-  void _exportVisit() {
-    // TODO: Implement export functionality (PDF, etc.)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export Visit Details - Coming Soon!')),
+      ),
     );
   }
 }

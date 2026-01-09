@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../../../../core/config/environment.dart';
-import '../../../../core/services/auth_service.dart';
 import '../widgets/widgets.dart';
 
 class HistoryListScreen extends StatefulWidget {
@@ -17,7 +13,6 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final AuthService _authService = AuthService();
   String _searchQuery = '';
   List<dynamic> _visitSummaries = [];
   bool _isLoading = true;
@@ -51,22 +46,24 @@ class _HistoryListScreenState extends State<HistoryListScreen>
         _error = null;
       });
 
-      final accessToken = await _authService.getAccessToken();
-      if (accessToken == null) {
-        throw Exception('Authentication required');
-      }
+      // TODO: Uncomment when getVisits is re-enabled
+      // final visits = await apiService.getVisits();
 
-      final uri = Uri.parse('${Environment.apiBaseUrl}/api/visit-summaries');
-      final response = await http.get(
-        uri,
-        headers: {'Authorization': 'Bearer $accessToken'},
-      );
+      // Temporary stub until getVisits is re-enabled - return sample data for UI testing
+      final data = <Map<String, dynamic>>[
+        {
+          'id': 'sample-visit-1',
+          'title': 'Sample Visit',
+          'doctor': 'Dr. Sample',
+          'specialty': 'General Medicine',
+          'date': '2024-01-15',
+          'time': '10:00',
+          'duration': '30 minutes',
+          'summary': 'Sample visit summary',
+          'status': 'completed',
+        }
+      ];
 
-      if (response.statusCode != 200) {
-        throw Exception('Failed to load visit summaries');
-      }
-
-      final data = json.decode(response.body);
       setState(() {
         _visitSummaries = data;
         _isLoading = false;
@@ -240,6 +237,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
         icon: Icons.mic,
         color: Colors.blue,
         categoryColor: Colors.blue,
+        visitId: summary['visitId'] ?? 'mock-visit-from-summary',
       );
     }).toList();
 
@@ -457,22 +455,11 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     // Navigate based on event type
     switch (event.type) {
       case 'visit_recording':
-        // For now, show the summary in a dialog since we don't have visit details page yet
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(event.title),
-            content: SingleChildScrollView(
-              child: Text(event.description),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        );
+        // Navigate to visit details screen with REAL visit ID
+        const realVisitId = '5565cad1-4cd1-4be8-96e0-a4412d39636b';
+        print(
+            "🧨🧨🧨 Navigating to VisitDetailsScreen with REAL visitId = $realVisitId");
+        context.go('/patient/visit-details?visitId=$realVisitId');
         break;
       case 'document_scan':
       case 'lab_report':
@@ -500,6 +487,7 @@ class HistoryEvent {
   final IconData icon;
   final Color color;
   final Color categoryColor;
+  final String? visitId;
 
   HistoryEvent({
     required this.title,
@@ -510,5 +498,6 @@ class HistoryEvent {
     required this.icon,
     required this.color,
     required this.categoryColor,
+    this.visitId,
   });
 }

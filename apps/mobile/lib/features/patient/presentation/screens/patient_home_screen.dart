@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/utilities/greeting_utils.dart';
 import '../widgets/widgets.dart';
-import '../widgets/rounded_navigation_bar.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -24,162 +23,151 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         GreetingUtils.getTimeBasedGreeting(); // Just the greeting part
     final firstName = userName.split(' ').first; // Extract first name only
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          onPressed: () => context.go('/login'),
-        ),
-        title: Row(
-          children: [
-            // Enhanced User Avatar with Gradient (compact)
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Enhanced Welcome Text (greeting + name layout)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Greeting line
-                  Text(
-                    greeting,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  // First name with sparkle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          firstName,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        '✨',
-                        style: TextStyle(fontSize: 16),
-                      ),
+    return Column(
+      children: [
+        // App Bar equivalent - convert to a regular Container
+        Container(
+          color: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0)
+              .copyWith(top: MediaQuery.of(context).padding.top + 16.0),
+          child: Row(
+            children: [
+              // Enhanced User Avatar with Gradient (compact)
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  // Subtitle
-                  Text(
-                    'How are you feeling today?',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              // Enhanced Welcome Text (greeting + name layout)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Greeting line
+                    Text(
+                      greeting,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    // First name with sparkle
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            firstName,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.3,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '✨',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    // Subtitle
+                    Text(
+                      'How are you feeling today?',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                onPressed: () {
+                  context.go('/patient/notifications');
+                },
+              ),
+            ],
+          ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.notifications_outlined,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: () {
-              context.go('/patient/notifications');
-            },
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
 
-                  // Up Next Card
-                  _buildUpNextCard(),
+        // Main content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
 
-                  const SizedBox(height: 32),
+                // Up Next Card
+                _buildUpNextCard(),
 
-                  // Today's Schedule
-                  const SectionHeader(
-                    title: 'Today\'s Schedule',
-                    icon: Icons.schedule,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTodaysSchedule(),
+                const SizedBox(height: 32),
 
-                  const SizedBox(height: 32),
+                // Today's Schedule
+                const SectionHeader(
+                  title: 'Today\'s Schedule',
+                  icon: Icons.schedule,
+                ),
+                const SizedBox(height: 16),
+                _buildTodaysSchedule(),
 
-                  // To-do List
-                  const SectionHeader(
-                    title: 'To-do List',
-                    icon: Icons.checklist,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTodoList(),
+                const SizedBox(height: 32),
 
-                  const SizedBox(height: 32),
+                // To-do List
+                const SectionHeader(
+                  title: 'To-do List',
+                  icon: Icons.checklist,
+                ),
+                const SizedBox(height: 16),
+                _buildTodoList(),
 
-                  const SizedBox(
-                      height: 120), // Extra space for bottom navigation
-                ],
-              ),
+                // Extra space for bottom navigation - this will be handled by the app shell
+                const SizedBox(height: 120),
+              ],
             ),
           ),
-
-          // Rounded Navigation Bar
-          const RoundedNavigationBar(currentItem: NavigationItem.home),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

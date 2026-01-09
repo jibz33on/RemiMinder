@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../models/models.dart';
+import '../models/summary_item.dart';
+// import '../../models/models.dart'; // TODO: Re-enable when patient domain models are implemented
 
 class PatientApiService {
   final String baseUrl;
@@ -16,6 +17,8 @@ class PatientApiService {
         'Authorization': 'Bearer $authToken',
       };
 
+  // TODO: Re-enable when patient domain models are implemented
+  /*
   // Medications
   Future<List<Medication>> getMedications() async {
     final response = await http.get(
@@ -44,7 +47,10 @@ class PatientApiService {
       throw Exception('Failed to create medication');
     }
   }
+  */
 
+  // TODO: Re-enable when patient domain models are implemented
+  /*
   // Reminders
   Future<List<Reminder>> getReminders() async {
     final response = await http.get(
@@ -84,7 +90,10 @@ class PatientApiService {
       throw Exception('Failed to mark reminder as completed');
     }
   }
+  */
 
+  // TODO: Re-enable when patient domain models are implemented
+  /*
   // Appointments
   Future<List<Appointment>> getAppointments() async {
     final response = await http.get(
@@ -113,7 +122,10 @@ class PatientApiService {
       throw Exception('Failed to create appointment');
     }
   }
+  */
 
+  // TODO: Re-enable when patient domain models are implemented
+  /*
   // Visits
   Future<List<Visit>> getVisits() async {
     final response = await http.get(
@@ -142,7 +154,39 @@ class PatientApiService {
       throw Exception('Failed to create visit');
     }
   }
+  */
 
+  // Visit Summary (AI-generated)
+  Future<Map<String, dynamic>> getVisitSummary(String visitId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/visits/$visitId/summary'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to fetch visit summary: ${response.statusCode}');
+    }
+  }
+
+  // Summaries List
+  Future<List<SummaryItem>> getSummaries() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/summaries'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((json) => SummaryItem.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to fetch summaries: ${response.statusCode}');
+    }
+  }
+
+  // TODO: Re-enable when patient domain models are implemented
+  /*
   // Caregivers
   Future<List<Caregiver>> getCaregivers() async {
     final response = await http.get(
@@ -186,4 +230,5 @@ class PatientApiService {
       throw Exception('Failed to update caregiver permissions');
     }
   }
+  */
 }

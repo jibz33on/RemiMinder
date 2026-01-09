@@ -205,8 +205,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       });
                     },
                   ),
-                  const Expanded(
-                    child: Text(
+                  Expanded(
+                    child: const Text(
                       'Remember me',
                       style: TextStyle(fontSize: 14),
                     ),

@@ -35,170 +35,163 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
 
-                  // Care Team Overview
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+              // Care Team Overview
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    child: Column(
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.people,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Your Care Team',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
+                        Icon(
+                          Icons.people,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildTeamStat('Active', '3', Colors.green),
-                            _buildTeamStat('Pending', '1', Colors.orange),
-                            _buildTeamStat('Invites', '5', Colors.blue),
-                          ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'Your Care Team',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Active Caregivers
-                  const SectionHeader(
-                    title: 'Active Caregivers',
-                    icon: Icons.verified_user,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildActiveCaregivers(),
-
-                  const SizedBox(height: 32),
-
-                  // Pending Invitations
-                  const SectionHeader(
-                    title: 'Pending Invitations',
-                    icon: Icons.schedule,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildPendingInvitations(),
-
-                  const SizedBox(height: 32),
-
-                  // Emergency Contacts
-                  const SectionHeader(
-                    title: 'Emergency Contacts',
-                    icon: Icons.emergency,
-                  ),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.emergency,
-                              color: Colors.red,
-                            ),
-                          ),
-                          title: const Text('Emergency Services'),
-                          subtitle: const Text('911 - Always available'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.call, color: Colors.red),
-                            onPressed: () {
-                              // TODO: Call emergency
-                            },
-                          ),
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          title: const Text('John Doe (Spouse)'),
-                          subtitle: const Text('(555) 123-4567'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.call),
-                            onPressed: () {
-                              // TODO: Call contact
-                            },
-                          ),
-                        ),
+                        _buildTeamStat('Active', '3', Colors.green),
+                        _buildTeamStat('Pending', '1', Colors.orange),
+                        _buildTeamStat('Invites', '5', Colors.blue),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 120),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
 
-          // Rounded Navigation Bar
-          const RoundedNavigationBar(currentItem: NavigationItem.careTeam),
-        ],
+              const SizedBox(height: 32),
+
+              // Active Caregivers
+              const SectionHeader(
+                title: 'Active Caregivers',
+                icon: Icons.verified_user,
+              ),
+              const SizedBox(height: 16),
+
+              _buildActiveCaregivers(),
+
+              const SizedBox(height: 32),
+
+              // Pending Invitations
+              const SectionHeader(
+                title: 'Pending Invitations',
+                icon: Icons.schedule,
+              ),
+              const SizedBox(height: 16),
+
+              _buildPendingInvitations(),
+
+              const SizedBox(height: 32),
+
+              // Emergency Contacts
+              const SectionHeader(
+                title: 'Emergency Contacts',
+                icon: Icons.emergency,
+              ),
+              const SizedBox(height: 16),
+
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.emergency,
+                          color: Colors.red,
+                        ),
+                      ),
+                      title: const Text('Emergency Services'),
+                      subtitle: const Text('911 - Always available'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.call, color: Colors.red),
+                        onPressed: () {
+                          // TODO: Call emergency
+                        },
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      title: const Text('John Doe (Spouse)'),
+                      subtitle: const Text('(555) 123-4567'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.call),
+                        onPressed: () {
+                          // TODO: Call contact
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 120),
+            ],
+          ),
+        ),
       ),
     );
   }

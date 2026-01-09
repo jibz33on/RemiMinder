@@ -55,12 +55,13 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str) -> Dict[str, 
         logger.info(f"Converting {m4a_blob_name} -> WAV")
         logger.debug(f"Audio URL (DB): {audio_url}")
 
-        # Step 3: Download m4a and convert to wav locally
+        # Step 3: Download m4a, convert to wav, and upload to GCS temp location
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
 
         m4a_temp_path = None
         wav_temp_path = None
+        stt_temp_blob_name = f"stt_temp/{visit_id}.wav"
 
         try:
             # Download m4a file to temp location
@@ -75,39 +76,62 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str) -> Dict[str, 
 
             convert_m4a_to_wav(m4a_temp_path, wav_temp_path)
 
-            # Step 4: Configure STT for local WAV file
-            speech_client = speech.SpeechClient()
+            # Upload converted WAV to GCS temp location
+            stt_blob = bucket.blob(stt_temp_blob_name)
+            stt_blob.upload_from_filename(wav_temp_path)
 
-            # Read WAV file content for STT
-            with open(wav_temp_path, 'rb') as wav_file:
-                wav_content = wav_file.read()
-
-            audio = speech.RecognitionAudio(content=wav_content)
-
-            # Configure for LINEAR16 WAV
-            config = speech.RecognitionConfig(
-                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                sample_rate_hertz=16000,
-                language_code="en-US",
-                enable_automatic_punctuation=True,
-            )
+            logger.info(f"Uploaded converted WAV to GCS: {stt_temp_blob_name}")
 
         except Exception as e:
-            # Clean up temp files on error
+            # Clean up temp files and GCS blob on error
             if m4a_temp_path and os.path.exists(m4a_temp_path):
                 os.unlink(m4a_temp_path)
             if wav_temp_path and os.path.exists(wav_temp_path):
                 os.unlink(wav_temp_path)
-            raise RuntimeError(f"Audio conversion failed: {e}")
+            # Clean up GCS temp blob if it exists
+            try:
+                temp_blob = bucket.blob(stt_temp_blob_name)
+                if temp_blob.exists():
+                    temp_blob.delete()
+            except:
+                pass  # Ignore cleanup errors
+            raise RuntimeError(f"Audio conversion/upload failed: {e}")
         finally:
-            # Always clean up temp files
+            # Always clean up local temp files
             if m4a_temp_path and os.path.exists(m4a_temp_path):
                 os.unlink(m4a_temp_path)
             if wav_temp_path and os.path.exists(wav_temp_path):
                 os.unlink(wav_temp_path)
 
-        # Step 5: Run recognition
-        response = speech_client.recognize(config=config, audio=audio)
+        # Step 4: Configure STT using GCS URI
+        speech_client = speech.SpeechClient()
+        gcs_wav_uri = f"gs://{bucket_name}/{stt_temp_blob_name}"
+
+        audio = speech.RecognitionAudio(uri=gcs_wav_uri)
+
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            language_code="en-US",
+            enable_automatic_punctuation=True,
+        )
+
+        # Step 5: Run long-running recognition
+        operation = speech_client.long_running_recognize(config=config, audio=audio)
+
+        # Wait for completion (up to 30 minutes for very long recordings)
+        response = operation.result(timeout=1800)
+
+        # Clean up GCS temp file after successful processing
+        try:
+            temp_blob = bucket.blob(stt_temp_blob_name)
+            if temp_blob.exists():
+                temp_blob.delete()
+                logger.info(f"Cleaned up GCS temp file: {stt_temp_blob_name}")
+        except Exception as cleanup_error:
+            logger.warning(f"Failed to clean up GCS temp file {stt_temp_blob_name}: {cleanup_error}")
+            # Don't fail the whole process for cleanup issues
+
+        logger.info("STT job completed")
 
         if not response.results:
             raise ValueError("No speech detected in audio file")

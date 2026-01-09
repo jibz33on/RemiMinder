@@ -14,14 +14,15 @@ import '../features/caregiver/presentation/screens/alert_list_screen.dart';
 import '../features/caregiver/presentation/screens/accept_invitations_screen.dart';
 import '../features/patient/presentation/screens/visit_recording_screen.dart';
 import '../features/patient/presentation/screens/visit_details_screen.dart';
+import '../features/patient/presentation/screens/overview_screen.dart';
 import '../features/patient/presentation/screens/reminders_screen.dart';
 import '../features/patient/presentation/screens/camera_screen.dart';
-import '../features/patient/presentation/screens/history_list_screen.dart';
 import '../features/patient/presentation/screens/care_team_screen.dart';
 import '../features/patient/presentation/screens/profile_screen.dart';
 import '../features/patient/presentation/screens/send_invitations_screen.dart';
 
 import '../features/shared/presentation/screens/loading_screen.dart';
+import '../features/patient/presentation/widgets/patient_app_shell.dart';
 
 // Placeholder screens - we'll implement these one by one
 class PlaceholderScreen extends StatelessWidget {
@@ -72,21 +73,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      // Patient routes
-      GoRoute(
-        path: '/patient/home',
-        builder: (context, state) => const PatientHomeScreen(),
+      // Patient shell route with navigation
+      ShellRoute(
+        builder: (context, state, child) {
+          final location = state.uri.path;
+          final currentItem = getCurrentNavigationItem(location);
+          return PatientAppShell(
+            currentItem: currentItem,
+            child: child,
+          );
+        },
+        routes: [
+          GoRoute(
+            path: '/patient/home',
+            builder: (context, state) => const PatientHomeScreen(),
+          ),
+          GoRoute(
+            path: '/patient/overview',
+            builder: (context, state) => const OverviewScreen(),
+          ),
+          GoRoute(
+            path: '/patient/care-team',
+            builder: (context, state) => const CareTeamScreen(),
+          ),
+          GoRoute(
+            path: '/patient/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+        ],
       ),
+
+      // Patient routes that don't use the navigation shell (modals, full-screen)
       GoRoute(
         path: '/patient/record-visit/:visitId',
         builder: (context, state) {
           final visitId = state.pathParameters['visitId']!;
           return VisitRecordingScreen(visitId: visitId);
         },
-      ),
-      GoRoute(
-        path: '/patient/history-list',
-        builder: (context, state) => const HistoryListScreen(),
       ),
       GoRoute(
         path: '/patient/camera/:visitId',
@@ -104,19 +127,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/patient/visit-details',
-        builder: (context, state) => const VisitDetailsScreen(),
+        builder: (context, state) {
+          final visitId = state.uri.queryParameters['visitId']!;
+          return VisitDetailsScreen(visitId: visitId);
+        },
       ),
       GoRoute(
         path: '/patient/reminders',
         builder: (context, state) => const RemindersScreen(),
-      ),
-      GoRoute(
-        path: '/patient/care-team',
-        builder: (context, state) => const CareTeamScreen(),
-      ),
-      GoRoute(
-        path: '/patient/profile',
-        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/patient/invitations',

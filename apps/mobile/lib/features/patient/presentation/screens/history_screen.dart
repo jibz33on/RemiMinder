@@ -99,7 +99,8 @@ class _HistoryScreenState extends State<HistoryScreen>
             '2 days ago',
             Icons.mic,
             Colors.blue,
-            () => context.go('/patient/visit-details'),
+            () => context
+                .go('/patient/visit-details?visitId=visit-recording-001'),
           ),
           _buildHistoryItem(
             'Prescription Scanned',
@@ -131,7 +132,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             '1 week ago',
             Icons.description,
             Colors.orange,
-            () => context.go('/patient/visit-details'),
+            () => context.go('/patient/visit-details?visitId=mock-visit-001'),
           ),
         ],
       ),
@@ -149,7 +150,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             '2 days ago',
             Icons.mic,
             Colors.blue,
-            () => context.go('/patient/visit-details'),
+            () => context.go('/patient/visit-details?visitId=mock-visit-001'),
           ),
           _buildHistoryItem(
             'Visit Summary',
@@ -157,7 +158,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             '1 week ago',
             Icons.description,
             Colors.orange,
-            () => context.go('/patient/visit-details'),
+            () => context.go('/patient/visit-details?visitId=mock-visit-001'),
           ),
           _buildHistoryItem(
             'Telehealth Call',
@@ -165,7 +166,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             '2 weeks ago',
             Icons.video_call,
             Colors.purple,
-            () => context.go('/patient/visit-details'),
+            () => context.go('/patient/visit-details?visitId=mock-visit-001'),
           ),
         ],
       ),
