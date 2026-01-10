@@ -500,8 +500,8 @@ class _OverviewScreenState extends State<OverviewScreen>
             : () {
                 print(
                     "🧨 Tapping summary card for visitId = ${summary.visitId}");
-                context.go('/patient/visit-details?visitId=${summary.visitId}');
-              },
+          context.go('/patient/visit-details?visitId=${summary.visitId}');
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -538,13 +538,13 @@ class _OverviewScreenState extends State<OverviewScreen>
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                  Text(
                           'Share',
-                          style: TextStyle(
-                            fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12,
                             color: Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
+                    ),
+                  ),
                         Switch(
                           value: isShared,
                           onChanged: (value) => _toggleShare(summaryId, value),

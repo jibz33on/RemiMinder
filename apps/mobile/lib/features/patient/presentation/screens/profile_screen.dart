@@ -25,107 +25,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
 
-              // Profile Header
-              _buildProfileHeader(),
+                  // Profile Header
+                  _buildProfileHeader(),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-              // Account Settings
-              const SectionHeader(
-                title: 'Account Settings',
-                icon: Icons.person,
-              ),
-              const SizedBox(height: 16),
-
-              _buildAccountSettings(),
-
-              const SizedBox(height: 32),
-
-              // Health Preferences
-              const SectionHeader(
-                title: 'Health Preferences',
-                icon: Icons.health_and_safety,
-              ),
-              const SizedBox(height: 16),
-
-              _buildHealthPreferences(),
-
-              const SizedBox(height: 32),
-
-              // Notification Settings
-              const SectionHeader(
-                title: 'Notifications',
-                icon: Icons.notifications,
-              ),
-              const SizedBox(height: 16),
-
-              _buildNotificationSettings(),
-
-              const SizedBox(height: 32),
-
-              // Accessibility
-              const SectionHeader(
-                title: 'Accessibility',
-                icon: Icons.accessibility,
-              ),
-              const SizedBox(height: 16),
-
-              _buildAccessibilitySettings(),
-
-              const SizedBox(height: 32),
-
-              // Subscription
-              const SectionHeader(
-                title: 'Subscription',
-                icon: Icons.subscriptions,
-              ),
-              const SizedBox(height: 16),
-
-              _buildSubscriptionInfo(),
-
-              const SizedBox(height: 32),
-
-              // Support & Legal
-              const SectionHeader(
-                title: 'Support & Legal',
-                icon: Icons.help,
-              ),
-              const SizedBox(height: 16),
-
-              _buildSupportSection(),
-
-              const SizedBox(height: 32),
-
-              // Sign Out
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement sign out
-                    context.go('/login');
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sign Out'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  // Account Settings
+                  const SectionHeader(
+                    title: 'Account Settings',
+                    icon: Icons.person,
                   ),
-                ),
-              ),
+                  const SizedBox(height: 16),
 
-              const SizedBox(height: 120),
-            ],
-          ),
-        ),
+                  _buildAccountSettings(),
+
+                  const SizedBox(height: 32),
+
+                  // Health Preferences
+                  const SectionHeader(
+                    title: 'Health Preferences',
+                    icon: Icons.health_and_safety,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildHealthPreferences(),
+
+                  const SizedBox(height: 32),
+
+                  // Notification Settings
+                  const SectionHeader(
+                    title: 'Notifications',
+                    icon: Icons.notifications,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildNotificationSettings(),
+
+                  const SizedBox(height: 32),
+
+                  // Accessibility
+                  const SectionHeader(
+                    title: 'Accessibility',
+                    icon: Icons.accessibility,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildAccessibilitySettings(),
+
+                  const SizedBox(height: 32),
+
+                  // Subscription
+                  const SectionHeader(
+                    title: 'Subscription',
+                    icon: Icons.subscriptions,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildSubscriptionInfo(),
+
+                  const SizedBox(height: 32),
+
+                  // Support & Legal
+                  const SectionHeader(
+                    title: 'Support & Legal',
+                    icon: Icons.help,
+                  ),
+                  const SizedBox(height: 16),
+
+                  _buildSupportSection(),
+
+                  const SizedBox(height: 32),
+
+                  // Sign Out
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement sign out
+                        context.go('/login');
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sign Out'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
       ),
     );
   }

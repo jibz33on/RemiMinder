@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../widgets/widgets.dart';
 
 class CareTeamScreen extends StatefulWidget {
   const CareTeamScreen({super.key});
@@ -10,185 +8,97 @@ class CareTeamScreen extends StatefulWidget {
 }
 
 class _CareTeamScreenState extends State<CareTeamScreen> {
+  final List<Map<String, String>> _caregivers = [
+    {'name': 'John Smith', 'role': 'Son', 'access': 'Full Access'},
+    {'name': 'Dr. Lee', 'role': 'Cardiologist', 'access': 'View Only'},
+    {'name': 'Sarah Jones', 'role': 'Home Aide', 'access': 'View Only'},
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: const Text(
           'Care Team',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.person_add,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: () {
-              context.go('/patient/invitations');
-            },
-          ),
-        ],
+        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Header
+              Text(
+                'You are in control. Review your sharing permissions below.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
               const SizedBox(height: 24),
 
-              // Care Team Overview
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              // Caregiver List
+              ..._caregivers.map((caregiver) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: CaregiverTile(
+                      name: caregiver['name']!,
+                      role: caregiver['role']!,
+                      accessLevel: caregiver['access']!,
+                      onManagePermissions: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext dialogContext) {
+                            return AlertDialog(
+                              title: const Text('Remove Caregiver'),
+                              content: const Text(
+                                'Are you sure you want to remove this caregiver from your care team?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(dialogContext).pop();
+                                  },
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(dialogContext).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Caregiver removal coming soon'),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Remove'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.people,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Your Care Team',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildTeamStat('Active', '3', Colors.green),
-                        _buildTeamStat('Pending', '1', Colors.orange),
-                        _buildTeamStat('Invites', '5', Colors.blue),
-                      ],
-                    ),
-                  ],
-                ),
+                  )),
+
+              const SizedBox(height: 24),
+
+              // Invite Card
+              InviteCaregiverTile(
+                onInvite: () {
+                  _showInviteDialog(context);
+                },
               ),
-
-              const SizedBox(height: 32),
-
-              // Active Caregivers
-              const SectionHeader(
-                title: 'Active Caregivers',
-                icon: Icons.verified_user,
-              ),
-              const SizedBox(height: 16),
-
-              _buildActiveCaregivers(),
-
-              const SizedBox(height: 32),
-
-              // Pending Invitations
-              const SectionHeader(
-                title: 'Pending Invitations',
-                icon: Icons.schedule,
-              ),
-              const SizedBox(height: 16),
-
-              _buildPendingInvitations(),
-
-              const SizedBox(height: 32),
-
-              // Emergency Contacts
-              const SectionHeader(
-                title: 'Emergency Contacts',
-                icon: Icons.emergency,
-              ),
-              const SizedBox(height: 16),
-
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.emergency,
-                          color: Colors.red,
-                        ),
-                      ),
-                      title: const Text('Emergency Services'),
-                      subtitle: const Text('911 - Always available'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.call, color: Colors.red),
-                        onPressed: () {
-                          // TODO: Call emergency
-                        },
-                      ),
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      title: const Text('John Doe (Spouse)'),
-                      subtitle: const Text('(555) 123-4567'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.call),
-                        onPressed: () {
-                          // TODO: Call contact
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 120),
             ],
           ),
         ),
@@ -196,197 +106,242 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
     );
   }
 
-  Widget _buildTeamStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
-          ),
-        ),
-      ],
-    );
-  }
+  void _showInviteDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final relationshipController = TextEditingController();
 
-  Widget _buildActiveCaregivers() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Invite Caregiver'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'Enter caregiver\'s full name',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter caregiver\'s email address',
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: relationshipController,
+                decoration: const InputDecoration(
+                  labelText: 'Relationship',
+                  hintText: 'e.g., Son, Daughter, Friend, Nurse',
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildCaregiverItem(
-            'Jane Doe',
-            'Sister',
-            'Active',
-            Colors.green,
-            'Last active 2h ago',
-          ),
-          const Divider(height: 16),
-          _buildCaregiverItem(
-            'Dr. Emily Chen',
-            'Healthcare Professional',
-            'Active',
-            Colors.green,
-            'Last active 6h ago',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingInvitations() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildCaregiverItem(
-            'Mike Johnson',
-            'Friend',
-            'Pending',
-            Colors.orange,
-            'Invited 5 days ago',
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
+          actions: [
+            TextButton(
               onPressed: () {
-                context.go('/patient/invitations');
+                Navigator.of(dialogContext).pop();
               },
-              icon: const Icon(Icons.person_add),
-              label: const Text('Invite New Caregiver'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Caregiver invite flow coming soon'),
+                  ),
+                );
+              },
+              child: const Text('Send Invite'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// =======================
+// Caregiver Tile
+// =======================
+class CaregiverTile extends StatelessWidget {
+  final String name;
+  final String role;
+  final String accessLevel;
+  final VoidCallback onManagePermissions;
+
+  const CaregiverTile({
+    super.key,
+    required this.name,
+    required this.role,
+    required this.accessLevel,
+    required this.onManagePermissions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isFullAccess = accessLevel == 'Full Access';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                name.split(' ').map((p) => p[0]).take(2).join().toUpperCase(),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
+
+          const SizedBox(width: 12),
+
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  role,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                // Access badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isFullAccess
+                        ? Colors.green.withOpacity(0.15)
+                        : Colors.orange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    accessLevel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isFullAccess ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Action
+          TextButton(
+            onPressed: onManagePermissions,
+            child: const Text('Manage'),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCaregiverItem(
-    String name,
-    String relationship,
-    String status,
-    Color statusColor,
-    String subtitle,
-  ) {
-    return Row(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: Icon(
-            Icons.person,
-            color: Theme.of(context).colorScheme.primary,
-            size: 24,
-          ),
+// =======================
+// Invite Tile
+// =======================
+class InviteCaregiverTile extends StatelessWidget {
+  final VoidCallback onInvite;
+
+  const InviteCaregiverTile({
+    super.key,
+    required this.onInvite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onInvite,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(22),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person_add_alt_1,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 16,
+                    'Invite Caregiver',
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: statusColor,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Share access to your health information',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
               ),
-              Text(
-                relationship,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            // TODO: Handle menu actions
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'permissions',
-              child: Text('Manage Permissions'),
             ),
-            const PopupMenuItem(
-              value: 'remove',
-              child: Text('Remove'),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: theme.colorScheme.primary.withOpacity(0.6),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
