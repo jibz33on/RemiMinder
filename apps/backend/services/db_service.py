@@ -250,6 +250,45 @@ async def update_visit_with_structured_data(visit_id: str, doctor_name: str = No
         raise
 
 
+async def delete_user_summary(summary_id: str, user_id: str) -> bool:
+    """
+    Delete a summary from summaries_log table.
+    Only allows deletion if the summary belongs to the specified user.
+
+    Args:
+        summary_id: The UUID of the summary to delete
+        user_id: The UUID of the user (to verify ownership)
+
+    Returns:
+        bool: True if summary was deleted, False if not found or not owned by user
+
+    Raises:
+        Exception: If database operation fails
+    """
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.begin() as conn:
+            # Delete query that checks ownership
+            delete_query = text("""
+                DELETE FROM summaries_log
+                WHERE id = :summary_id AND user_id = :user_id
+            """)
+
+            result = conn.execute(delete_query, {
+                "summary_id": summary_id,
+                "user_id": user_id,
+            })
+
+            deleted_count = result.rowcount
+            logger.info(f"Deleted {deleted_count} summary rows for summary_id={summary_id}, user_id={user_id}")
+
+            return deleted_count > 0
+
+    except Exception as e:
+        logger.error(f"Error deleting summary {summary_id} for user {user_id}: {e}")
+        raise
+
+
 async def get_latest_ai_summary_for_visit(visit_id: str, user_id: str) -> Optional[str]:
     """
     Get the latest AI-generated summary for a visit from summaries_log table.
@@ -296,6 +335,7 @@ async def get_user_summaries(user_uuid: str) -> list[dict]:
         with engine.connect() as conn:
             query = text("""
                 SELECT
+                    s.id AS summary_id,
                     s.visit_id,
                     s.created_at AS summary_created_at,
                     s.model_name,
@@ -314,12 +354,13 @@ async def get_user_summaries(user_uuid: str) -> list[dict]:
 
             summaries = []
             for row in rows:
-                visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, visit_date = row
+                summary_id, visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, visit_date = row
 
                 # Truncate summary_text to ~160 characters for preview
                 summary_preview = summary_text[:160] + "..." if len(summary_text) > 160 else summary_text
 
                 summaries.append({
+                    "summary_id": str(summary_id),
                     "visit_id": str(visit_id),
                     "doctor_name": doctor_name,
                     "specialty": specialty,

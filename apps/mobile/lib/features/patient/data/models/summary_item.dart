@@ -1,4 +1,5 @@
 class SummaryItem {
+  final String summaryId;
   final String visitId;
   final String doctorName;
   final String specialty;
@@ -8,6 +9,7 @@ class SummaryItem {
   final String modelName;
 
   SummaryItem({
+    required this.summaryId,
     required this.visitId,
     required this.doctorName,
     required this.specialty,
@@ -19,6 +21,7 @@ class SummaryItem {
 
   factory SummaryItem.fromJson(Map<String, dynamic> json) {
     return SummaryItem(
+      summaryId: json['summary_id'] as String,
       visitId: json['visit_id'] as String,
       doctorName: json['doctor_name'] as String? ?? 'Unknown Doctor',
       specialty: json['specialty'] as String? ?? 'Unknown Specialty',

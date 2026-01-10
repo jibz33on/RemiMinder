@@ -185,6 +185,23 @@ class PatientApiService {
     }
   }
 
+  Future<void> deleteSummary(String summaryId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/api/summaries/$summaryId'),
+      headers: _headers,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete summary: ${response.statusCode}');
+    }
+
+    // API returns {"status": "ok"} on success
+    final responseData = json.decode(response.body);
+    if (responseData['status'] != 'ok') {
+      throw Exception('Unexpected response from delete API');
+    }
+  }
+
   // TODO: Re-enable when patient domain models are implemented
   /*
   // Caregivers

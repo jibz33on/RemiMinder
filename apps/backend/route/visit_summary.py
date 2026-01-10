@@ -427,3 +427,38 @@ async def get_user_summaries_endpoint(
     except Exception as e:
         logger.error(f"Failed to get summaries for user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve summaries: {str(e)}")
+
+
+@router.delete("/summaries/{summary_id}")
+async def delete_user_summary_endpoint(
+    summary_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Delete a summary by ID.
+    Only allows deletion of summaries belonging to the current user.
+    """
+    try:
+        logger.info(f"Deleting summary {summary_id} for firebase_uid={user_id}")
+
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid, delete_user_summary
+        user_uuid = await get_user_uuid(user_id)
+
+        logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
+
+        # Step 2: Delete the summary (only if it belongs to this user)
+        deleted = await delete_user_summary(summary_id, user_uuid)
+
+        if not deleted:
+            logger.warning(f"Summary {summary_id} not found or not owned by user {user_uuid}")
+            raise HTTPException(status_code=404, detail="Summary not found or access denied")
+
+        logger.info(f"Successfully deleted summary {summary_id} for user {user_uuid}")
+        return {"status": "ok"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete summary {summary_id} for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete summary: {str(e)}")
