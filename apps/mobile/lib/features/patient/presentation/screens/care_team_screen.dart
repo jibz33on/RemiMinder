@@ -20,87 +20,113 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Care Team',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Header
-              Text(
-                'You are in control. Review your sharing permissions below.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  height: 1.5,
+        child: Column(
+          children: [
+            // Custom Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF1A4D4D), // Dark teal-green
+                    Color(0xFF051818), // Very dark green/black
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: const Text(
+                'Care Team',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
               ),
+            ),
 
-              const SizedBox(height: 24),
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Subtitle
+                    Text(
+                      'You are in control. Review your sharing permissions below.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
 
-              // Caregiver List
-              ..._caregivers.map((caregiver) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: CaregiverTile(
-                      name: caregiver['name']!,
-                      role: caregiver['role']!,
-                      accessLevel: caregiver['access']!,
-                      onManagePermissions: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext dialogContext) {
-                            return AlertDialog(
-                              title: const Text('Remove Caregiver'),
-                              content: const Text(
-                                'Are you sure you want to remove this caregiver from your care team?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(dialogContext).pop();
-                                  },
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(dialogContext).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Caregiver removal coming soon'),
+                    const SizedBox(height: 24),
+
+                    // Caregiver List
+                    ..._caregivers.map((caregiver) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: CaregiverTile(
+                            name: caregiver['name']!,
+                            role: caregiver['role']!,
+                            accessLevel: caregiver['access']!,
+                            onManagePermissions: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext dialogContext) {
+                                  return AlertDialog(
+                                    title: const Text('Remove Caregiver'),
+                                    content: const Text(
+                                      'Are you sure you want to remove this caregiver from your care team?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(dialogContext).pop();
+                                        },
+                                        child: const Text('Cancel'),
                                       ),
-                                    );
-                                  },
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red,
-                                  ),
-                                  child: const Text('Remove'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(dialogContext).pop();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Caregiver removal coming soon'),
+                                            ),
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                        ),
+                                        child: const Text('Remove'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        )),
+
+                    const SizedBox(height: 24),
+
+                    // Invite Card
+                    InviteCaregiverTile(
+                      onInvite: () {
+                        _showInviteDialog(context);
                       },
                     ),
-                  )),
-
-              const SizedBox(height: 24),
-
-              // Invite Card
-              InviteCaregiverTile(
-                onInvite: () {
-                  _showInviteDialog(context);
-                },
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

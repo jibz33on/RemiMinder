@@ -24,10 +24,12 @@ class _OverviewScreenState extends State<OverviewScreen>
   bool _isLoadingSummaries = true;
   String? _summariesError;
 
-  // Selection and sharing state
+  // Sharing state
+  Map<String, bool> _shareStates = {};
+
+  // Selection state
   bool _isSelectionMode = false;
   Set<String> _selectedSummaryIds = {};
-  Map<String, bool> _shareStates = {};
 
   @override
   void initState() {
@@ -85,10 +87,50 @@ class _OverviewScreenState extends State<OverviewScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: _buildAppBar(),
       body: SafeArea(
         child: Column(
           children: [
+            // Custom Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF1A4D4D), // Dark teal-green
+                    Color(0xFF051818), // Very dark green/black
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 48),
+                  Expanded(
+                    child: const Text(
+                      'Overview',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Colors.white,
+                    ),
+                    onPressed: _isSelectionMode
+                        ? _deleteSelectedSummaries
+                        : _enterSelectionMode,
+                  ),
+                ],
+              ),
+            ),
+
             // Search Box
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -142,72 +184,6 @@ class _OverviewScreenState extends State<OverviewScreen>
         ),
       ),
     );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    if (_isSelectionMode) {
-      // Selection mode AppBar
-      return AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.close,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          onPressed: _exitSelectionMode,
-        ),
-        title: Text(
-          'Select summaries',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _deleteSelectedSummaries,
-            child: Text(
-              'Delete Selected',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      );
-    } else {
-      // Normal mode AppBar
-      return AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Overview',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.delete_outline,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: _enterSelectionMode,
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.search,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
-        ],
-      );
-    }
   }
 
   void _enterSelectionMode() {
@@ -500,8 +476,8 @@ class _OverviewScreenState extends State<OverviewScreen>
             : () {
                 print(
                     "🧨 Tapping summary card for visitId = ${summary.visitId}");
-          context.go('/patient/visit-details?visitId=${summary.visitId}');
-        },
+                context.go('/patient/visit-details?visitId=${summary.visitId}');
+              },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -526,7 +502,7 @@ class _OverviewScreenState extends State<OverviewScreen>
                       ),
                     ),
                   ),
-                  // Action widget (Share toggle or Checkbox)
+                  // Action widget (Checkbox or Share toggle)
                   if (_isSelectionMode) ...[
                     Checkbox(
                       value: isSelected,
@@ -538,13 +514,13 @@ class _OverviewScreenState extends State<OverviewScreen>
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                  Text(
+                        Text(
                           'Share',
-                    style: TextStyle(
-                      fontSize: 12,
+                          style: TextStyle(
+                            fontSize: 12,
                             color: Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
+                          ),
+                        ),
                         Switch(
                           value: isShared,
                           onChanged: (value) => _toggleShare(summaryId, value),
