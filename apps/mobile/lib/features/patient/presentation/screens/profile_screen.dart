@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../widgets/widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,438 +8,196 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with empty values - no mock data
+    _firstNameController = TextEditingController();
+    _lastNameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+  }
+
+  // Notification toggles
+  bool _mobileNotifications = true;
+  bool _emailNotifications = false;
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-
-                  // Profile Header
-                  _buildProfileHeader(),
-
-                  const SizedBox(height: 32),
-
-                  // Account Settings
-                  const SectionHeader(
-                    title: 'Account Settings',
-                    icon: Icons.person,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildAccountSettings(),
-
-                  const SizedBox(height: 32),
-
-                  // Health Preferences
-                  const SectionHeader(
-                    title: 'Health Preferences',
-                    icon: Icons.health_and_safety,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildHealthPreferences(),
-
-                  const SizedBox(height: 32),
-
-                  // Notification Settings
-                  const SectionHeader(
-                    title: 'Notifications',
-                    icon: Icons.notifications,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildNotificationSettings(),
-
-                  const SizedBox(height: 32),
-
-                  // Accessibility
-                  const SectionHeader(
-                    title: 'Accessibility',
-                    icon: Icons.accessibility,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildAccessibilitySettings(),
-
-                  const SizedBox(height: 32),
-
-                  // Subscription
-                  const SectionHeader(
-                    title: 'Subscription',
-                    icon: Icons.subscriptions,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildSubscriptionInfo(),
-
-                  const SizedBox(height: 32),
-
-                  // Support & Legal
-                  const SectionHeader(
-                    title: 'Support & Legal',
-                    icon: Icons.help,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildSupportSection(),
-
-                  const SizedBox(height: 32),
-
-                  // Sign Out
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement sign out
-                        context.go('/login');
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Sign Out'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 120),
-                ],
+        child: Column(
+          children: [
+            // Custom Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF1A4D4D), // Dark teal-green
+                    Color(0xFF051818), // Very dark green/black
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: const Text(
+                'Profile Settings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-      ),
-    );
-  }
 
-  Widget _buildProfileHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(35),
-            ),
-            child: Icon(
-              Icons.person,
-              color: Theme.of(context).colorScheme.primary,
-              size: 35,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'John Doe',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Info Card
+                    _buildProfileInfoCard(theme),
+
+                    const SizedBox(height: 24),
+
+                    // Settings Section
+                    _buildSettingsSection(theme),
+
+                    const SizedBox(height: 32),
+
+                    // Bottom Buttons
+                    _buildBottomButtons(theme),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'john.doe@email.com',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Premium Member',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            onPressed: () {
-              // TODO: Edit profile
-            },
-            icon: Icon(
-              Icons.edit,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAccountSettings() {
+  Widget _buildProfileInfoCard(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildSettingItem(
-            'Personal Information',
-            'Update your name, email, and contact details',
-            Icons.person_outline,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Security',
-            'Change password and security settings',
-            Icons.security,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Privacy',
-            'Manage data sharing and privacy preferences',
-            Icons.privacy_tip,
-            () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthPreferences() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildSettingItem(
-            'Medical Conditions',
-            'Manage your health conditions and allergies',
-            Icons.medical_services,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Emergency Information',
-            'Update emergency contacts and medical info',
-            Icons.emergency,
-            () {
-              context.go('/patient/emergency-contacts');
-            },
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Medication Preferences',
-            'Set medication reminders and preferences',
-            Icons.medication,
-            () {},
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationSettings() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.notifications_outlined),
-            title: const Text('Push Notifications'),
-            subtitle:
-                const Text('Receive medication and appointment reminders'),
-            trailing: Switch(
-              value: true,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.email_outlined),
-            title: const Text('Email Notifications'),
-            subtitle: const Text('Receive updates via email'),
-            trailing: Switch(
-              value: false,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.sms),
-            title: const Text('SMS Notifications'),
-            subtitle: const Text('Receive critical alerts via SMS'),
-            trailing: Switch(
-              value: true,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('Advanced Settings'),
-            subtitle: const Text('Customize notification preferences'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              context.go('/patient/notifications');
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAccessibilitySettings() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.text_fields),
-            title: const Text('Text Size'),
-            subtitle: const Text('Large text for better readability'),
-            trailing: Switch(
-              value: false,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.volume_up),
-            title: const Text('Voice Guidance'),
-            subtitle: const Text('Audio assistance for navigation'),
-            trailing: Switch(
-              value: false,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.contrast),
-            title: const Text('High Contrast'),
-            subtitle: const Text('Enhanced contrast for better visibility'),
-            trailing: Switch(
-              value: false,
-              onChanged: (value) {},
-              activeThumbColor: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubscriptionInfo() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: theme.colorScheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: TextFormField(
+                  controller: _firstNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'First Name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _lastNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Last Name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _phoneController,
+            decoration: const InputDecoration(
+              labelText: 'Phone Number',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            keyboardType: TextInputType.emailAddress,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Account Security
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -449,144 +205,212 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Premium Plan',
-                      style: TextStyle(
-                        fontSize: 16,
+                    Text(
+                      'Account Security',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      'Active until Dec 31, 2024',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .secondary
-                            .withOpacity(0.7),
+                      'Manage password and privacy',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
                 ),
               ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: theme.colorScheme.primary.withOpacity(0.6),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Features included:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Notifications
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(20),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '• Unlimited visit recordings\n• Advanced health analytics\n• Priority support\n• Family caregiver accounts',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Manage Plan'),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.notifications,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Notifications',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Mobile',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  Switch(
+                    value: _mobileNotifications,
+                    onChanged: (value) {
+                      setState(() {
+                        _mobileNotifications = value;
+                      });
+                    },
+                    activeColor: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Email',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  Switch(
+                    value: _emailNotifications,
+                    onChanged: (value) {
+                      setState(() {
+                        _emailNotifications = value;
+                      });
+                    },
+                    activeColor: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Language Settings
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.language,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Upgrade'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Language Settings',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: theme.colorScheme.primary.withOpacity(0.6),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildSupportSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildSettingItem(
-            'Help Center',
-            'FAQs, tutorials, and support articles',
-            Icons.help_outline,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Contact Support',
-            'Get help from our support team',
-            Icons.support_agent,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Privacy Policy',
-            'How we protect and use your data',
-            Icons.privacy_tip,
-            () {},
-          ),
-          const Divider(),
-          _buildSettingItem(
-            'Terms of Service',
-            'Legal terms and conditions',
-            Icons.description,
-            () {},
-          ),
-          const Divider(),
-          ListTile(
-            title: Text(
-              'App Version',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.secondary,
+  Widget _buildBottomButtons(ThemeData theme) {
+    return Row(
+      children: [
+        // Upgrade Button
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Upgrade coming soon')),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              side: BorderSide(color: theme.colorScheme.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            trailing: Text(
-              '1.0.0',
+            child: Text(
+              'Upgrade',
               style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.secondary,
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
 
-  Widget _buildSettingItem(
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+        const SizedBox(width: 12),
+
+        // Sign Out Button
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sign out coming soon')),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
