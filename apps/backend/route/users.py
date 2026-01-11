@@ -1,12 +1,15 @@
 """
 User management routes for authentication
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from typing import Optional
 from services.auth_gateway import get_current_user_jwt as get_current_user
 from services.db_provider import get_cloud_sql_engine
-from services.db_service import ensure_user_exists
+from services.db_service import ensure_user_exists, get_user_language_preferences, update_user_language_preferences, get_user_uuid
 from sqlalchemy import text
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
@@ -181,3 +184,101 @@ async def bootstrap_user(current_user: dict = Depends(get_current_user)):
 
     except Exception as e:
         raise HTTPException(500, f"Bootstrap failed: {str(e)}")
+
+
+# =========================================
+# Language Preferences Models
+# =========================================
+
+class LanguagePreferencesResponse(BaseModel):
+    app_language: str
+    visit_language: str
+
+
+class UpdateLanguagePreferencesRequest(BaseModel):
+    app_language: str
+    visit_language: str
+
+
+# =========================================
+# Language Preferences Endpoints
+# =========================================
+
+@router.get("/language-preferences", response_model=LanguagePreferencesResponse)
+async def get_language_preferences(current_user: dict = Depends(get_current_user)):
+    """
+    Get user's language preferences.
+
+    Returns:
+    {
+      "app_language": "en",
+      "visit_language": "es"
+    }
+
+    curl -X GET "http://localhost:8000/api/users/language-preferences" \
+         -H "Authorization: Bearer YOUR_JWT_TOKEN"
+    """
+    try:
+        firebase_uid = current_user.get("sub")
+        if not firebase_uid:
+            raise HTTPException(status_code=401, detail="Invalid user authentication")
+
+        user_uuid = await get_user_uuid(firebase_uid)
+
+        preferences = await get_user_language_preferences(user_uuid)
+        if preferences is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return LanguagePreferencesResponse(**preferences)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get language preferences: {str(e)}")
+        raise HTTPException(500, f"Failed to get language preferences: {str(e)}")
+
+
+@router.put("/language-preferences")
+async def update_language_preferences(
+    request: UpdateLanguagePreferencesRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update user's language preferences.
+
+    Body:
+    {
+      "app_language": "es",
+      "visit_language": "en"
+    }
+
+    curl -X PUT "http://localhost:8000/api/users/language-preferences" \
+         -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+         -H "Content-Type: application/json" \
+         -d '{"app_language": "es", "visit_language": "en"}'
+    """
+    try:
+        firebase_uid = current_user.get("sub")
+        if not firebase_uid:
+            raise HTTPException(status_code=401, detail="Invalid user authentication")
+
+        user_uuid = await get_user_uuid(firebase_uid)
+
+        success = await update_user_language_preferences(
+            user_uuid=user_uuid,
+            app_language=request.app_language,
+            visit_language=request.visit_language
+        )
+
+        if not success:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return {"status": "updated"}
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to update language preferences: {str(e)}")
+        raise HTTPException(500, f"Failed to update language preferences: {str(e)}")

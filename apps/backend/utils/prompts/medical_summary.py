@@ -1,11 +1,16 @@
 from datetime import datetime
 
 
-def build_medical_summary_prompt(transcript: str, current_datetime: str | None = None) -> str:
+def build_medical_summary_prompt(transcript: str, language_name: str = "English", current_datetime: str | None = None) -> str:
     if current_datetime is None:
         current_datetime = datetime.now().strftime("%A, %B %d, %Y, %I:%M %p")
 
+    print(f"🔍 [PROMPT] Building prompt for language: {language_name}")
+    print(f"🔍 [PROMPT] Language instruction: 'MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT include any English words...'")
+
     prompt = f"""
+MANDATORY LANGUAGE INSTRUCTION: Your response MUST be entirely in {language_name}. Do NOT include any English words. All summaries, questions, and text must be translated to {language_name}. Example: if {language_name} is "Spanish", write "El paciente presentó..." instead of "The patient presented...".
+
 You are a warm, friendly highly efficient Clinical Documentation Assistant.
 Your task is to process the doctor-patient visit transcript and structure the information into a single, valid JSON object.
 

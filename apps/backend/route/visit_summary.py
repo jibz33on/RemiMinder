@@ -296,9 +296,21 @@ async def process_visit_audio(
         from services.db_service import get_user_uuid
         user_uuid = await get_user_uuid(user_id)  # user_id is Firebase UID from JWT
 
-        # Step 2: Run STT pipeline
+        # Step 2: Get user's language preferences
+        from services.db_service import get_user_language_preferences
+        try:
+            language_prefs = await get_user_language_preferences(user_uuid)
+            visit_language = language_prefs.get("visit_language", "en") if language_prefs else "en"
+            logger.info(f"🔍 [VISIT] Using visit_language='{visit_language}' for STT (user_uuid={user_uuid})")
+        except Exception as e:
+            logger.warning(f"🔍 [VISIT] Failed to get language preferences for user_uuid={user_uuid}: {e}")
+            visit_language = "en"  # Default fallback
+
+        # Step 3: Run STT pipeline with user's language
         from services.media.audio_pipeline import run_audio_stt_pipeline
-        stt_result = await run_audio_stt_pipeline(visit_id, user_id)
+        logger.info(f"🔍 [VISIT] Starting STT pipeline for visit {visit_id} with language '{visit_language}'")
+        stt_result = await run_audio_stt_pipeline(visit_id, user_id, visit_language)
+        logger.info(f"🔍 [VISIT] STT completed for visit {visit_id}, transcript length: {len(stt_result.get('transcript', ''))}")
 
         # Step 3: Save transcript to database
         from services.db_service import save_raw_transcript
@@ -311,13 +323,14 @@ async def process_visit_audio(
         )
 
         # Step 4: Trigger AI summary pipeline
-        logger.info(f"Triggering AI summary pipeline for visit {visit_id}")
+        logger.info(f"🔍 [VISIT] Triggering AI summary pipeline for visit {visit_id}, transcript {transcript_id}, user {user_uuid}")
         from services.ai_pipeline import run_ai_summary_pipeline
-        await run_ai_summary_pipeline(
+        summary_text = await run_ai_summary_pipeline(
             visit_id=visit_id,
             transcript_id=transcript_id,
             user_id=user_uuid,
         )
+        logger.info(f"🔍 [VISIT] AI summary pipeline completed for visit {visit_id}, summary length: {len(summary_text)}")
 
         # Step 5: Return simple success response
         return {

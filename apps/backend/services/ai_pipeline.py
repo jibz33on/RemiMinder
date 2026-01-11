@@ -11,7 +11,7 @@ This orchestrator contains no LLM code, no SQL strings, and no business logic.
 
 import logging
 from services.ai.vertex_gemini_service import generate_visit_summary
-from services.db_service import get_transcript_text, insert_ai_summary_log, update_visit_with_structured_data
+from services.db_service import get_transcript_text, insert_ai_summary_log, update_visit_with_structured_data, get_user_language_preferences
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,18 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
     try:
         logger.info(f"Starting AI summary pipeline for visit {visit_id}, transcript {transcript_id}")
 
-        # Step A: Fetch raw transcript text from DB
+        # Step A: Fetch user's language preferences
+        logger.info(f"🔍 [LANGUAGE] Fetching language preferences for user {user_id}")
+        try:
+            language_prefs = await get_user_language_preferences(user_id)
+            visit_language = language_prefs.get("visit_language", "en") if language_prefs else "en"
+            logger.info(f"🔍 [LANGUAGE] Retrieved preferences: {language_prefs}")
+            logger.info(f"🔍 [LANGUAGE] Using visit_language='{visit_language}' for AI processing")
+        except Exception as e:
+            logger.warning(f"🔍 [LANGUAGE] Failed to fetch language preferences for user {user_id}: {e}. Using default 'en'")
+            visit_language = "en"
+
+        # Step B: Fetch raw transcript text from DB
         logger.info(f"Fetching transcript text for transcript_id: {transcript_id}")
         raw_text = await get_transcript_text(transcript_id)
 
@@ -43,9 +54,9 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
 
         logger.info(f"Retrieved transcript text (length: {len(raw_text)} chars)")
 
-        # Step B: Generate structured summary using Vertex Gemini
-        logger.info(f"Generating AI structured summary for visit {visit_id}")
-        structured_result = await generate_visit_summary(raw_text)
+        # Step C: Generate structured summary using Vertex Gemini
+        logger.info(f"Generating AI structured summary for visit {visit_id} in language {visit_language}")
+        structured_result = await generate_visit_summary(raw_text, visit_language)
 
         # Extract summary text for backward compatibility
         summary_text = structured_result.get("summary", "")

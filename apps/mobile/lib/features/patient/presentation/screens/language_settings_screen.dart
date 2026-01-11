@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
+import '../../data/services/patient_api_service.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -8,17 +11,107 @@ class LanguageSettingsScreen extends StatefulWidget {
 }
 
 class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
-  String _selectedAppLanguage = "English";
-  String _selectedVisitLanguage = "English";
+  String _selectedAppLanguage = "en";
+  String _selectedVisitLanguage = "en";
+  bool _isLoading = true;
+  bool _isSaving = false;
 
-  final List<String> _availableLanguages = [
-    "English",
-    "Spanish",
-    "Hindi",
-    "Mandarin",
-    "Arabic",
-    "French"
+  final List<Map<String, String>> _availableLanguages = [
+    {"name": "English", "code": "en"},
+    {"name": "Spanish", "code": "es"},
+    {"name": "Hindi", "code": "hi"},
+    {"name": "Mandarin", "code": "zh"},
+    {"name": "Arabic", "code": "ar"},
+    {"name": "French", "code": "fr"},
   ];
+
+  String _getLanguageName(String code) {
+    return _availableLanguages.firstWhere(
+      (lang) => lang['code'] == code,
+      orElse: () => {"name": "English", "code": "en"},
+    )['name']!;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguagePreferences();
+  }
+
+  Future<void> _loadLanguagePreferences() async {
+    try {
+      final authToken = await AuthService().getAccessToken();
+      if (authToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final apiService = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: authToken,
+      );
+
+      final preferences = await apiService.getLanguagePreferences();
+
+      setState(() {
+        _selectedAppLanguage = preferences['app_language'] ?? 'en';
+        _selectedVisitLanguage = preferences['visit_language'] ?? 'en';
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Fallback to defaults
+      setState(() {
+        _selectedAppLanguage = "en";
+        _selectedVisitLanguage = "en";
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load language preferences')),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveLanguagePreferences() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final authToken = await AuthService().getAccessToken();
+      if (authToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final apiService = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: authToken,
+      );
+
+      await apiService.updateLanguagePreferences(
+        appLanguage: _selectedAppLanguage,
+        visitLanguage: _selectedVisitLanguage,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Language settings saved')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save language settings')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
 
   void _showLanguagePicker(BuildContext context, String title,
       String currentLanguage, Function(String) onLanguageSelected) {
@@ -71,11 +164,13 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   itemCount: _availableLanguages.length,
                   itemBuilder: (context, index) {
                     final language = _availableLanguages[index];
-                    final isSelected = language == currentLanguage;
+                    final languageCode = language['code']!;
+                    final languageName = language['name']!;
+                    final isSelected = languageCode == currentLanguage;
 
                     return InkWell(
                       onTap: () {
-                        onLanguageSelected(language);
+                        onLanguageSelected(languageCode);
                         Navigator.of(context).pop();
                       },
                       borderRadius: BorderRadius.circular(12),
@@ -105,7 +200,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                language,
+                                languageName,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyLarge
@@ -193,181 +288,230 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
 
             // Scrollable Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
-                child: Column(
-                  children: [
-                    // App Language Row
-                    InkWell(
-                      onTap: () => _showLanguagePicker(
-                        context,
-                        'Choose App Language',
-                        _selectedAppLanguage,
-                        (language) =>
-                            setState(() => _selectedAppLanguage = language),
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.language,
-                                color: theme.colorScheme.primary,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'App Language',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _selectedAppLanguage,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Visit Language Row
-                    InkWell(
-                      onTap: () => _showLanguagePicker(
-                        context,
-                        'Choose Visit Language',
-                        _selectedVisitLanguage,
-                        (language) =>
-                            setState(() => _selectedVisitLanguage = language),
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.mic,
-                                color: theme.colorScheme.primary,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Visit Language',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _selectedVisitLanguage,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Info Box
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withOpacity(0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+                      child: Column(
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: theme.colorScheme.primary.withOpacity(0.7),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Changing visit language affects speech recognition and AI summaries.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.8),
-                                height: 1.4,
+                          // App Language Row
+                          InkWell(
+                            onTap: () => _showLanguagePicker(
+                              context,
+                              'Choose App Language',
+                              _selectedAppLanguage,
+                              (language) => setState(
+                                  () => _selectedAppLanguage = language),
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withOpacity(0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.language,
+                                      color: theme.colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'App Language',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _getLanguageName(
+                                              _selectedAppLanguage),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            color: theme.colorScheme.onSurface
+                                                .withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Visit Language Row
+                          InkWell(
+                            onTap: () => _showLanguagePicker(
+                              context,
+                              'Choose Visit Language',
+                              _selectedVisitLanguage,
+                              (language) => setState(
+                                  () => _selectedVisitLanguage = language),
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.06),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withOpacity(0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.mic,
+                                      color: theme.colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Visit Language',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _getLanguageName(
+                                              _selectedVisitLanguage),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            color: theme.colorScheme.onSurface
+                                                .withOpacity(0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Save Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed:
+                                  _isSaving ? null : _saveLanguagePreferences,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Save Settings',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Info Box
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color:
+                                  theme.colorScheme.primary.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.1),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: theme.colorScheme.primary
+                                      .withOpacity(0.7),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Changing visit language affects speech recognition and AI summaries.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.8),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),

@@ -248,4 +248,40 @@ class PatientApiService {
     }
   }
   */
+
+  /// Language Preferences
+  Future<Map<String, String>> getLanguagePreferences() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/users/language-preferences'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      return {
+        'app_language': data['app_language'] as String,
+        'visit_language': data['visit_language'] as String,
+      };
+    } else {
+      throw Exception('Failed to load language preferences');
+    }
+  }
+
+  Future<void> updateLanguagePreferences({
+    required String appLanguage,
+    required String visitLanguage,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/users/language-preferences'),
+      headers: _headers,
+      body: json.encode({
+        'app_language': appLanguage,
+        'visit_language': visitLanguage,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update language preferences');
+    }
+  }
 }

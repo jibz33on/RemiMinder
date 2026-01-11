@@ -20,6 +20,17 @@ from utils.prompts.medical_summary import build_medical_summary_prompt
 GEMINI_MODEL = "gemini-2.5-flash"
 logger = logging.getLogger(__name__)
 
+# Language name mapping for Gemini prompts
+LANGUAGE_NAME_MAP = {
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "ar": "Arabic",
+    "hi": "Hindi",
+    "zh": "Chinese"
+}
+
 
 def extract_json_from_llm_response(text: str) -> dict:
     """
@@ -100,12 +111,13 @@ def extract_json_from_llm_response(text: str) -> dict:
 # Summary:"""
 
 
-async def generate_visit_summary(raw_text: str) -> dict:
+async def generate_visit_summary(raw_text: str, language: str = "en") -> dict:
     """
     Calls Vertex Gemini with structured prompt and returns parsed JSON dict.
 
     Args:
         raw_text: The raw transcript text to summarize
+        language: Language code for the response (e.g., 'en', 'es')
 
     Returns:
         Parsed Python dict from Gemini JSON response
@@ -129,10 +141,16 @@ async def generate_visit_summary(raw_text: str) -> dict:
         # Get the model
         model = GenerativeModel(GEMINI_MODEL)
 
-        # Build the structured prompt
-        prompt = build_medical_summary_prompt(raw_text)
+        # Get language name for prompt
+        language_name = LANGUAGE_NAME_MAP.get(language, "English")
+        logger.info(f"🔍 [GEMINI] Generating summary in language: {language_name} ({language})")
+        logger.info(f"🔍 [GEMINI] Sample input text: '{raw_text[:200]}...'")
 
-        logger.info(f"Sending structured prompt to Gemini (length: {len(prompt)} chars)")
+        # Build the structured prompt
+        prompt = build_medical_summary_prompt(raw_text, language_name)
+
+        logger.info(f"🔍 [GEMINI] Sending structured prompt to Gemini (length: {len(prompt)} chars)")
+        logger.info(f"🔍 [GEMINI] Prompt language instruction: 'IMPORTANT: The response MUST be written entirely in {language_name}.'")
 
         # Generate response
         response = model.generate_content(prompt)

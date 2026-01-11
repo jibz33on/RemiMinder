@@ -376,3 +376,99 @@ async def get_user_summaries(user_uuid: str) -> list[dict]:
     except Exception as e:
         logger.error(f"Error fetching user summaries for user_uuid={user_uuid}: {e}")
         raise
+
+
+async def get_user_language_preferences(user_uuid: str) -> dict:
+    """
+    Get user's language preferences.
+
+    Returns:
+    {
+      "app_language": "en",
+      "visit_language": "en"
+    }
+    """
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT app_language, visit_language
+                FROM users
+                WHERE id = :user_uuid
+            """)
+
+            result = conn.execute(query, {"user_uuid": user_uuid})
+            row = result.fetchone()
+
+            logger.info(f"🔍 [DB] Language preferences query for user_uuid={user_uuid} returned row: {row}")
+
+            if not row:
+                logger.warning(f"🔍 [DB] User not found for language preferences: {user_uuid}")
+                return None
+
+            # Handle both tuple and Row objects safely
+            if hasattr(row, '_mapping'):
+                # SQLAlchemy Row object with column names
+                app_language = row._mapping.get('app_language', 'en')
+                visit_language = row._mapping.get('visit_language', 'en')
+                logger.info(f"🔍 [DB] Using Row mapping: app_language={app_language}, visit_language={visit_language}")
+            else:
+                # Tuple unpacking
+                app_language, visit_language = row
+                logger.info(f"🔍 [DB] Using tuple unpacking: app_language={app_language}, visit_language={visit_language}")
+
+            preferences = {
+                "app_language": app_language or 'en',
+                "visit_language": visit_language or 'en'
+            }
+
+            logger.info(f"🔍 [DB] Final language preferences for user_uuid={user_uuid}: {preferences}")
+            return preferences
+
+    except Exception as e:
+        logger.error(f"Error getting language preferences for user_uuid={user_uuid}: {e}")
+        raise
+
+
+async def update_user_language_preferences(user_uuid: str, app_language: str, visit_language: str) -> bool:
+    """
+    Update user's language preferences.
+
+    Returns:
+        True if update was successful, False if user not found
+    """
+    try:
+        # Simple validation
+        if not app_language or not visit_language:
+            raise ValueError("App language and visit language are required")
+
+        if len(app_language) > 10 or len(visit_language) > 10:
+            raise ValueError("Language codes must be 10 characters or less")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                UPDATE users
+                SET app_language = :app_language,
+                    visit_language = :visit_language,
+                    updated_at = now()
+                WHERE id = :user_uuid
+            """)
+
+            result = conn.execute(query, {
+                "user_uuid": user_uuid,
+                "app_language": app_language,
+                "visit_language": visit_language
+            })
+
+            success = result.rowcount > 0
+            if success:
+                logger.info(f"Updated language preferences for user_uuid={user_uuid}: app={app_language}, visit={visit_language}")
+            else:
+                logger.warning(f"User not found for language preferences update: {user_uuid}")
+
+            return success
+
+    except Exception as e:
+        logger.error(f"Error updating language preferences for user_uuid={user_uuid}: {e}")
+        raise

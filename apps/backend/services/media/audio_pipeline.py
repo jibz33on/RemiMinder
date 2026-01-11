@@ -12,6 +12,17 @@ from google.cloud import speech, storage
 
 logger = logging.getLogger(__name__)
 
+# Language mapping for Google STT
+LANGUAGE_MAP = {
+    "en": "en-US",
+    "es": "es-ES",
+    "fr": "fr-FR",
+    "de": "de-DE",
+    "ar": "ar-SA",
+    "hi": "hi-IN",
+    "zh": "zh-CN"
+}
+
 
 def convert_m4a_to_wav(input_path: str, output_path: str) -> None:
     """
@@ -35,8 +46,10 @@ def convert_m4a_to_wav(input_path: str, output_path: str) -> None:
     )
 
 
-async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str) -> Dict[str, Any]:
+async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str = "en") -> Dict[str, Any]:
     try:
+        logger.info(f"🔍 [STT] Starting STT pipeline for visit {visit_id} with language='{language}'")
+
         # Step 1: Resolve user UUID
         from services.db_service import get_user_uuid, get_audio_gcs_url
 
@@ -109,9 +122,14 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str) -> Dict[str, 
 
         audio = speech.RecognitionAudio(uri=gcs_wav_uri)
 
+        # Map language code for STT
+        language_code = LANGUAGE_MAP.get(language, "en-US")
+        logger.info(f"🔍 [STT] Language mapping: input='{language}', available_keys={list(LANGUAGE_MAP.keys())}, result='{language_code}'")
+        logger.info(f"🔍 [STT] Starting Google STT with language_code='{language_code}' for visit {visit_id}")
+
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            language_code="en-US",
+            language_code=language_code,
             enable_automatic_punctuation=True,
         )
 
@@ -154,14 +172,15 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str) -> Dict[str, 
         )
 
         logger.info(
-            f"STT completed for visit {visit_id}: "
+            f"🔍 [STT] STT completed for visit {visit_id}: "
             f"{len(transcript)} chars, avg confidence={confidence}"
         )
+        logger.info(f"🔍 [STT] Sample transcript text: '{transcript[:200]}...'")
 
         return {
             "transcript": transcript,
             "confidence": confidence,
-            "language": "en-US",
+            "language": language_code,
         }
 
     except Exception:
