@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'account_security_screen.dart';
+import 'language_settings_screen.dart';
 import 'upgrade_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -324,13 +325,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 12),
 
         // Language Settings
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
+        InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LanguageSettingsScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
             children: [
               Container(
                 width: 44,
@@ -365,6 +374,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+        ),
         ),
       ],
     );
