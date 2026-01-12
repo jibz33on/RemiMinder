@@ -50,8 +50,8 @@ class AuthService {
   }
 
   /// Sign in with Google OAuth using Firebase
-  Future<User> signInWithGoogle() async {
-    return await _firebaseAuth.signInWithGoogle();
+  Future<User> signInWithGoogle({UserRole? selectedRole}) async {
+    return await _firebaseAuth.signInWithGoogle(selectedRole: selectedRole);
   }
 
   /// Sign out current user

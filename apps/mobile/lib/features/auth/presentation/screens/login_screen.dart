@@ -548,13 +548,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _signInWithGoogle() async {
     try {
-      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+      // Convert string role to UserRole enum
+      UserRole? selectedRole;
+      if (_userRole != null) {
+        selectedRole =
+            _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
+      }
+
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle(
+            selectedRole: selectedRole,
+          );
 
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
 
       if (authState.isAuthenticated) {
-        // Navigate to appropriate home screen based on role
+        // Navigate to appropriate home screen based on selected role (not backend role)
         final user = authState.user;
 
         if (user?.isPatient ?? false) {

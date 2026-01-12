@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import 'account_security_screen.dart';
 import 'language_settings_screen.dart';
 import 'upgrade_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
@@ -417,10 +419,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Sign Out Button
         Expanded(
           child: ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sign out coming soon')),
-              );
+            onPressed: () async {
+              print('👆 ProfileScreen: Sign Out button tapped');
+              try {
+                print(
+                    '👆 ProfileScreen: Calling authNotifierProvider.notifier.signOut()');
+                await ref.read(authNotifierProvider.notifier).signOut();
+                print('👆 ProfileScreen: signOut() completed successfully');
+              } catch (e) {
+                print('👆 ProfileScreen: signOut() failed: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sign out failed: $e')),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

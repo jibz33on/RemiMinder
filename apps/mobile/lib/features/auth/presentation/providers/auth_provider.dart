@@ -117,11 +117,12 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   /// Sign in with Google OAuth
-  Future<void> signInWithGoogle() async {
+  Future<void> signInWithGoogle({UserRole? selectedRole}) async {
     state = AuthState.loading();
 
     try {
-      final user = await _authRepository.signInWithGoogle();
+      final user =
+          await _authRepository.signInWithGoogle(selectedRole: selectedRole);
 
       // Bootstrap user in backend
       await _backendApiService.bootstrapUser();
@@ -134,12 +135,18 @@ class AuthNotifier extends Notifier<AuthState> {
 
   /// Sign out current user
   Future<void> signOut() async {
+    print('🔐 AuthNotifier: signOut() called - setting loading state');
     state = AuthState.loading();
 
     try {
+      print('🔐 AuthNotifier: calling _authRepository.signOut()');
       await _authRepository.signOut();
+      print(
+          '🔐 AuthNotifier: Firebase signOut completed, setting unauthenticated');
       state = AuthState.unauthenticated();
+      print('🔐 AuthNotifier: AuthState set to unauthenticated');
     } catch (e) {
+      print('🔐 AuthNotifier: signOut failed: $e');
       state = AuthState.error(e.toString());
     }
   }

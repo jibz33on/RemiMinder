@@ -116,7 +116,7 @@ class FirebaseAuthService {
   }
 
   /// Sign in with Google OAuth
-  Future<User> signInWithGoogle() async {
+  Future<User> signInWithGoogle({UserRole? selectedRole}) async {
     try {
       // Start Google Sign-In process
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -163,7 +163,8 @@ class FirebaseAuthService {
       final user = User(
         id: userCredential.user!.uid,
         email: userCredential.user!.email ?? '',
-        role: UserRole.patient, // Default role for Google sign-in
+        role: selectedRole ??
+            UserRole.patient, // Use selected role or default to patient
         fullName: userCredential.user!.displayName,
         displayName: userCredential.user!.displayName ??
             "User", // Temporary, will be replaced by backend

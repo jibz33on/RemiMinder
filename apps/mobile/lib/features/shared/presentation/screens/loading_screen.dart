@@ -24,7 +24,8 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   }
 
   Future<void> _handleAuthState(AuthState authState) async {
-    print('🔄 LoadingScreen: Auth state changed - Status: ${authState.status}');
+    print(
+        '🔄 LoadingScreen: _handleAuthState called - Status: ${authState.status}');
     print(
         '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
 
@@ -65,20 +66,8 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
         ref.read(localeProvider.notifier).setLocaleFromString('en');
       }
 
-      print('🔄 LoadingScreen: Navigating to home screen...');
-      // Navigate to appropriate home screen based on role
-      final user = authState.user;
-      if (user?.isPatient ?? false) {
-        print('🔄 LoadingScreen: Navigating to patient home...');
-        context.go('/patient/home');
-      } else if (user?.isCaregiver ?? false) {
-        print('🔄 LoadingScreen: Navigating to caregiver home...');
-        context.go('/caregiver/home');
-      } else {
-        print(
-            '🔄 LoadingScreen: User role not recognized, navigating to welcome...');
-        context.go('/welcome'); // Fallback
-      }
+      print('🔄 LoadingScreen: Navigating to role selection...');
+      context.go('/role-selection');
     } else if (authState.status == AuthStatus.unauthenticated) {
       print(
           '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
