@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'account_security_screen.dart';
 import 'language_settings_screen.dart';
 import 'upgrade_screen.dart';
@@ -62,9 +63,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   end: Alignment.centerRight,
                 ),
               ),
-              child: const Text(
-                'Profile Settings',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)?.profileSettings ??
+                    'Profile Settings',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -294,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _mobileNotifications = value;
                       });
                     },
-                    activeColor: theme.colorScheme.primary,
+                    activeThumbColor: theme.colorScheme.primary,
                   ),
                 ],
               ),
@@ -314,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _emailNotifications = value;
                       });
                     },
-                    activeColor: theme.colorScheme.primary,
+                    activeThumbColor: theme.colorScheme.primary,
                   ),
                 ],
               ),
@@ -329,7 +331,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const LanguageSettingsScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const LanguageSettingsScreen()),
             );
           },
           borderRadius: BorderRadius.circular(20),
@@ -340,41 +343,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
-                  shape: BoxShape.circle,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.language,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-                child: Icon(
-                  Icons.language,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Language Settings',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Language Settings',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: theme.colorScheme.primary.withOpacity(0.6),
-              ),
-            ],
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: theme.colorScheme.primary.withOpacity(0.6),
+                ),
+              ],
+            ),
           ),
-        ),
         ),
       ],
     );

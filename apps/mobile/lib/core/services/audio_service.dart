@@ -164,7 +164,7 @@ class AudioService {
         final size = exists ? await file.length() : 0;
 
         if (exists && size > 0) {
-          debugPrint('Recording saved successfully: $path (${size} bytes)');
+          debugPrint('Recording saved successfully: $path ($size bytes)');
           return path;
         } else {
           debugPrint('Recording file is empty or missing');

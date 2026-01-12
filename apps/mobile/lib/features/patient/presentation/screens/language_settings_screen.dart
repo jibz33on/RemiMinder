@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/services/patient_api_service.dart';
 
-class LanguageSettingsScreen extends StatefulWidget {
+class LanguageSettingsScreen extends ConsumerStatefulWidget {
   const LanguageSettingsScreen({super.key});
 
   @override
-  State<LanguageSettingsScreen> createState() => _LanguageSettingsScreenState();
+  ConsumerState<LanguageSettingsScreen> createState() =>
+      _LanguageSettingsScreenState();
 }
 
-class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
+class _LanguageSettingsScreenState
+    extends ConsumerState<LanguageSettingsScreen> {
   String _selectedAppLanguage = "en";
   String _selectedVisitLanguage = "en";
   bool _isLoading = true;
@@ -92,6 +97,11 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         appLanguage: _selectedAppLanguage,
         visitLanguage: _selectedVisitLanguage,
       );
+
+      // Update local locale state to trigger UI refresh
+      ref
+          .read(localeProvider.notifier)
+          .setLocaleFromString(_selectedAppLanguage);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,10 +280,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Language Settings',
-                      style: TextStyle(
+                      AppLocalizations.of(context)?.language ?? 'Language',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,

@@ -25,11 +25,11 @@ class _OverviewScreenState extends State<OverviewScreen>
   String? _summariesError;
 
   // Sharing state
-  Map<String, bool> _shareStates = {};
+  final Map<String, bool> _shareStates = {};
 
   // Selection state
   bool _isSelectionMode = false;
-  Set<String> _selectedSummaryIds = {};
+  final Set<String> _selectedSummaryIds = {};
 
   @override
   void initState() {
@@ -524,7 +524,8 @@ class _OverviewScreenState extends State<OverviewScreen>
                         Switch(
                           value: isShared,
                           onChanged: (value) => _toggleShare(summaryId, value),
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeThumbColor:
+                              Theme.of(context).colorScheme.primary,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
                         ),

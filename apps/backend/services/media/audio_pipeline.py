@@ -130,7 +130,10 @@ async def run_audio_stt_pipeline(visit_id: str, firebase_uid: str, language: str
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             language_code=language_code,
+            alternative_language_codes=["en-US"],
             enable_automatic_punctuation=True,
+            use_enhanced=True,
+            model="medical_conversation",
         )
 
         # Step 5: Run long-running recognition

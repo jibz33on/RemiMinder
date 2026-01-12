@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/data/models/auth_state.dart';
+import '../../../../core/providers/locale_provider.dart';
+import '../../../patient/data/services/patient_api_service.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
 
 class LoadingScreen extends ConsumerStatefulWidget {
   const LoadingScreen({super.key});
@@ -19,7 +23,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
     print('🔄 LoadingScreen: Initializing app...');
   }
 
-  void _handleAuthState(AuthState authState) {
+  Future<void> _handleAuthState(AuthState authState) async {
     print('🔄 LoadingScreen: Auth state changed - Status: ${authState.status}');
     print(
         '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
@@ -31,7 +35,37 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
 
     if (authState.status == AuthStatus.authenticated) {
       print(
-          '🔄 LoadingScreen: User authenticated, navigating to home screen...');
+          '🔄 LoadingScreen: User authenticated, fetching language preferences...');
+
+      // Fetch and apply user's language preferences
+      // Note: Using PatientApiService but this endpoint works for both patients and caregivers
+      try {
+        final authToken = await AuthService().getAccessToken();
+        if (authToken != null) {
+          final apiService = PatientApiService(
+            baseUrl: Environment.apiBaseUrl,
+            authToken: authToken,
+          );
+
+          final languagePrefs = await apiService
+              .getLanguagePreferences()
+              .timeout(const Duration(seconds: 3));
+          final appLanguage = languagePrefs['app_language'] ?? 'en';
+
+          print('🔄 LoadingScreen: Setting app language to: $appLanguage');
+          ref.read(localeProvider.notifier).setLocaleFromString(appLanguage);
+        } else {
+          print(
+              '🔄 LoadingScreen: No auth token available, using default language');
+          ref.read(localeProvider.notifier).setLocaleFromString('en');
+        }
+      } catch (e) {
+        print('🔄 LoadingScreen: Failed to fetch language preferences: $e');
+        print('🔄 LoadingScreen: Using default language (English)');
+        ref.read(localeProvider.notifier).setLocaleFromString('en');
+      }
+
+      print('🔄 LoadingScreen: Navigating to home screen...');
       // Navigate to appropriate home screen based on role
       final user = authState.user;
       if (user?.isPatient ?? false) {
