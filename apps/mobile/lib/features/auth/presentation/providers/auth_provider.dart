@@ -57,6 +57,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   /// Check authentication status on app start
   Future<void> _checkAuthStatus() async {
+    print("🔥 AuthNotifier._checkAuthStatus() started");
     state = AuthState.loading();
 
     try {
@@ -74,6 +75,12 @@ class AuthNotifier extends Notifier<AuthState> {
       // This ensures app never gets stuck in loading state
       state = AuthState.unauthenticated();
     }
+  }
+
+  /// Explicit initialization trigger (called from LoadingScreen)
+  Future<void> initialize() async {
+    print("🔥 AuthNotifier.initialize() called");
+    await _checkAuthStatus();
   }
 
   /// Sign up a new user

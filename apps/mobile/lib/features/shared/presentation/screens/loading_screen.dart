@@ -21,6 +21,11 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
   void initState() {
     super.initState();
     print('🔄 LoadingScreen: Initializing app...');
+
+    // Explicitly trigger auth initialization
+    Future.microtask(() {
+      ref.read(authNotifierProvider.notifier).initialize();
+    });
   }
 
   Future<void> _handleAuthState(AuthState authState) async {

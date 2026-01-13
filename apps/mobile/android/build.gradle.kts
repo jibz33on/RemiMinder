@@ -28,3 +28,20 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force("androidx.camera:camera-core:1.3.4")
+            force("androidx.camera:camera-camera2:1.3.4")
+            force("androidx.camera:camera-lifecycle:1.3.4")
+            force("androidx.camera:camera-video:1.3.4")
+            force("androidx.camera:camera-view:1.3.4")
+            force("androidx.camera:camera-extensions:1.3.4")
+            force("androidx.camera.featurecombinationquery:featurecombinationquery:1.3.4")
+
+            force("androidx.activity:activity:1.8.2")
+            force("androidx.activity:activity-ktx:1.8.2")
+        }
+    }
+}
