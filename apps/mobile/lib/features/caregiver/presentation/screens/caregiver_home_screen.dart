@@ -17,8 +17,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
-    final user = authState.user;
-    final userName = user?.displayName ?? 'Caregiver';
+    final userName = authState.profile?.fullName ?? 'Caregiver';
     final greeting = GreetingUtils.getWelcomeBackGreeting(userName);
 
     return Scaffold(

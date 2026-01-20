@@ -125,3 +125,33 @@ class User extends Equatable {
     return 'User(id: $id, email: $email, role: ${role.displayName}, fullName: $fullName)';
   }
 }
+
+/// Profile model for /api/users/me response
+class UserProfile {
+  final String? fullName;
+  final String email;
+  final String? phone;
+  final String role; // "patient" | "caregiver"
+
+  const UserProfile({
+    this.fullName,
+    required this.email,
+    this.phone,
+    required this.role,
+  });
+
+  /// Create UserProfile from JSON (API response)
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      fullName: json['full_name'] as String?,
+      email: json['email'] as String,
+      phone: json['phone'] as String?,
+      role: json['role'] as String,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'UserProfile(email: $email, fullName: $fullName, role: $role, phone: $phone)';
+  }
+}

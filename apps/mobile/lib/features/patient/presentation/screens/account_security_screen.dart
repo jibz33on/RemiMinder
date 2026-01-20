@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'change_password_screen.dart';
+import 'privacy_settings_screen.dart';
 
 class AccountSecurityScreen extends StatelessWidget {
   const AccountSecurityScreen({super.key});
@@ -121,13 +124,7 @@ class AccountSecurityScreen extends StatelessWidget {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Change password coming soon')),
-                                );
-                              },
+                              onPressed: () => _handleChangePassword(context),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
                                 foregroundColor: Colors.white,
@@ -213,10 +210,11 @@ class AccountSecurityScreen extends StatelessWidget {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Privacy settings coming soon')),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const PrivacySettingsScreen(),
+                                  ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -245,5 +243,56 @@ class AccountSecurityScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _handleChangePassword(BuildContext context) {
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Check if user has password provider
+    final hasPasswordProvider = user.providerData.any(
+      (provider) => provider.providerId == 'password',
+    );
+
+    if (hasPasswordProvider) {
+      // Navigate to change password screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ChangePasswordScreen(),
+        ),
+      );
+    } else {
+      // Show dialog for Google/Apple accounts
+      final hasGoogleProvider = user.providerData.any(
+        (provider) => provider.providerId == 'google.com',
+      );
+      final hasAppleProvider = user.providerData.any(
+        (provider) => provider.providerId == 'apple.com',
+      );
+
+      String providerName = 'Google/Apple';
+      if (hasGoogleProvider && !hasAppleProvider) {
+        providerName = 'Google';
+      } else if (hasAppleProvider && !hasGoogleProvider) {
+        providerName = 'Apple';
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Change Password'),
+          content: Text(
+            'You signed in using $providerName. Please change your password in your $providerName account.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

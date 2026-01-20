@@ -2,7 +2,7 @@
 User management routes for authentication
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel
@@ -51,6 +51,13 @@ class CreateUserRequest(BaseModel):
 
 class UpdateRoleRequest(BaseModel):
     role: str
+
+
+class UserMeResponse(BaseModel):
+    full_name: Optional[str] = None
+    email: str
+    phone: Optional[str] = None
+    role: str  # "patient" | "caregiver"
 
 
 @router.get("/profile")
@@ -163,8 +170,15 @@ def update_user_role(target_firebase_uid: str, request: UpdateRoleRequest, curre
         raise HTTPException(500, f"Database error: {str(e)}")
 
 
+class BootstrapRequest(BaseModel):
+    full_name: Optional[str] = None
+
+
 @router.post("/bootstrap")
-async def bootstrap_user(current_user: dict = Depends(get_current_user)):
+async def bootstrap_user(
+    request: BootstrapRequest | None = Body(default=None),
+    current_user: dict = Depends(get_current_user)
+):
     """Bootstrap user in Cloud SQL after Firebase authentication"""
     firebase_uid = current_user.get("sub")
     if not firebase_uid:
@@ -174,8 +188,14 @@ async def bootstrap_user(current_user: dict = Depends(get_current_user)):
     if not email:
         raise HTTPException(400, "Email missing from Firebase token")
 
+    # Extract name from Firebase token if available
+    firebase_name = current_user.get("name")
+
+    # Safely read request full_name
+    request_full_name = request.full_name if request else None
+
     try:
-        created = await ensure_user_exists(firebase_uid, email)
+        created = await ensure_user_exists(firebase_uid, email, request_full_name, firebase_name)
 
         if created:
             return {"status": "created"}
@@ -184,6 +204,43 @@ async def bootstrap_user(current_user: dict = Depends(get_current_user)):
 
     except Exception as e:
         raise HTTPException(500, f"Bootstrap failed: {str(e)}")
+
+
+@router.get("/me", response_model=UserMeResponse)
+async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get current user's profile information"""
+    firebase_uid = current_user.get("sub")
+    if not firebase_uid:
+        raise HTTPException(401, "Invalid token: missing user ID")
+
+    try:
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("SELECT full_name, email, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
+                {"firebase_uid": firebase_uid}
+            )
+            row = result.fetchone()
+
+            if not row:
+                raise HTTPException(404, "User not found")
+
+            full_name, email, phone, db_role = row
+
+            # Map database role to API role
+            api_role = "patient" if db_role == "user" else db_role
+
+            return UserMeResponse(
+                full_name=full_name,
+                email=email,
+                phone=phone,
+                role=api_role
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to get user profile: {str(e)}")
 
 
 # =========================================
@@ -198,6 +255,14 @@ class LanguagePreferencesResponse(BaseModel):
 class UpdateLanguagePreferencesRequest(BaseModel):
     app_language: str
     visit_language: str
+
+
+class UpdatePhoneRequest(BaseModel):
+    phone: Optional[str] = None
+
+
+class UpdatePhoneResponse(BaseModel):
+    phone: Optional[str] = None
 
 
 # =========================================
@@ -282,3 +347,60 @@ async def update_language_preferences(
     except Exception as e:
         logger.error(f"Failed to update language preferences: {str(e)}")
         raise HTTPException(500, f"Failed to update language preferences: {str(e)}")
+
+
+@router.put("/me/phone", response_model=UpdatePhoneResponse)
+async def update_user_phone(
+    request: UpdatePhoneRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Update current user's phone number.
+
+    Body:
+    {
+      "phone": "+919999999999"
+    }
+
+    Returns:
+    {
+      "phone": "+919999999999"
+    }
+
+    curl -X PUT "http://localhost:8000/api/users/me/phone" \
+         -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+         -H "Content-Type: application/json" \
+         -d '{"phone": "+919999999999"}'
+    """
+    try:
+        firebase_uid = current_user.get("sub")
+        if not firebase_uid:
+            raise HTTPException(status_code=401, detail="Invalid user authentication")
+
+        # Validate phone input
+        phone_to_save = None
+        if request.phone is not None:
+            phone_str = request.phone.strip()
+            if phone_str and len(phone_str) < 8:
+                raise HTTPException(status_code=400, detail="Phone number must be at least 8 characters long")
+            phone_to_save = phone_str if phone_str else None
+
+        # Update phone in database
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("UPDATE users SET phone = :phone WHERE firebase_uid = :firebase_uid"),
+                {"phone": phone_to_save, "firebase_uid": firebase_uid}
+            )
+            conn.commit()
+
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="User not found")
+
+        return UpdatePhoneResponse(phone=phone_to_save)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update user phone: {str(e)}")
+        raise HTTPException(500, f"Failed to update phone: {str(e)}")
