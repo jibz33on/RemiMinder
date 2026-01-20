@@ -1,6 +1,49 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/models/user.dart';
 
+/// User profile information from backend
+class AuthProfile {
+  final String? fullName;
+  final String email;
+  final String? phone;
+  final String role; // "patient" | "caregiver"
+  final String plan; // "free" | "premium"
+
+  const AuthProfile({
+    this.fullName,
+    required this.email,
+    this.phone,
+    required this.role,
+    this.plan = "free", // Default to free plan
+  });
+
+  factory AuthProfile.fromUserProfile(UserProfile profile) {
+    return AuthProfile(
+      fullName: profile.fullName,
+      email: profile.email,
+      phone: profile.phone,
+      role: profile.role,
+      plan: "free", // Hardcode free plan for now
+    );
+  }
+
+  AuthProfile copyWith({
+    String? fullName,
+    String? email,
+    String? phone,
+    String? role,
+    String? plan,
+  }) {
+    return AuthProfile(
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      plan: plan ?? this.plan,
+    );
+  }
+}
+
 /// Authentication status enum
 enum AuthStatus {
   initial, // App starting up
@@ -14,11 +57,13 @@ enum AuthStatus {
 class AuthState extends Equatable {
   final AuthStatus status;
   final User? user;
+  final AuthProfile? profile; // Backend profile data
   final String? errorMessage;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.user,
+    this.profile,
     this.errorMessage,
   });
 
@@ -29,9 +74,11 @@ class AuthState extends Equatable {
   factory AuthState.loading() => const AuthState(status: AuthStatus.loading);
 
   /// Create authenticated state
-  factory AuthState.authenticated(User user) => AuthState(
+  factory AuthState.authenticated(User user, {AuthProfile? profile}) =>
+      AuthState(
         status: AuthStatus.authenticated,
         user: user,
+        profile: profile,
       );
 
   /// Create unauthenticated state
@@ -59,20 +106,22 @@ class AuthState extends Equatable {
   AuthState copyWith({
     AuthStatus? status,
     User? user,
+    AuthProfile? profile,
     String? errorMessage,
   }) {
     return AuthState(
       status: status ?? this.status,
       user: user ?? this.user,
+      profile: profile ?? this.profile,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [status, user, errorMessage];
+  List<Object?> get props => [status, user, profile, errorMessage];
 
   @override
   String toString() {
-    return 'AuthState(status: $status, user: ${user?.email}, error: $errorMessage)';
+    return 'AuthState(status: $status, user: ${user?.email}, profile: ${profile?.email}, error: $errorMessage)';
   }
 }

@@ -120,26 +120,54 @@ async def get_audio_gcs_url(visit_id: str, user_id: str) -> str:
         raise
 
 
-async def ensure_user_exists(firebase_uid: str, email: str) -> bool:
+async def ensure_user_exists(firebase_uid: str, email: str, request_full_name: Optional[str] = None, firebase_name: Optional[str] = None) -> bool:
     """
     Ensure a user row exists in Cloud SQL.
     Returns True if created, False if already exists.
+    Populates full_name if empty using request or Firebase token data.
     """
     engine = get_cloud_sql_engine()
     with engine.begin() as conn:
+        # Check if user exists by firebase_uid
         result = conn.execute(
-            text("SELECT id FROM users WHERE firebase_uid = :firebase_uid"),
+            text("SELECT id, full_name FROM users WHERE firebase_uid = :firebase_uid"),
             {"firebase_uid": firebase_uid},
         )
-        if result.fetchone():
+        existing_user = result.fetchone()
+
+        if existing_user:
+            # User exists - update full_name if empty
+            user_id, current_full_name = existing_user
+            if not current_full_name or current_full_name.strip() == "":
+                # Determine name to use
+                name_to_set = None
+                if request_full_name and request_full_name.strip():
+                    name_to_set = request_full_name.strip()
+                elif firebase_name and firebase_name.strip():
+                    name_to_set = firebase_name.strip()
+
+                # Update if we have a name to set
+                if name_to_set:
+                    conn.execute(
+                        text("UPDATE users SET full_name = :full_name WHERE id = :user_id"),
+                        {"full_name": name_to_set, "user_id": user_id},
+                    )
             return False
+
+        # User doesn't exist - create new user
+        # Determine full_name for new user
+        full_name = None
+        if request_full_name and request_full_name.strip():
+            full_name = request_full_name.strip()
+        elif firebase_name and firebase_name.strip():
+            full_name = firebase_name.strip()
 
         conn.execute(
             text("""
-                INSERT INTO users (firebase_uid, email, role, is_active)
-                VALUES (:firebase_uid, :email, 'user', true)
+                INSERT INTO users (firebase_uid, email, full_name, role, is_active)
+                VALUES (:firebase_uid, :email, :full_name, 'user', true)
             """),
-            {"firebase_uid": firebase_uid, "email": email},
+            {"firebase_uid": firebase_uid, "email": email, "full_name": full_name},
         )
         return True
 

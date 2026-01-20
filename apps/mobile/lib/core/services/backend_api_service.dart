@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../config/environment.dart';
+import '../models/user.dart';
 
 /// Service for making authenticated API calls to the backend
 class BackendApiService {
@@ -100,14 +102,40 @@ class BackendApiService {
   }
 
   /// Bootstrap user in backend after Firebase authentication
-  Future<void> bootstrapUser() async {
+  Future<void> bootstrapUser({String? fullName}) async {
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) {
       throw Exception('Authentication required. Please log in again.');
     }
 
     final uri = Uri.parse('${Environment.apiBaseUrl}/api/users/bootstrap');
+    final requestBody =
+        fullName != null ? json.encode({'full_name': fullName}) : null;
+
     final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: requestBody,
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+          'User bootstrap failed: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  /// Get current user's profile from backend
+  Future<UserProfile> getMyProfile() async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri = Uri.parse('${Environment.apiBaseUrl}/api/users/me');
+    final response = await http.get(
       uri,
       headers: {
         'Authorization': 'Bearer $accessToken',
@@ -115,9 +143,38 @@ class BackendApiService {
       },
     );
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
+    if (response.statusCode != 200) {
       throw Exception(
-          'User bootstrap failed: ${response.statusCode} - ${response.body}');
+          'Get profile failed: ${response.statusCode} - ${response.body}');
     }
+
+    final jsonData = json.decode(response.body) as Map<String, dynamic>;
+    return UserProfile.fromJson(jsonData);
+  }
+
+  /// Update current user's phone number
+  Future<String?> updateMyPhone(String? phone) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri = Uri.parse('${Environment.apiBaseUrl}/api/users/me/phone');
+    final response = await http.put(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'phone': phone}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Update phone failed: ${response.statusCode} - ${response.body}');
+    }
+
+    final jsonData = json.decode(response.body) as Map<String, dynamic>;
+    return jsonData['phone'] as String?;
   }
 }

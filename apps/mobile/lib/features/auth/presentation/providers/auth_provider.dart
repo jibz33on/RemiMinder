@@ -99,7 +99,15 @@ class AuthNotifier extends Notifier<AuthState> {
         role: role,
         fullName: fullName,
       );
-      state = AuthState.authenticated(user);
+
+      // Bootstrap user in backend with full name
+      await _backendApiService.bootstrapUser(fullName: fullName);
+
+      // Fetch user profile from backend
+      final profile = await _backendApiService.getMyProfile();
+
+      state = AuthState.authenticated(user,
+          profile: AuthProfile.fromUserProfile(profile));
     } catch (e) {
       state = AuthState.error(e.toString());
     }
@@ -117,7 +125,11 @@ class AuthNotifier extends Notifier<AuthState> {
       // Bootstrap user in backend
       await _backendApiService.bootstrapUser();
 
-      state = AuthState.authenticated(user);
+      // Fetch user profile from backend
+      final profile = await _backendApiService.getMyProfile();
+
+      state = AuthState.authenticated(user,
+          profile: AuthProfile.fromUserProfile(profile));
     } catch (e) {
       state = AuthState.error(e.toString());
     }
@@ -134,7 +146,11 @@ class AuthNotifier extends Notifier<AuthState> {
       // Bootstrap user in backend
       await _backendApiService.bootstrapUser();
 
-      state = AuthState.authenticated(user);
+      // Fetch user profile from backend
+      final profile = await _backendApiService.getMyProfile();
+
+      state = AuthState.authenticated(user,
+          profile: AuthProfile.fromUserProfile(profile));
     } catch (e) {
       state = AuthState.error(e.toString());
     }
@@ -195,6 +211,13 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Retry authentication check
   Future<void> retryAuthCheck() async {
     await _checkAuthStatus();
+  }
+
+  /// Update user profile in state
+  void updateProfile(AuthProfile? profile) {
+    if (state.user != null) {
+      state = AuthState.authenticated(state.user!, profile: profile);
+    }
   }
 }
 

@@ -15,7 +15,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
-  bool _emailSent = false;
 
   @override
   void dispose() {
@@ -41,7 +40,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: _emailSent ? _buildSuccessView() : _buildResetView(),
+          child: _buildResetView(),
         ),
       ),
     );
@@ -207,118 +206,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildSuccessView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Success Icon
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.check_circle_outline,
-            color: Theme.of(context).colorScheme.primary,
-            size: 64,
-          ),
-        ),
-
-        const SizedBox(height: 32),
-
-        // Success Title
-        const Text(
-          'Check Your Email',
-          style: TextStyle(
-            fontFamily: 'Merriweather', // Consistent typography
-            fontWeight: FontWeight.w700, // Bold weight
-            fontSize: 28,
-            color: Color(0xFF1A4D4D), // Consistent dark teal
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 16),
-
-        // Success Message
-        const Text(
-          'Password reset email sent!',
-          style: TextStyle(
-            fontFamily: 'Poppins', // Consistent sans-serif for body text
-            fontWeight: FontWeight.w500, // Medium weight for emphasis
-            fontSize: 16,
-            color: Color(0xFF5A5A5A), // Consistent secondary color
-            height: 1.4, // Better readability
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          'We\'ve sent instructions to ${_emailController.text} on how to reset your password.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
-                height: 1.4,
-              ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          'Check your email and follow the link to create a new password.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
-                height: 1.4,
-              ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 48),
-
-        // Back to Login Button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => context.go('/login'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Back to Login',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Resend Email Button
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: _resendResetEmail,
-            child: Text(
-              'Didn\'t receive the email? Resend',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   void _sendResetInstructions() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -331,9 +218,21 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           email: _emailController.text.trim(),
         );
 
+        // Always show generic success message for security
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'If an account exists for this email, we\'ve sent you password reset instructions.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Keep user on screen after showing success message
         setState(() {
           _isLoading = false;
-          _emailSent = true;
         });
       } catch (e) {
         setState(() {
@@ -341,15 +240,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         });
 
         // Show error message to user
-        String errorMessage = 'Failed to send reset email. Please try again.';
+        String errorMessage =
+            'Failed to send reset email. Please check the email and try again.';
 
         if (e is firebase_auth.FirebaseAuthException) {
           switch (e.code) {
             case 'invalid-email':
               errorMessage = 'Please enter a valid email address.';
               break;
-            case 'user-not-found':
-              errorMessage = 'No account found with this email address.';
+            case 'operation-not-allowed':
+              errorMessage =
+                  'Password reset is not available for this account.';
               break;
             case 'too-many-requests':
               errorMessage = 'Too many requests. Please try again later.';
@@ -359,7 +260,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   'Network error. Please check your internet connection.';
               break;
             default:
-              errorMessage = 'Failed to send reset email. Please try again.';
+              // For security, don't reveal if account exists or what auth provider it uses
+              errorMessage =
+                  'Failed to send reset email. Please check the email and try again.';
           }
         } else if (e.toString().contains('network') ||
             e.toString().contains('connection')) {
@@ -375,66 +278,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             ),
           );
         }
-      }
-    }
-  }
-
-  void _resendResetEmail() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Resend password reset email via Firebase Auth
-      await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _emailController.text.trim(),
-      );
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reset email sent again!')),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Show error message to user
-      String errorMessage = 'Failed to resend reset email. Please try again.';
-
-      if (e is firebase_auth.FirebaseAuthException) {
-        switch (e.code) {
-          case 'invalid-email':
-            errorMessage = 'Please enter a valid email address.';
-            break;
-          case 'user-not-found':
-            errorMessage = 'No account found with this email address.';
-            break;
-          case 'too-many-requests':
-            errorMessage = 'Too many requests. Please try again later.';
-            break;
-          case 'network-request-failed':
-            errorMessage =
-                'Network error. Please check your internet connection.';
-            break;
-        }
-      } else if (e.toString().contains('network') ||
-          e.toString().contains('connection')) {
-        errorMessage = 'Network error. Please check your internet connection.';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
