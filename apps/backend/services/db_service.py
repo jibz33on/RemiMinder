@@ -351,6 +351,48 @@ async def get_latest_ai_summary_for_visit(visit_id: str, user_id: str) -> Option
         raise
 
 
+async def get_latest_ai_structured_summary_for_visit(visit_id: str, user_id: str) -> Optional[dict]:
+    """
+    Get the latest structured AI summary for a visit from summaries_log table.
+    Returns structured_data_json if exists, None if not found.
+    Used by visit summary API to fetch structured summaries.
+    """
+    try:
+        logger.info(f"Querying summaries_log structured data for visit_id={visit_id}, user_id={user_id}")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT structured_data_json, created_at FROM summaries_log
+                WHERE visit_id = :visit_id AND user_id = :user_id
+                ORDER BY created_at DESC
+                LIMIT 1
+            """)
+
+            result = conn.execute(query, {"visit_id": visit_id, "user_id": user_id})
+            row = result.fetchone()
+
+            if row and row[0]:
+                logger.info(
+                    "Found structured summary for visit_id=%s, user_id=%s: created_at=%s",
+                    visit_id,
+                    user_id,
+                    row[1],
+                )
+                structured_data = row[0]
+                if isinstance(structured_data, str):
+                    structured_data = json.loads(structured_data)
+                return structured_data
+            else:
+                logger.info(f"No structured summary found for visit_id={visit_id}, user_id={user_id}")
+
+            return None
+
+    except Exception as e:
+        logger.error(f"Error fetching structured AI summary for visit {visit_id}: {e}")
+        raise
+
+
 async def get_user_summaries(user_uuid: str) -> list[dict]:
     """
     Get all summaries for a user by joining summaries_log and visits tables.

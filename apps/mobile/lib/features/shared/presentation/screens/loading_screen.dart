@@ -24,6 +24,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
 
     // Explicitly trigger auth initialization
     Future.microtask(() {
+      if (!mounted) return;
       ref.read(authNotifierProvider.notifier).initialize();
     });
   }
@@ -47,6 +48,7 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
       // Note: Using PatientApiService but this endpoint works for both patients and caregivers
       try {
         final authToken = await AuthService().getAccessToken();
+        if (!mounted) return;
         if (authToken != null) {
           final apiService = PatientApiService(
             baseUrl: Environment.apiBaseUrl,
@@ -56,32 +58,39 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
           final languagePrefs = await apiService
               .getLanguagePreferences()
               .timeout(const Duration(seconds: 3));
+          if (!mounted) return;
           final appLanguage = languagePrefs['app_language'] ?? 'en';
 
           print('🔄 LoadingScreen: Setting app language to: $appLanguage');
+          if (!mounted) return;
           ref.read(localeProvider.notifier).setLocaleFromString(appLanguage);
         } else {
           print(
               '🔄 LoadingScreen: No auth token available, using default language');
+          if (!mounted) return;
           ref.read(localeProvider.notifier).setLocaleFromString('en');
         }
       } catch (e) {
         print('🔄 LoadingScreen: Failed to fetch language preferences: $e');
         print('🔄 LoadingScreen: Using default language (English)');
+        if (!mounted) return;
         ref.read(localeProvider.notifier).setLocaleFromString('en');
       }
 
       print('🔄 LoadingScreen: Navigating to role selection...');
+      if (!mounted) return;
       context.go('/role-selection');
     } else if (authState.status == AuthStatus.unauthenticated) {
       print(
           '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
       // Go to welcome/onboarding flow
+      if (!mounted) return;
       context.go('/welcome');
     } else if (authState.status == AuthStatus.error) {
       print(
           '🔄 LoadingScreen: Auth error occurred, going to welcome screen...');
       // Go to welcome/onboarding flow
+      if (!mounted) return;
       context.go('/welcome');
     }
     // If still loading, continue showing loading screen

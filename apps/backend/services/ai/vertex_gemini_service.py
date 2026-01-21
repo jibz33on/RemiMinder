@@ -15,6 +15,7 @@ from google.cloud import aiplatform
 from vertexai.generative_models import GenerativeModel  # type: ignore
 
 from utils.prompts.medical_summary import build_medical_summary_prompt
+from utils.prompts.medical_summary_actions_v2 import build_medical_summary_prompt_v2
 
 # Constants
 GEMINI_MODEL = "gemini-2.5-flash"
@@ -30,6 +31,15 @@ LANGUAGE_NAME_MAP = {
     "hi": "Hindi",
     "zh": "Chinese"
 }
+
+
+def _get_prompt_version() -> str:
+    """
+    Feature flag for prompt versioning.
+    Defaults to v1 for missing/invalid values.
+    """
+    version = (os.getenv("AI_SUMMARY_PROMPT_VERSION") or "v1").lower().strip()
+    return "v2" if version == "v2" else "v1"
 
 
 def extract_json_from_llm_response(text: str) -> dict:
@@ -146,8 +156,12 @@ async def generate_visit_summary(raw_text: str, language: str = "en") -> dict:
         logger.info(f"🔍 [GEMINI] Generating summary in language: {language_name} ({language})")
         logger.info(f"🔍 [GEMINI] Sample input text: '{raw_text[:200]}...'")
 
-        # Build the structured prompt
-        prompt = build_medical_summary_prompt(raw_text, language_name)
+        # Build the structured prompt (feature-flagged)
+        prompt_version = _get_prompt_version()
+        if prompt_version == "v2":
+            prompt = build_medical_summary_prompt_v2(raw_text, language_name)
+        else:
+            prompt = build_medical_summary_prompt(raw_text, language_name)
 
         logger.info(f"🔍 [GEMINI] Sending structured prompt to Gemini (length: {len(prompt)} chars)")
         logger.info(f"🔍 [GEMINI] Prompt language instruction: 'IMPORTANT: The response MUST be written entirely in {language_name}.'")

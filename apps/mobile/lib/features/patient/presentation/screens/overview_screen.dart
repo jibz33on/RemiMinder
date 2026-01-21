@@ -1,6 +1,7 @@
 import 'dart:developer' as logger;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
 import '../../data/services/patient_api_service.dart';
@@ -23,6 +24,8 @@ class _OverviewScreenState extends State<OverviewScreen>
   List<SummaryItem> _summaries = [];
   bool _isLoadingSummaries = true;
   String? _summariesError;
+  final Set<String> _seenSummaryIds = {};
+  bool _hasLoadedSummariesOnce = false;
 
   // Sharing state
   final Map<String, bool> _shareStates = {};
@@ -36,7 +39,7 @@ class _OverviewScreenState extends State<OverviewScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _searchController.addListener(_onSearchChanged);
-    _fetchSummaries();
+    _loadSeenSummaryIds().then((_) => _fetchSummaries());
   }
 
   @override
@@ -50,6 +53,19 @@ class _OverviewScreenState extends State<OverviewScreen>
     setState(() {
       _searchQuery = _searchController.text.toLowerCase();
     });
+  }
+
+  Future<void> _loadSeenSummaryIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedIds = prefs.getStringList('seen_summary_ids') ?? [];
+    _seenSummaryIds
+      ..clear()
+      ..addAll(storedIds);
+  }
+
+  Future<void> _persistSeenSummaryIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('seen_summary_ids', _seenSummaryIds.toList());
   }
 
   Future<void> _fetchSummaries() async {
@@ -70,11 +86,37 @@ class _OverviewScreenState extends State<OverviewScreen>
       );
 
       final summaries = await apiService.getSummaries();
+      final newSummaryIds = summaries
+          .map((summary) => summary.summaryId)
+          .where((summaryId) => !_seenSummaryIds.contains(summaryId))
+          .toList();
 
       setState(() {
         _summaries = summaries;
         _isLoadingSummaries = false;
       });
+
+      _seenSummaryIds.addAll(summaries.map((summary) => summary.summaryId));
+      await _persistSeenSummaryIds();
+      if (_hasLoadedSummariesOnce && newSummaryIds.isNotEmpty && mounted) {
+        final newSummary = summaries.firstWhere(
+          (summary) => newSummaryIds.contains(summary.summaryId),
+          orElse: () => summaries.first,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Your visit summary is ready. Tap to view.'),
+            action: SnackBarAction(
+              label: 'View',
+              onPressed: () {
+                context
+                    .go('/patient/visit-details?visitId=${newSummary.visitId}');
+              },
+            ),
+          ),
+        );
+      }
+      _hasLoadedSummariesOnce = true;
     } catch (e) {
       setState(() {
         _summariesError = e.toString();

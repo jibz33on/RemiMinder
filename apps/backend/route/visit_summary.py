@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, BackgroundTasks
 # REMOVED: Legacy summary functions deleted during Supabase cleanup
 # from services.db_service import (
 #     fetch_visit_transcript,
@@ -282,72 +282,111 @@ async def process_visit_ocr(
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
 
 
-@router.post("/visits/{visit_id}/process-audio")
-async def process_visit_audio(
-    visit_id: str,
-    user_id: str = Depends(get_user_id)
-):
+async def _process_audio_job(visit_id: str, firebase_user_id: str) -> None:
     """
-    Process uploaded audio file with Speech-to-Text and save transcript.
-    Simple synchronous pipeline: GCS -> STT -> Cloud SQL.
+    Background job for processing uploaded audio:
+    - STT
+    - Save transcript
+    - Generate AI summary
     """
+    logger.info(
+        "🔍 [VISIT] Background audio processing started for visit=%s, firebase_uid=%s",
+        visit_id,
+        firebase_user_id,
+    )
     try:
         # Step 1: Get user UUID from Firebase UID
         from services.db_service import get_user_uuid
-        user_uuid = await get_user_uuid(user_id)  # user_id is Firebase UID from JWT
+        user_uuid = await get_user_uuid(firebase_user_id)  # firebase_user_id is Firebase UID from JWT
 
         # Step 2: Get user's language preferences
         from services.db_service import get_user_language_preferences
         try:
             language_prefs = await get_user_language_preferences(user_uuid)
             visit_language = language_prefs.get("visit_language", "en") if language_prefs else "en"
-            logger.info(f"🔍 [VISIT] Using visit_language='{visit_language}' for STT (user_uuid={user_uuid})")
+            logger.info(
+                "🔍 [VISIT] Using visit_language='%s' for STT (user_uuid=%s)",
+                visit_language,
+                user_uuid,
+            )
         except Exception as e:
-            logger.warning(f"🔍 [VISIT] Failed to get language preferences for user_uuid={user_uuid}: {e}")
+            logger.warning(
+                "🔍 [VISIT] Failed to get language preferences for user_uuid=%s: %s",
+                user_uuid,
+                e,
+            )
             visit_language = "en"  # Default fallback
 
         # Step 3: Run STT pipeline with user's language
         from services.media.audio_pipeline import run_audio_stt_pipeline
-        logger.info(f"🔍 [VISIT] Starting STT pipeline for visit {visit_id} with language '{visit_language}'")
-        stt_result = await run_audio_stt_pipeline(visit_id, user_id, visit_language)
-        logger.info(f"🔍 [VISIT] STT completed for visit {visit_id}, transcript length: {len(stt_result.get('transcript', ''))}")
+        logger.info(
+            "🔍 [VISIT] Starting STT pipeline for visit %s with language '%s'",
+            visit_id,
+            visit_language,
+        )
+        stt_result = await run_audio_stt_pipeline(visit_id, firebase_user_id, visit_language)
+        logger.info(
+            "🔍 [VISIT] STT completed for visit %s, transcript length: %s",
+            visit_id,
+            len(stt_result.get("transcript", "")),
+        )
 
-        # Step 3: Save transcript to database
+        # Step 4: Save transcript to database
         from services.db_service import save_raw_transcript
         transcript_id = await save_raw_transcript(
             visit_id=visit_id,
             user_id=user_uuid,  # Use UUID for database operations
             transcript=stt_result["transcript"],
             confidence=stt_result["confidence"],
-            language=stt_result["language"]
+            language=stt_result["language"],
         )
 
-        # Step 4: Trigger AI summary pipeline
-        logger.info(f"🔍 [VISIT] Triggering AI summary pipeline for visit {visit_id}, transcript {transcript_id}, user {user_uuid}")
+        # Step 5: Trigger AI summary pipeline
+        logger.info(
+            "🔍 [VISIT] Triggering AI summary pipeline for visit %s, transcript %s, user %s",
+            visit_id,
+            transcript_id,
+            user_uuid,
+        )
         from services.ai_pipeline import run_ai_summary_pipeline
         summary_text = await run_ai_summary_pipeline(
             visit_id=visit_id,
             transcript_id=transcript_id,
             user_id=user_uuid,
         )
-        logger.info(f"🔍 [VISIT] AI summary pipeline completed for visit {visit_id}, summary length: {len(summary_text)}")
-
-        # Step 5: Return simple success response
-        return {
-            "status": "completed",
-            "visit_id": visit_id,
-            "has_transcript": True
-        }
-
-    except ValueError as e:
-        # Audio not found or STT failed
-        if "No audio file found" in str(e):
-            raise HTTPException(status_code=404, detail=f"Audio file not found for visit {visit_id}")
-        raise HTTPException(status_code=500, detail=f"Speech-to-text failed: {str(e)}")
+        logger.info(
+            "🔍 [VISIT] AI summary pipeline completed for visit %s, summary length: %s",
+            visit_id,
+            len(summary_text),
+        )
+        logger.info(
+            "🔍 [VISIT] Background audio processing finished for visit=%s",
+            visit_id,
+        )
 
     except Exception as e:
-        logger.error(f"Audio processing failed for visit {visit_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Audio processing failed: {str(e)}")
+        logger.exception(
+            "🔍 [VISIT] Background audio processing failed for visit %s: %s",
+            visit_id,
+            e,
+        )
+
+
+@router.post("/visits/{visit_id}/process-audio")
+async def process_visit_audio(
+    visit_id: str,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Process uploaded audio file with Speech-to-Text and save transcript.
+    Background pipeline: GCS -> STT -> Cloud SQL.
+    """
+    background_tasks.add_task(_process_audio_job, visit_id, user_id)
+    return {
+        "status": "queued",
+        "visit_id": visit_id,
+    }
 
 
 @router.get("/visits/{visit_id}/audio")
@@ -410,6 +449,48 @@ async def get_visit_summary(
     except Exception as e:
         logger.error(f"Failed to get summary for visit {visit_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve summary: {str(e)}")
+
+
+@router.get("/visits/{visit_id}/summary-structured")
+async def get_visit_summary_structured(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Get the latest AI-generated structured summary for a visit.
+    Returns processing status if not ready, or structured JSON if available.
+    """
+    try:
+        logger.info(f"Getting structured summary for visit_id={visit_id}, firebase_uid={user_id}")
+
+        # Step 1: Resolve Firebase UID to Cloud SQL user UUID
+        from services.db_service import get_user_uuid, get_latest_ai_structured_summary_for_visit
+        user_uuid = await get_user_uuid(user_id)
+
+        logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
+
+        # Step 2: Fetch latest structured summary for this visit
+        structured_data = await get_latest_ai_structured_summary_for_visit(visit_id, user_uuid)
+
+        logger.info(
+            "DB query result for visit_id=%s, user_uuid=%s: structured_data=%s",
+            visit_id,
+            user_uuid,
+            structured_data is not None,
+        )
+
+        # Step 3: Return appropriate response
+        if structured_data:
+            return structured_data
+        else:
+            logger.info("Returning processing status for structured summary")
+            return {"status": "processing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get structured summary for visit {visit_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve structured summary: {str(e)}")
 
 
 @router.get("/summaries")

@@ -488,14 +488,17 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
       print("🧪 Upload finished");
 
-      // Trigger audio processing pipeline
+      // Trigger audio processing pipeline (returns immediately)
       print("🧪 Triggering processing...");
       await _triggerAudioProcessing();
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Recording uploaded. Processing in background...')),
+          content: Text(
+            "Your summary is being generated in the background. You can continue using the app. We'll notify you when it's ready.",
+          ),
+        ),
       );
 
       // Clean up local file

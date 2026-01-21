@@ -170,6 +170,21 @@ class PatientApiService {
     }
   }
 
+  // Visit Structured Summary (AI-generated)
+  Future<Map<String, dynamic>> getVisitSummaryStructured(String visitId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/visits/$visitId/summary-structured'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception(
+          'Failed to fetch structured visit summary: ${response.statusCode}');
+    }
+  }
+
   // Summaries List
   Future<List<SummaryItem>> getSummaries() async {
     final response = await http.get(

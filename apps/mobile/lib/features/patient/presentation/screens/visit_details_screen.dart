@@ -20,7 +20,10 @@ class VisitDetailsScreen extends StatefulWidget {
 
 class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   // AI Summary state
-  String? _aiSummary;
+  String? _summaryText;
+  List<String> _decisions = [];
+  List<String> _medications = [];
+  List<String> _actions = [];
   bool _isLoadingSummary = true;
   String _summaryStatus =
       'loading'; // 'loading', 'processing', 'ready', 'error'
@@ -48,21 +51,28 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         authToken: authToken ?? '',
       );
 
-      print("🔥🔥🔥 Calling GET /api/visits/${widget.visitId}/summary");
-      final data = await apiService.getVisitSummary(widget.visitId);
+      print(
+          "🔥🔥🔥 Calling GET /api/visits/${widget.visitId}/summary-structured");
+      final data = await apiService.getVisitSummaryStructured(widget.visitId);
       print("🔍 API response: $data");
 
-      if (data.containsKey('summary')) {
-        print("🔍 Found summary, setting to ready state");
-        setState(() {
-          _aiSummary = data['summary'];
-          _summaryStatus = 'ready';
-          _isLoadingSummary = false;
-        });
-      } else if (data['status'] == 'processing') {
+      if (data['status'] == 'processing') {
         print("🔍 Summary still processing, setting processing state");
         setState(() {
           _summaryStatus = 'processing';
+          _isLoadingSummary = false;
+        });
+      } else if (data.containsKey('summary')) {
+        print("🔍 Found structured summary, setting to ready state");
+        final decisions = _toStringList(data['decisions']);
+        final medications = _toStringList(data['medications']);
+        final actions = _toStringList(data['actions']);
+        setState(() {
+          _summaryText = data['summary'];
+          _decisions = decisions;
+          _medications = medications;
+          _actions = actions;
+          _summaryStatus = 'ready';
           _isLoadingSummary = false;
         });
       } else {
@@ -79,6 +89,16 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         _isLoadingSummary = false;
       });
     }
+  }
+
+  List<String> _toStringList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+    if (value is String && value.isNotEmpty) {
+      return [value];
+    }
+    return [];
   }
 
   @override
@@ -225,25 +245,8 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 ],
               ),
             )
-          else if (_summaryStatus == 'ready' && _aiSummary != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.green.withOpacity(0.2),
-                ),
-              ),
-              child: Text(
-                _aiSummary!,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Theme.of(context).colorScheme.secondary,
-                  height: 1.5,
-                ),
-              ),
-            )
+          else if (_summaryStatus == 'ready' && _summaryText != null)
+            _buildStructuredSummary()
           else if (_summaryStatus == 'error')
             Container(
               padding: const EdgeInsets.all(16),
@@ -303,6 +306,114 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStructuredSummary() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSummarySection(
+          title: 'Summary',
+          content: Text(
+            _summaryText ?? '',
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.secondary,
+              height: 1.5,
+            ),
+          ),
+        ),
+        if (_decisions.isNotEmpty)
+          _buildListSection(title: 'Decisions', items: _decisions),
+        if (_medications.isNotEmpty)
+          _buildListSection(title: 'Medications', items: _medications),
+        if (_actions.isNotEmpty)
+          _buildListSection(title: 'Actions', items: _actions),
+      ],
+    );
+  }
+
+  Widget _buildSummarySection({
+    required String title,
+    required Widget content,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          content,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListSection({
+    required String title,
+    required List<String> items,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('•  '),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
