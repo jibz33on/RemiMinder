@@ -1,6 +1,6 @@
-# MediMinder - AI Healthcare Companion
+# RemiMinder - AI Healthcare Companion
 
-MediMinder is an AI-powered healthcare app that helps patients manage medications and allows caregivers to monitor loved ones through intelligent visit recording and smart reminders.
+RemiMinder is an AI-powered healthcare app that helps patients manage medications and allows caregivers to monitor loved ones through intelligent visit recording and smart reminders.
 
 ## Current Status
 
