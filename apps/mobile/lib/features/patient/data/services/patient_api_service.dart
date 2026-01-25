@@ -200,6 +200,21 @@ class PatientApiService {
     }
   }
 
+  // Latest visit processing status
+  Future<Map<String, dynamic>> getLatestVisitStatus() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/visits/latest/status'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception(
+          'Failed to fetch latest visit status: ${response.statusCode}');
+    }
+  }
+
   Future<void> deleteSummary(String summaryId) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/api/summaries/$summaryId'),

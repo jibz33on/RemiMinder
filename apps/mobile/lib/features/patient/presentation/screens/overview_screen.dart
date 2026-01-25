@@ -26,6 +26,7 @@ class _OverviewScreenState extends State<OverviewScreen>
   String? _summariesError;
   final Set<String> _seenSummaryIds = {};
   bool _hasLoadedSummariesOnce = false;
+  bool _isLatestVisitProcessing = false;
 
   // Sharing state
   final Map<String, bool> _shareStates = {};
@@ -70,6 +71,7 @@ class _OverviewScreenState extends State<OverviewScreen>
 
   Future<void> _fetchSummaries() async {
     try {
+      if (!mounted) return;
       setState(() {
         _isLoadingSummaries = true;
         _summariesError = null;
@@ -85,15 +87,18 @@ class _OverviewScreenState extends State<OverviewScreen>
         authToken: authToken,
       );
 
+      final status = await apiService.getLatestVisitStatus();
       final summaries = await apiService.getSummaries();
       final newSummaryIds = summaries
           .map((summary) => summary.summaryId)
           .where((summaryId) => !_seenSummaryIds.contains(summaryId))
           .toList();
 
+      if (!mounted) return;
       setState(() {
         _summaries = summaries;
         _isLoadingSummaries = false;
+        _isLatestVisitProcessing = status['processing'] == true;
       });
 
       _seenSummaryIds.addAll(summaries.map((summary) => summary.summaryId));
@@ -103,24 +108,36 @@ class _OverviewScreenState extends State<OverviewScreen>
           (summary) => newSummaryIds.contains(summary.summaryId),
           orElse: () => summaries.first,
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Your visit summary is ready. Tap to view.'),
-            action: SnackBarAction(
-              label: 'View',
-              onPressed: () {
-                context
-                    .go('/patient/visit-details?visitId=${newSummary.visitId}');
-              },
-            ),
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('🎉 Your visit summary is ready!'),
+            content: const Text('Would you like to view it now?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Later'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go(
+                      '/patient/visit-details?visitId=${newSummary.visitId}');
+                },
+                child: const Text('View Summary'),
+              ),
+            ],
           ),
         );
       }
       _hasLoadedSummariesOnce = true;
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _summariesError = e.toString();
         _isLoadingSummaries = false;
+        _isLatestVisitProcessing = false;
       });
     }
   }
@@ -287,6 +304,7 @@ class _OverviewScreenState extends State<OverviewScreen>
       // Get authentication token
       final authToken = await AuthService().getAccessToken();
       if (authToken == null) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Authentication error. Please log in again.')),
@@ -308,6 +326,7 @@ class _OverviewScreenState extends State<OverviewScreen>
         try {
           await apiService.deleteSummary(summaryId);
           // Remove from local list on successful deletion
+          if (!mounted) return;
           setState(() {
             _summaries.removeWhere((summary) => summary.summaryId == summaryId);
             _selectedSummaryIds.remove(summaryId);
@@ -322,6 +341,7 @@ class _OverviewScreenState extends State<OverviewScreen>
       final deletedCount =
           summariesToDelete.length - _selectedSummaryIds.length;
       if (deletedCount > 0) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
@@ -330,11 +350,13 @@ class _OverviewScreenState extends State<OverviewScreen>
       }
     } catch (e) {
       logger.log('Error during delete operation: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Failed to delete summaries. Please try again.')),
       );
     } finally {
+      if (!mounted) return;
       _exitSelectionMode();
     }
   }
@@ -442,7 +464,7 @@ class _OverviewScreenState extends State<OverviewScreen>
       );
     }
 
-    if (_summaries.isEmpty) {
+    if (_summaries.isEmpty && !_isLatestVisitProcessing) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -481,6 +503,8 @@ class _OverviewScreenState extends State<OverviewScreen>
                 summary.summaryPreview.toLowerCase().contains(_searchQuery);
           }).toList();
 
+    final processingOffset = _isLatestVisitProcessing ? 1 : 0;
+
     return Container(
       constraints: const BoxConstraints(minHeight: 200),
       child: RefreshIndicator(
@@ -489,11 +513,50 @@ class _OverviewScreenState extends State<OverviewScreen>
           shrinkWrap: true,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
-          itemCount: filteredSummaries.length,
+          itemCount: filteredSummaries.length + processingOffset,
           itemBuilder: (context, index) {
-            final summary = filteredSummaries[index];
+            if (_isLatestVisitProcessing && index == 0) {
+              return _buildProcessingCard();
+            }
+            final summary = filteredSummaries[index - processingOffset];
             return _buildSummaryCard(summary);
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcessingCard() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.orange.withOpacity(0.08),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.access_time,
+              color: Colors.orange,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    '🕒 Your latest visit is being processed',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 4),
+                  Text('We’ll notify you when it’s ready.'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

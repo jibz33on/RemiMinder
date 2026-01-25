@@ -493,21 +493,29 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       await _triggerAudioProcessing();
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Your summary is being generated in the background. You can continue using the app. We'll notify you when it's ready.",
-          ),
-        ),
-      );
-
       // Clean up local file
       await _audioService.deleteRecording(_audioFilePath!);
       if (!mounted) return;
 
-      if (mounted) {
-        context.go('/patient/home');
-      }
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('✅ Your visit is being processed'),
+          content: const Text(
+            'This may take ~30–60 seconds.\n'
+            "You can continue using the app. We’ll notify you when it’s ready.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.go('/patient/home');
+              },
+              child: const Text('Go to Home'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
