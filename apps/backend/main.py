@@ -1,3 +1,19 @@
+
+"""
+IMPORTANT:
+
+This backend uses a background job worker for long-running tasks (STT + AI summary).
+
+To fully run the system locally, you MUST run:
+
+1) Backend API:
+   uvicorn main:app --reload
+
+2) Worker process (in a separate terminal):
+   python -m workers.stt_worker
+
+If the worker is not running, audio uploads will succeed but summaries will NEVER be generated.
+"""
 import logging
 import os
 import sys
