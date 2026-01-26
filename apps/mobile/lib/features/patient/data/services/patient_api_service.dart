@@ -12,6 +12,26 @@ class PatientApiService {
     required this.authToken,
   });
 
+  // In-memory cache (per app process)
+  static CacheEntry<List<SummaryItem>>? _summariesCache;
+  static CacheEntry<Map<String, dynamic>>? _latestStatusCache;
+
+  static List<SummaryItem>? getCachedSummaries() {
+    return _summariesCache?.data;
+  }
+
+  static Map<String, dynamic>? getCachedLatestVisitStatus() {
+    return _latestStatusCache?.data;
+  }
+
+  static void setCachedSummaries(List<SummaryItem> summaries) {
+    _summariesCache = CacheEntry(summaries, DateTime.now());
+  }
+
+  static void setCachedLatestVisitStatus(Map<String, dynamic> status) {
+    _latestStatusCache = CacheEntry(status, DateTime.now());
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $authToken',
@@ -314,4 +334,11 @@ class PatientApiService {
       throw Exception('Failed to update language preferences');
     }
   }
+}
+
+class CacheEntry<T> {
+  final T data;
+  final DateTime fetchedAt;
+
+  const CacheEntry(this.data, this.fetchedAt);
 }

@@ -77,10 +77,21 @@ class _OverviewScreenState extends State<OverviewScreen>
   Future<void> _fetchSummaries() async {
     try {
       if (!mounted) return;
-      setState(() {
-        _isLoadingSummaries = true;
-        _summariesError = null;
-      });
+      final cachedSummaries = PatientApiService.getCachedSummaries();
+      final cachedStatus = PatientApiService.getCachedLatestVisitStatus();
+      if (cachedSummaries != null && mounted) {
+        setState(() {
+          _summaries = cachedSummaries;
+          _isLoadingSummaries = false;
+          _summariesError = null;
+          _isLatestVisitProcessing = cachedStatus?['processing'] == true;
+        });
+      } else {
+        setState(() {
+          _isLoadingSummaries = true;
+          _summariesError = null;
+        });
+      }
 
       final authToken = await AuthService().getAccessToken();
       if (authToken == null) {
@@ -94,17 +105,23 @@ class _OverviewScreenState extends State<OverviewScreen>
 
       final status = await apiService.getLatestVisitStatus();
       final summaries = await apiService.getSummaries();
+      PatientApiService.setCachedLatestVisitStatus(status);
+      PatientApiService.setCachedSummaries(summaries);
       final newSummaryIds = summaries
           .map((summary) => summary.summaryId)
           .where((summaryId) => !_seenSummaryIds.contains(summaryId))
           .toList();
 
       if (!mounted) return;
-      setState(() {
-        _summaries = summaries;
-        _isLoadingSummaries = false;
-        _isLatestVisitProcessing = status['processing'] == true;
-      });
+      final summariesChanged = _summariesChanged(summaries);
+      final statusChanged = _statusChanged(status);
+      if (summariesChanged || statusChanged) {
+        setState(() {
+          _summaries = summaries;
+          _isLoadingSummaries = false;
+          _isLatestVisitProcessing = status['processing'] == true;
+        });
+      }
 
       _seenSummaryIds.addAll(summaries.map((summary) => summary.summaryId));
       await _persistSeenSummaryIds();
@@ -145,6 +162,34 @@ class _OverviewScreenState extends State<OverviewScreen>
         _isLatestVisitProcessing = false;
       });
     }
+  }
+
+  bool _summariesChanged(List<SummaryItem> next) {
+    if (_summaries.length != next.length) {
+      return true;
+    }
+    for (var i = 0; i < next.length; i++) {
+      if (_summaries[i].summaryId != next[i].summaryId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _statusChanged(Map<String, dynamic> next) {
+    final currentProcessing = _isLatestVisitProcessing;
+    final nextProcessing = next['processing'] == true;
+    if (currentProcessing != nextProcessing) {
+      return true;
+    }
+    if (nextProcessing) {
+      final currentVisitId = _summaries.isNotEmpty ? _summaries.first.visitId : null;
+      final nextVisitId = next['visit_id'];
+      if (currentVisitId != null && nextVisitId != currentVisitId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _loadCaregiver() async {

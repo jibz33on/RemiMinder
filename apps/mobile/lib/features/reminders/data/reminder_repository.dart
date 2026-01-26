@@ -7,6 +7,7 @@
 // - Supabase auth → Firebase auth headers
 // - Manual response parsing → Structured data models
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mediminder_shared/models/reminder.dart';
 import 'package:mediminder_shared/services/api_service.dart';
 import 'package:mediminder_shared/constants/api_endpoints.dart';
@@ -15,6 +16,17 @@ class ReminderRepository {
   final ApiService _apiService;
 
   ReminderRepository(this._apiService);
+
+  // In-memory cache (per app process)
+  static CacheEntry<ReminderListResponse>? _remindersCache;
+
+  static ReminderListResponse? getCachedReminders() {
+    return _remindersCache?.data;
+  }
+
+  static void setCachedReminders(ReminderListResponse data) {
+    _remindersCache = CacheEntry(data, DateTime.now());
+  }
 
   // Adapted from Phase 1 getReminders() function (lines 51-100)
   Future<ReminderListResponse> getReminders(Map<String, String> headers) async {
@@ -108,8 +120,12 @@ class ReminderRepository {
   }
 }
 
-// Provider for dependency injection
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+class CacheEntry<T> {
+  final T data;
+  final DateTime fetchedAt;
+
+  const CacheEntry(this.data, this.fetchedAt);
+}
 
 final reminderRepositoryProvider = Provider<ReminderRepository>((ref) {
   final apiService = ref.watch(apiServiceProvider);

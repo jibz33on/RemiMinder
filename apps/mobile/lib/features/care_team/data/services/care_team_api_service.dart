@@ -12,6 +12,26 @@ class CareTeamApiService {
   CareTeamApiService({AuthService? authService})
       : _authService = authService ?? AuthService();
 
+  // In-memory cache (per app process)
+  static CacheEntry<List<CareTeamMember>>? _membersCache;
+  static CacheEntry<List<CareTeamInvitation>>? _pendingInvitesCache;
+
+  static List<CareTeamMember>? getCachedMembers() {
+    return _membersCache?.data;
+  }
+
+  static List<CareTeamInvitation>? getCachedPendingInvites() {
+    return _pendingInvitesCache?.data;
+  }
+
+  static void setCachedMembers(List<CareTeamMember> members) {
+    _membersCache = CacheEntry(members, DateTime.now());
+  }
+
+  static void setCachedPendingInvites(List<CareTeamInvitation> invites) {
+    _pendingInvitesCache = CacheEntry(invites, DateTime.now());
+  }
+
   Future<String> _getAccessToken() async {
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) {
@@ -101,8 +121,8 @@ class CareTeamApiService {
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data
-          .map(
-              (item) => CareTeamInvitation.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              CareTeamInvitation.fromJson(item as Map<String, dynamic>))
           .toList();
     }
 
@@ -124,8 +144,8 @@ class CareTeamApiService {
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data
-          .map(
-              (item) => CareTeamInvitation.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              CareTeamInvitation.fromJson(item as Map<String, dynamic>))
           .toList();
     }
 
@@ -206,4 +226,11 @@ class CareTeamApiService {
           'Failed to remove member: ${response.statusCode} - ${response.body}');
     }
   }
+}
+
+class CacheEntry<T> {
+  final T data;
+  final DateTime fetchedAt;
+
+  const CacheEntry(this.data, this.fetchedAt);
 }

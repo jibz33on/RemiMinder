@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mediminder_shared/models/reminder.dart';
 import 'package:mediminder_shared/constants/api_endpoints.dart';
+import '../data/reminder_repository.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/reminder_provider.dart';
 import '../../../shared/widgets/reminder_card.dart';
@@ -48,24 +49,55 @@ class _ReminderListScreenState extends ConsumerState<ReminderListScreen> {
   // Adapted from Phase 1 loadReminders function (lines 51-150)
   Future<void> _loadReminders() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      final cached = ReminderRepository.getCachedReminders();
+      if (cached != null && mounted) {
+        setState(() {
+          _reminderData = cached;
+          _isLoading = false;
+          _error = null;
+        });
+      } else {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
+      }
 
       final headers = await _getAuthHeaders();
       final response = await ref.read(reminderRepositoryProvider).getReminders(headers);
 
-      setState(() {
-        _reminderData = response;
-        _isLoading = false;
-      });
+      ReminderRepository.setCachedReminders(response);
+      if (_remindersChanged(response)) {
+        setState(() {
+          _reminderData = response;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  bool _remindersChanged(ReminderListResponse next) {
+    final current = _reminderData;
+    if (current == null) {
+      return true;
+    }
+    if (current.overview.total != next.overview.total) {
+      return true;
+    }
+    if (current.today.length != next.today.length ||
+        current.upcoming.length != next.upcoming.length ||
+        current.past.length != next.past.length) {
+      return true;
+    }
+    if (current.today.isNotEmpty && next.today.isNotEmpty) {
+      return current.today.first.id != next.today.first.id;
+    }
+    return false;
   }
 
   // Adapted from Phase 1 handleCreateReminder

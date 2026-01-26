@@ -27,10 +27,22 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
 
   Future<void> _loadCareTeamData() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      final cachedMembers = CareTeamApiService.getCachedMembers();
+      final cachedPending = CareTeamApiService.getCachedPendingInvites();
+      if ((cachedMembers != null || cachedPending != null) && mounted) {
+        setState(() {
+          _members = cachedMembers ?? _members;
+          _pendingInvitations = cachedPending ?? _pendingInvitations;
+          _isLoading = false;
+          _error = null;
+        });
+      } else {
+        setState(() {
+          _isLoading = true;
+          _error = null;
+        });
+      }
+
       final results = await Future.wait([
         CareTeamApiService().getCareTeam(),
         CareTeamApiService().getPendingInvitations(),
@@ -38,14 +50,18 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       final members = results[0] as List<CareTeamMember>;
       final pending = results[1] as List<CareTeamInvitation>;
       if (!mounted) return;
-      setState(() {
-        _members = members;
-        _pendingInvitations = pending;
-        _pendingActionLoading.clear();
-        _pendingActionMessage.clear();
-        _pendingActionIsError.clear();
-        _isLoading = false;
-      });
+      CareTeamApiService.setCachedMembers(members);
+      CareTeamApiService.setCachedPendingInvites(pending);
+      if (_membersChanged(members) || _pendingChanged(pending)) {
+        setState(() {
+          _members = members;
+          _pendingInvitations = pending;
+          _pendingActionLoading.clear();
+          _pendingActionMessage.clear();
+          _pendingActionIsError.clear();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -53,6 +69,30 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  bool _membersChanged(List<CareTeamMember> next) {
+    if (_members.length != next.length) {
+      return true;
+    }
+    if (_members.isEmpty && next.isEmpty) {
+      return false;
+    }
+    return _members.isNotEmpty && next.isNotEmpty
+        ? _members.first.id != next.first.id
+        : true;
+  }
+
+  bool _pendingChanged(List<CareTeamInvitation> next) {
+    if (_pendingInvitations.length != next.length) {
+      return true;
+    }
+    if (_pendingInvitations.isEmpty && next.isEmpty) {
+      return false;
+    }
+    return _pendingInvitations.isNotEmpty && next.isNotEmpty
+        ? _pendingInvitations.first.id != next.first.id
+        : true;
   }
 
   @override
