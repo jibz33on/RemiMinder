@@ -13,6 +13,7 @@ import logging
 import os
 from services.ai.vertex_gemini_service import generate_visit_summary
 from services.ai.summary_normalizer_v2 import normalize_v2_summary
+from services.cache_service import get, set
 from services.db_service import get_transcript_text, insert_ai_summary_log, update_visit_with_structured_data, get_user_language_preferences
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,14 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
         # Step A: Fetch user's language preferences
         logger.info(f"🔍 [LANGUAGE] Fetching language preferences for user {user_id}")
         try:
-            language_prefs = await get_user_language_preferences(user_id)
+            cache_key = f"language_prefs:{user_id}"
+            cached = get(cache_key)
+            if cached is not None:
+                language_prefs = cached
+            else:
+                language_prefs = await get_user_language_preferences(user_id)
+                if language_prefs is not None:
+                    set(cache_key, language_prefs, 1800)
             visit_language = language_prefs.get("visit_language", "en") if language_prefs else "en"
             logger.info(f"🔍 [LANGUAGE] Retrieved preferences: {language_prefs}")
             logger.info(f"🔍 [LANGUAGE] Using visit_language='{visit_language}' for AI processing")

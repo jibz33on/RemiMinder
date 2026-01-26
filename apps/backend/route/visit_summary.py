@@ -321,8 +321,14 @@ async def get_latest_visit_status(user_id: str = Depends(get_user_id)):
     Check whether the latest visit for this user is still processing.
     """
     try:
+        from services.cache_service import get, set
         from services.cloud_sql_engine import get_cloud_sql_engine
         from sqlalchemy import text
+
+        cache_key = f"visit_status:{user_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
 
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
@@ -340,9 +346,13 @@ async def get_latest_visit_status(user_id: str = Depends(get_user_id)):
             ).fetchone()
 
         if not row:
-            return {"processing": False}
+            response = {"processing": False}
+            set(cache_key, response, 5)
+            return response
 
-        return {"processing": True, "visit_id": row[0]}
+        response = {"processing": True, "visit_id": row[0]}
+        set(cache_key, response, 5)
+        return response
 
     except Exception as e:
         logger.error("Failed to fetch latest visit status for user %s: %s", user_id, e)
@@ -469,15 +479,21 @@ async def get_user_summaries_endpoint(
 
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, get_user_summaries
+        from services.cache_service import get, set
         user_uuid = await get_user_uuid(user_id)
         await assert_patient_access(user_uuid, user_uuid, "view")
 
         logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
 
         # Step 2: Fetch user summaries
+        cache_key = f"summaries_list:{user_uuid}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         summaries = await get_user_summaries(user_uuid)
 
         logger.info(f"Returning {len(summaries)} summaries for user_uuid={user_uuid}")
+        set(cache_key, summaries, 120)
         return summaries
 
     except HTTPException:
@@ -501,6 +517,7 @@ async def delete_user_summary_endpoint(
 
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, delete_user_summary
+        from services.cache_service import invalidate
         user_uuid = await get_user_uuid(user_id)
         await assert_patient_access(user_uuid, user_uuid, "full")
 
@@ -513,6 +530,7 @@ async def delete_user_summary_endpoint(
             logger.warning(f"Summary {summary_id} not found or not owned by user {user_uuid}")
             raise HTTPException(status_code=404, detail="Summary not found or access denied")
 
+        invalidate(f"summaries_list:{user_uuid}")
         logger.info(f"Successfully deleted summary {summary_id} for user {user_uuid}")
         return {"status": "ok"}
 

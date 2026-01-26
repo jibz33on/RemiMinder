@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from .cloud_sql_engine import get_cloud_sql_engine
 from sqlalchemy import text
 from .ai.vertex_gemini_service import GEMINI_MODEL
+from services.cache_service import get_or_set
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +21,24 @@ async def get_user_uuid(firebase_uid: str) -> str:
     Get the Cloud SQL user UUID from Firebase UID.
     """
     try:
-        engine = get_cloud_sql_engine()
-        with engine.connect() as conn:
-            query = text("""
-                SELECT id FROM users WHERE firebase_uid = :firebase_uid
-            """)
+        cache_key = f"user_uuid:{firebase_uid}"
 
-            result = conn.execute(query, {"firebase_uid": firebase_uid})
-            row = result.fetchone()
+        def _load_user_uuid() -> str:
+            engine = get_cloud_sql_engine()
+            with engine.connect() as conn:
+                query = text("""
+                    SELECT id FROM users WHERE firebase_uid = :firebase_uid
+                """)
 
-            if not row:
-                raise HTTPException(status_code=404, detail=f"User not found for Firebase UID {firebase_uid}")
+                result = conn.execute(query, {"firebase_uid": firebase_uid})
+                row = result.fetchone()
 
-            return str(row[0])
+                if not row:
+                    raise HTTPException(status_code=404, detail=f"User not found for Firebase UID {firebase_uid}")
+
+                return str(row[0])
+
+        return get_or_set(cache_key, 1800, _load_user_uuid)
 
     except HTTPException:
         raise
@@ -252,6 +258,8 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
                 "cost": 0.001  # Placeholder cost, should be calculated properly
             })
 
+            from services.cache_service import invalidate
+            invalidate(f"summaries_list:{user_id}")
             logger.info(f"Inserted AI summary with structured data for transcript {transcript_id}")
 
     except Exception as e:

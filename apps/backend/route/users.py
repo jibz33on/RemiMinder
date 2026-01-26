@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from typing import Optional
 from services.auth_gateway import get_current_user_jwt as get_current_user
+from services.cache_service import get, set, invalidate
 from services.db_provider import get_cloud_sql_engine
 from services.db_service import ensure_user_exists, get_user_language_preferences, update_user_language_preferences, get_user_uuid
 from sqlalchemy import text
@@ -70,10 +71,21 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
 
     # Cloud SQL query by firebase_uid
     try:
+        cache_key = f"user_profile:{firebase_uid}"
+        cached = get(cache_key)
+        if cached is not None:
+            display_name = resolve_display_name(cached.get("full_name"))
+            return UserResponse(
+                id=str(cached["id"]),
+                email=cached["email"],
+                full_name=cached.get("full_name"),
+                display_name=display_name,
+                role=cached.get("db_role"),
+            )
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
             result = conn.execute(
-                text("SELECT id, email, full_name, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
+                text("SELECT id, email, full_name, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
                 {"firebase_uid": firebase_uid}
             )
             row = result.fetchone()
@@ -89,11 +101,18 @@ def get_user_profile(current_user: dict = Depends(get_current_user)):
                 "id": str(row[0]),
                 "email": row[1],
                 "full_name": row[2],
-                "display_name": display_name,
-                "role": row[3]
+                "phone": row[3],
+                "db_role": row[4],
             }
 
-            return UserResponse(**user_data)
+            set(cache_key, user_data, 600)
+            return UserResponse(
+                id=user_data["id"],
+                email=user_data["email"],
+                full_name=user_data.get("full_name"),
+                display_name=display_name,
+                role=user_data["db_role"],
+            )
 
     except Exception as e:
         raise HTTPException(500, f"Database error: {str(e)}")
@@ -162,6 +181,7 @@ def update_user_role(target_firebase_uid: str, request: UpdateRoleRequest, curre
                 "role": row[3]
             }
 
+            invalidate(f"user_profile:{target_firebase_uid}")
             return UserResponse(**user_data)
 
     except HTTPException:
@@ -214,10 +234,21 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
         raise HTTPException(401, "Invalid token: missing user ID")
 
     try:
+        cache_key = f"user_profile:{firebase_uid}"
+        cached = get(cache_key)
+        if cached is not None:
+            db_role = cached.get("db_role")
+            api_role = "patient" if db_role == "user" else db_role
+            return UserMeResponse(
+                full_name=cached.get("full_name"),
+                email=cached["email"],
+                phone=cached.get("phone"),
+                role=api_role,
+            )
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
             result = conn.execute(
-                text("SELECT full_name, email, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
+                text("SELECT id, full_name, email, phone, role FROM users WHERE firebase_uid = :firebase_uid LIMIT 1"),
                 {"firebase_uid": firebase_uid}
             )
             row = result.fetchone()
@@ -225,16 +256,24 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
             if not row:
                 raise HTTPException(404, "User not found")
 
-            full_name, email, phone, db_role = row
+            user_id, full_name, email, phone, db_role = row
 
             # Map database role to API role
             api_role = "patient" if db_role == "user" else db_role
 
+            user_data = {
+                "id": str(user_id),
+                "email": email,
+                "full_name": full_name,
+                "phone": phone,
+                "db_role": db_role,
+            }
+            set(cache_key, user_data, 600)
             return UserMeResponse(
                 full_name=full_name,
                 email=email,
                 phone=phone,
-                role=api_role
+                role=api_role,
             )
 
     except HTTPException:
@@ -290,10 +329,15 @@ async def get_language_preferences(current_user: dict = Depends(get_current_user
 
         user_uuid = await get_user_uuid(firebase_uid)
 
+        cache_key = f"language_prefs:{user_uuid}"
+        cached = get(cache_key)
+        if cached is not None:
+            return LanguagePreferencesResponse(**cached)
         preferences = await get_user_language_preferences(user_uuid)
         if preferences is None:
             raise HTTPException(status_code=404, detail="User not found")
 
+        set(cache_key, preferences, 1800)
         return LanguagePreferencesResponse(**preferences)
 
     except HTTPException:
@@ -338,6 +382,7 @@ async def update_language_preferences(
         if not success:
             raise HTTPException(status_code=404, detail="User not found")
 
+        invalidate(f"language_prefs:{user_uuid}")
         return {"status": "updated"}
 
     except HTTPException:
@@ -397,6 +442,7 @@ async def update_user_phone(
             if result.rowcount == 0:
                 raise HTTPException(status_code=404, detail="User not found")
 
+        invalidate(f"user_profile:{firebase_uid}")
         return UpdatePhoneResponse(phone=phone_to_save)
 
     except HTTPException:

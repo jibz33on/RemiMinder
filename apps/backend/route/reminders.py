@@ -30,6 +30,7 @@ from services.db_reminders import (
     mark_alert_as_read
 )
 from services.auth_gateway import get_current_user
+from services.cache_service import get, set, invalidate, invalidate_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ async def create_reminder(data: ReminderCreate, user_id: str = Depends(get_curre
                 detail="Failed to create reminder"
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return reminder
         
     except Exception as e:
@@ -67,7 +70,12 @@ async def get_patient_reminders(user_id: str = Depends(get_current_user)):
     Get all reminders for a patient, organized by category (today, upcoming, past).
     """
     try:
+        cache_key = f"reminders_list:{user_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         reminders = await list_patient_reminders(user_id)
+        set(cache_key, reminders, 30)
         return reminders
         
     except Exception as e:
@@ -115,6 +123,8 @@ async def update_reminder(reminder_id: str, user_id: str = Depends(get_current_u
                 detail="Reminder not found"
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return reminder
     
     except Exception as e:
@@ -139,6 +149,8 @@ async def delete_reminder(reminder_id: str, user_id: str = Depends(get_current_u
                 detail="Reminder not found"
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return None
     
     except Exception as e:
@@ -167,6 +179,8 @@ async def mark_complete(
                 detail="Reminder not found"
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return reminder
     
     except Exception as e:
@@ -194,6 +208,8 @@ async def snooze_reminder_post(
                 detail="Cannot snooze: Reminder not found or is already completed/cancelled." 
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return reminder
     
     except Exception as e:
@@ -222,6 +238,8 @@ async def skip_reminder_post(
                 detail="Reminder not found"
             )
         
+        invalidate(f"reminders_list:{user_id}")
+        invalidate_prefix("caregiver_dashboard:")
         return reminder
 
     except Exception as e:
@@ -243,7 +261,12 @@ async def get_caregiver_activity(caregiver_id: str, user_id: str = Depends(get_c
     Shows next reminders, recent activity, and alert summary.
     """
     try:
+        cache_key = f"caregiver_dashboard:{caregiver_id}:{user_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         dashboard_data = await get_caregiver_dashboard_data(caregiver_id, user_id)
+        set(cache_key, dashboard_data, 30)
         return dashboard_data
     
     except Exception as e:
@@ -259,7 +282,12 @@ async def get_alerts(caregiver_id: str, unread_only: bool = False):
     Get all alerts for a caregiver.
     """
     try:
+        cache_key = f"caregiver_alerts:{caregiver_id}:{unread_only}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         alerts = await get_caregiver_alerts(caregiver_id, unread_only)
+        set(cache_key, alerts, 30)
         return alerts
         
     except Exception as e:
@@ -284,6 +312,12 @@ async def mark_alert_read(alert_id: str, caregiver_id: str):
                 detail="Alert not found"
             )
         
+        invalidate_prefix(f"caregiver_alerts:{caregiver_id}:")
+        user_id = alert.get("user_id") if alert else None
+        if user_id:
+            invalidate(f"caregiver_dashboard:{caregiver_id}:{user_id}")
+        else:
+            invalidate_prefix(f"caregiver_dashboard:{caregiver_id}:")
         return alert
     
     except Exception as e:

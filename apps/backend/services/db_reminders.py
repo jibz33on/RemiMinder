@@ -461,6 +461,9 @@ async def create_caregiver_alert(
 
     supabase = get_supabase_client()
     response = supabase.table("caregiver_alerts").insert(alert_data).execute()
+    from services.cache_service import invalidate, invalidate_prefix
+    invalidate_prefix(f"caregiver_alerts:{caregiver_id}:")
+    invalidate(f"caregiver_dashboard:{caregiver_id}:{user_id}")
     return response.data[0] if response.data else None
 
 

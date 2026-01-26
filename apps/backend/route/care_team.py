@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from services.auth_gateway import get_current_user_jwt as get_current_user
+from services.cache_service import get, set, invalidate
 from services.db_service import (
     add_care_team_member,
     cancel_care_team_invitation,
@@ -57,7 +58,12 @@ async def list_care_team_members(
             raise HTTPException(status_code=401, detail="Invalid token")
 
         patient_id = await get_user_uuid(firebase_uid)
+        cache_key = f"care_team_list:{patient_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         members = await get_care_team_members(patient_id)
+        set(cache_key, members, 60)
         return members
 
     except HTTPException:
@@ -109,6 +115,8 @@ async def invite_care_team_member(
         except Exception as e:
             logger.warning(f"Failed to send care team invite email: {e}")
 
+        invalidate(f"care_team_pending:{patient_id}")
+        invalidate(f"care_team_list:{patient_id}")
         return {"status": "sent"}
 
     except HTTPException:
@@ -163,6 +171,10 @@ async def accept_care_team_invitation(
         if not updated:
             raise HTTPException(status_code=404, detail="Invitation not found")
 
+        patient_id = str(invitation["patient_id"])
+        invalidate(f"care_team_pending:{patient_id}")
+        invalidate(f"care_team_list:{patient_id}")
+        invalidate(f"care_team_my_invites:{member_user_id}")
         return {"status": "accepted"}
 
     except HTTPException:
@@ -185,8 +197,13 @@ async def list_my_care_team_invitations(
             raise HTTPException(status_code=401, detail="Invalid token")
 
         user_id = await get_user_uuid(firebase_uid)
+        cache_key = f"care_team_my_invites:{user_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         user_email = await get_user_email(user_id)
         invitations = await get_my_care_team_invitations(user_email)
+        set(cache_key, invitations, 60)
         return invitations
 
     except HTTPException:
@@ -209,7 +226,12 @@ async def list_pending_care_team_invitations(
             raise HTTPException(status_code=401, detail="Invalid token")
 
         patient_id = await get_user_uuid(firebase_uid)
+        cache_key = f"care_team_pending:{patient_id}"
+        cached = get(cache_key)
+        if cached is not None:
+            return cached
         invitations = await get_pending_care_team_invitations(patient_id)
+        set(cache_key, invitations, 60)
         return invitations
 
     except HTTPException:
@@ -240,6 +262,8 @@ async def cancel_pending_care_team_invitation(
         if not updated:
             raise HTTPException(status_code=404, detail="Invitation not found")
 
+        invalidate(f"care_team_pending:{patient_id}")
+        invalidate(f"care_team_list:{patient_id}")
         return {"success": True}
 
     except HTTPException:
@@ -285,6 +309,8 @@ async def resend_pending_care_team_invitation(
         except Exception as e:
             logger.warning(f"Failed to resend care team invite email: {e}")
 
+        invalidate(f"care_team_pending:{patient_id}")
+        invalidate(f"care_team_list:{patient_id}")
         return {"success": True}
 
     except HTTPException:
@@ -325,6 +351,7 @@ async def update_care_team_permission(
         if not updated:
             raise HTTPException(status_code=404, detail="Care team member not found")
 
+        invalidate(f"care_team_list:{patient_id}")
         return {"success": True}
 
     except HTTPException:
@@ -358,6 +385,7 @@ async def delete_care_team_member_endpoint(
         if not deleted:
             raise HTTPException(status_code=404, detail="Care team member not found")
 
+        invalidate(f"care_team_list:{patient_id}")
         return {"success": True}
 
     except HTTPException:
