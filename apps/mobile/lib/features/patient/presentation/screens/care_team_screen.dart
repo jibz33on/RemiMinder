@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../care_team/data/models/care_team_invitation.dart';
+import '../../../care_team/data/models/care_team_member.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class CareTeamScreen extends StatefulWidget {
   const CareTeamScreen({super.key});
@@ -8,11 +11,49 @@ class CareTeamScreen extends StatefulWidget {
 }
 
 class _CareTeamScreenState extends State<CareTeamScreen> {
-  final List<Map<String, String>> _caregivers = [
-    {'name': 'John Smith', 'role': 'Son', 'access': 'Full Access'},
-    {'name': 'Dr. Lee', 'role': 'Cardiologist', 'access': 'View Only'},
-    {'name': 'Sarah Jones', 'role': 'Home Aide', 'access': 'View Only'},
-  ];
+  bool _isLoading = true;
+  String? _error;
+  List<CareTeamMember> _members = [];
+  List<CareTeamInvitation> _pendingInvitations = [];
+  final Map<String, bool> _pendingActionLoading = {};
+  final Map<String, String?> _pendingActionMessage = {};
+  final Map<String, bool> _pendingActionIsError = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCareTeamData();
+  }
+
+  Future<void> _loadCareTeamData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      final results = await Future.wait([
+        CareTeamApiService().getCareTeam(),
+        CareTeamApiService().getPendingInvitations(),
+      ]);
+      final members = results[0] as List<CareTeamMember>;
+      final pending = results[1] as List<CareTeamInvitation>;
+      if (!mounted) return;
+      setState(() {
+        _members = members;
+        _pendingInvitations = pending;
+        _pendingActionLoading.clear();
+        _pendingActionMessage.clear();
+        _pendingActionIsError.clear();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,52 +108,79 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Caregiver List
-                    ..._caregivers.map((caregiver) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: CaregiverTile(
-                            name: caregiver['name']!,
-                            role: caregiver['role']!,
-                            accessLevel: caregiver['access']!,
-                            onManagePermissions: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Remove Caregiver'),
-                                    content: const Text(
-                                      'Are you sure you want to remove this caregiver from your care team?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(dialogContext).pop();
-                                        },
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(dialogContext).pop();
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                  'Caregiver removal coming soon'),
-                                            ),
-                                          );
-                                        },
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                        ),
-                                        child: const Text('Remove'),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
+                    if (_isLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.error,
                           ),
-                        )),
+                        ),
+                      )
+                    else if (_members.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'No caregivers added yet',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Active Caregivers',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ..._members.map((member) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: CaregiverTile(
+                                  name: member.fullName ??
+                                      member.email ??
+                                      member.memberUserId,
+                                  role: member.role,
+                                  accessLevel:
+                                      _formatAccessLabel(member.permission),
+                                  onManagePermissions: () {
+                                    _showManageDialog(context, member);
+                                  },
+                                ),
+                              )),
+                        ],
+                      ),
+
+                    if (!_isLoading && _pendingInvitations.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Pending Invitations',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ..._pendingInvitations.map(
+                        (invitation) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildPendingInvitationCard(invitation),
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -180,18 +248,381 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                final email = emailController.text.trim();
+                final role = relationshipController.text.trim();
+                if (email.isEmpty || role.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Email and role are required')),
+                  );
+                  return;
+                }
                 Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Caregiver invite flow coming soon'),
-                  ),
-                );
+                _inviteCaregiver(email: email, role: role);
               },
               child: const Text('Send Invite'),
             ),
           ],
         );
       },
+    );
+  }
+
+  Future<void> _inviteCaregiver({
+    required String email,
+    required String role,
+  }) async {
+    try {
+      await CareTeamApiService().inviteCaregiver(
+        email: email,
+        role: role,
+        permission: "view",
+      );
+      await _loadCareTeamData();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  void _showManageDialog(BuildContext context, CareTeamMember member) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            bool isLoading = false;
+            String? errorMessage;
+            String? successMessage;
+
+            Future<void> handleAction(
+              Future<bool> Function() action,
+              String loadingMessage,
+            ) async {
+              setDialogState(() {
+                isLoading = true;
+                errorMessage = null;
+                successMessage = loadingMessage;
+              });
+              final success = await action();
+              if (!mounted) return;
+              if (success) {
+                setDialogState(() {
+                  successMessage = 'Access updated successfully';
+                });
+                await Future.delayed(const Duration(milliseconds: 800));
+                if (!mounted) return;
+                Navigator.of(dialogContext).pop();
+              } else {
+                setDialogState(() {
+                  isLoading = false;
+                  successMessage = null;
+                  errorMessage = 'Failed to update access. Please try again.';
+                });
+              }
+            }
+
+            Future<void> handleRemove() async {
+              final confirmed = await showDialog<bool>(
+                context: dialogContext,
+                builder: (context) => AlertDialog(
+                  title: const Text('Remove caregiver?'),
+                  content: const Text(
+                    'Are you sure you want to remove this caregiver? They will lose access immediately.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed != true) return;
+
+              setDialogState(() {
+                isLoading = true;
+                errorMessage = null;
+                successMessage = 'Removing caregiver...';
+              });
+
+              final success = await _applyRemoveMember(member.id);
+              if (!mounted) return;
+              if (success) {
+                Navigator.of(dialogContext).pop();
+              } else {
+                setDialogState(() {
+                  isLoading = false;
+                  successMessage = null;
+                  errorMessage =
+                      'Failed to remove caregiver. Please try again.';
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Manage Access'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Update caregiver permission or remove access.'),
+                  if (successMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      successMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => handleAction(
+                            () => _applyPermissionChange(member.id, 'view'),
+                            'Updating access...',
+                          ),
+                  child: const Text('View Access'),
+                ),
+                TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => handleAction(
+                            () => _applyPermissionChange(member.id, 'full'),
+                            'Updating access...',
+                          ),
+                  child: const Text('Full Access'),
+                ),
+                TextButton(
+                  onPressed: isLoading ? null : handleRemove,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Remove'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _applyPermissionChange(
+    String memberId,
+    String permission,
+  ) async {
+    try {
+      await CareTeamApiService().updatePermission(
+        memberId: memberId,
+        permission: permission,
+      );
+      await _loadCareTeamData();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> _applyRemoveMember(
+    String memberId,
+  ) async {
+    try {
+      await CareTeamApiService().removeMember(memberId: memberId);
+      await _loadCareTeamData();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  String _formatAccessLabel(String permission) {
+    return permission == "full" ? "Full Access" : "View Only";
+  }
+
+  Future<void> _resendInvitation(CareTeamInvitation invitation) async {
+    _setPendingActionState(
+      invitation.id,
+      isLoading: true,
+      message: 'Resending invitation...',
+      isError: false,
+    );
+    try {
+      await CareTeamApiService().resendPendingInvitation(invitation.id);
+      _setPendingActionState(
+        invitation.id,
+        isLoading: false,
+        message: 'Invitation resent',
+        isError: false,
+      );
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      await _loadCareTeamData();
+    } catch (e) {
+      _setPendingActionState(
+        invitation.id,
+        isLoading: false,
+        message: 'Failed to resend invitation',
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _cancelInvitation(CareTeamInvitation invitation) async {
+    _setPendingActionState(
+      invitation.id,
+      isLoading: true,
+      message: 'Canceling invitation...',
+      isError: false,
+    );
+    try {
+      await CareTeamApiService()
+          .cancelPendingInvitation(invitationId: invitation.id);
+      _setPendingActionState(
+        invitation.id,
+        isLoading: false,
+        message: 'Invitation canceled',
+        isError: false,
+      );
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      await _loadCareTeamData();
+    } catch (e) {
+      _setPendingActionState(
+        invitation.id,
+        isLoading: false,
+        message: 'Failed to cancel invitation',
+        isError: true,
+      );
+    }
+  }
+
+  void _setPendingActionState(
+    String invitationId, {
+    required bool isLoading,
+    required String? message,
+    required bool isError,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _pendingActionLoading[invitationId] = isLoading;
+      _pendingActionMessage[invitationId] = message;
+      _pendingActionIsError[invitationId] = isError;
+    });
+  }
+
+  Widget _buildPendingInvitationCard(CareTeamInvitation invitation) {
+    final theme = Theme.of(context);
+    final isLoading = _pendingActionLoading[invitation.id] == true;
+    final message = _pendingActionMessage[invitation.id];
+    final isError = _pendingActionIsError[invitation.id] == true;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            invitation.inviteeEmail,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            invitation.role,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Invitation Pending',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange,
+              ),
+            ),
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                color: isError
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              TextButton(
+                onPressed:
+                    isLoading ? null : () => _resendInvitation(invitation),
+                child: const Text('Resend'),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed:
+                    isLoading ? null : () => _cancelInvitation(invitation),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Cancel'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

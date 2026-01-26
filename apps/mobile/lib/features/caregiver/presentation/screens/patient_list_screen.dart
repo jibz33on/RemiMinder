@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../care_team/data/models/care_team_member.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -13,79 +15,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
-  // Mock patients data
-  final List<Map<String, dynamic>> _allPatients = [
-    {
-      'id': '1',
-      'name': 'John Doe',
-      'age': 68,
-      'relationship': 'Father',
-      'condition': 'Hypertension, Diabetes',
-      'status': 'active',
-      'lastVisit': DateTime.now().subtract(const Duration(days: 7)),
-      'medicationAdherence': 85,
-      'upcomingAppointments': 2,
-      'unreadAlerts': 1,
-      'phone': '+1 (555) 123-4567',
-      'emergencyContact': 'Jane Doe (Daughter)',
-    },
-    {
-      'id': '2',
-      'name': 'Mary Smith',
-      'age': 72,
-      'relationship': 'Mother',
-      'condition': 'Arthritis, High Cholesterol',
-      'status': 'attention',
-      'lastVisit': DateTime.now().subtract(const Duration(days: 14)),
-      'medicationAdherence': 65,
-      'upcomingAppointments': 1,
-      'unreadAlerts': 3,
-      'phone': '+1 (555) 234-5678',
-      'emergencyContact': 'Tom Smith (Son)',
-    },
-    {
-      'id': '3',
-      'name': 'Robert Johnson',
-      'age': 45,
-      'relationship': 'Brother',
-      'condition': 'Post-surgery recovery',
-      'status': 'critical',
-      'lastVisit': DateTime.now().subtract(const Duration(days: 2)),
-      'medicationAdherence': 90,
-      'upcomingAppointments': 3,
-      'unreadAlerts': 5,
-      'phone': '+1 (555) 345-6789',
-      'emergencyContact': 'Sarah Johnson (Wife)',
-    },
-    {
-      'id': '4',
-      'name': 'Elizabeth Wilson',
-      'age': 55,
-      'relationship': 'Aunt',
-      'condition': 'Thyroid condition',
-      'status': 'active',
-      'lastVisit': DateTime.now().subtract(const Duration(days: 21)),
-      'medicationAdherence': 95,
-      'upcomingAppointments': 0,
-      'unreadAlerts': 0,
-      'phone': '+1 (555) 456-7890',
-      'emergencyContact': 'Michael Wilson (Husband)',
-    },
-    {
-      'id': '5',
-      'name': 'David Brown',
-      'age': 62,
-      'relationship': 'Uncle',
-      'condition': 'Heart condition',
-      'status': 'attention',
-      'lastVisit': DateTime.now().subtract(const Duration(days: 30)),
-      'medicationAdherence': 75,
-      'upcomingAppointments': 1,
-      'unreadAlerts': 2,
-      'phone': '+1 (555) 567-8901',
-      'emergencyContact': 'Linda Brown (Wife)',
-    },
-  ];
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _allPatients = [];
 
   List<Map<String, dynamic>> get _filteredPatients {
     var patients = _allPatients;
@@ -118,6 +50,33 @@ class _PatientListScreenState extends State<PatientListScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPatients();
+  }
+
+  Future<void> _loadPatients() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      final members = await CareTeamApiService().getCareTeam();
+      if (!mounted) return;
+      setState(() {
+        _allPatients = members.map(_mapMemberToPatient).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -230,22 +189,25 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
           // Patient List
           Expanded(
-            child: _filteredPatients.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredPatients.length,
-                    itemBuilder: (context, index) {
-                      final patient = _filteredPatients[index];
-                      return _buildPatientCard(patient);
-                    },
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _buildErrorState()
+                    : _filteredPatients.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredPatients.length,
+                            itemBuilder: (context, index) {
+                              final patient = _filteredPatients[index];
+                              return _buildPatientCard(patient);
+                            },
+                          ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Navigate to add new patient screen
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Add New Patient - Coming Soon!')),
           );
@@ -293,7 +255,6 @@ class _PatientListScreenState extends State<PatientListScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                // TODO: Navigate to add patient screen
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                       content: Text('Add First Patient - Coming Soon!')),
@@ -312,11 +273,44 @@ class _PatientListScreenState extends State<PatientListScreen> {
     );
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _error ?? 'Failed to load patients',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadPatients,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPatientCard(Map<String, dynamic> patient) {
     final status = patient['status'] as String;
     final medicationAdherence = patient['medicationAdherence'] as int;
     final upcomingAppointments = patient['upcomingAppointments'] as int;
     final unreadAlerts = patient['unreadAlerts'] as int;
+    final patientId = patient['id'] as String;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -324,7 +318,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        onTap: () => context.go('/caregiver/patient-overview'),
+        onTap: () =>
+            context.go('/caregiver/patient-overview?patientId=$patientId'),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -582,17 +577,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
     });
   }
 
-  void _navigateToPatientOverview(Map<String, dynamic> patient) {
-    // TODO: Navigate to patient overview screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content:
-              Text('Patient Overview for ${patient['name']} - Coming Soon!')),
-    );
-  }
-
   void _viewAlerts(Map<String, dynamic> patient) {
-    // TODO: Navigate to patient alerts
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text('View alerts for ${patient['name']} - Coming Soon!')),
@@ -600,7 +585,6 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   void _viewAppointments(Map<String, dynamic> patient) {
-    // TODO: Navigate to patient appointments
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content:
@@ -651,5 +635,22 @@ class _PatientListScreenState extends State<PatientListScreen> {
       final months = (difference / 30).floor();
       return '$months month${months > 1 ? 's' : ''} ago';
     }
+  }
+
+  Map<String, dynamic> _mapMemberToPatient(CareTeamMember member) {
+    return {
+      'id': member.patientId,
+      'name': member.fullName ?? member.email ?? member.memberUserId,
+      'age': 0,
+      'relationship': member.role,
+      'condition': 'Care team member',
+      'status': 'active',
+      'lastVisit': DateTime.now(),
+      'medicationAdherence': 0,
+      'upcomingAppointments': 0,
+      'unreadAlerts': 0,
+      'phone': '',
+      'emergencyContact': '',
+    };
   }
 }

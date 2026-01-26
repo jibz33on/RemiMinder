@@ -5,11 +5,13 @@ import 'rounded_navigation_bar.dart';
 class PatientAppShell extends StatefulWidget {
   final Widget child;
   final NavigationItem currentItem;
+  final Map<NavigationItem, String>? routes;
 
   const PatientAppShell({
     super.key,
     required this.child,
     required this.currentItem,
+    this.routes,
   });
 
   @override
@@ -31,7 +33,10 @@ class _PatientAppShellState extends State<PatientAppShell> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: RoundedNavigationBar(currentItem: widget.currentItem),
+            child: RoundedNavigationBar(
+              currentItem: widget.currentItem,
+              routes: widget.routes,
+            ),
           ),
         ],
       ),
@@ -49,6 +54,16 @@ NavigationItem getCurrentNavigationItem(String location) {
     return NavigationItem.careTeam;
   } else if (location.startsWith('/patient/profile')) {
     return NavigationItem.profile;
+  } else if (location.startsWith('/profile')) {
+    return NavigationItem.profile;
+  } else if (location.startsWith('/caregiver/home')) {
+    return NavigationItem.home;
+  } else if (location.startsWith('/caregiver/patients')) {
+    return NavigationItem.visits;
+  } else if (location.startsWith('/caregiver/alerts')) {
+    return NavigationItem.overview;
+  } else if (location.startsWith('/caregiver/accept-invitations')) {
+    return NavigationItem.careTeam;
   } else {
     // Default to home for unknown routes
     return NavigationItem.home;

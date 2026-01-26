@@ -53,7 +53,7 @@ sys.path.append('..')
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from route import visit_summary, users
+from route import care_team, visit_summary, users
 # DISABLED: Other routes temporarily disabled to focus on audio + STT features
 # from route import invitations, patient_register, caregiver_patient, caregivers
 # DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
@@ -78,6 +78,7 @@ app.add_middleware(
 # app.include_router(caregiver_patient.router)  # Caregiver-patient linking
 app.include_router(visit_summary.router)      # Visit summaries (audio + STT only)
 app.include_router(users.router)              # User authentication
+app.include_router(care_team.router)          # Care team invitations
 # DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
 # app.include_router(reminders.router)          # Reminders
 

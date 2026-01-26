@@ -12,10 +12,12 @@ enum NavigationItem {
 
 class RoundedNavigationBar extends StatefulWidget {
   final NavigationItem currentItem;
+  final Map<NavigationItem, String>? routes;
 
   const RoundedNavigationBar({
     super.key,
     required this.currentItem,
+    this.routes,
   });
 
   @override
@@ -25,6 +27,14 @@ class RoundedNavigationBar extends StatefulWidget {
 class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
   void _onItemTapped(NavigationItem item) {
     if (item == widget.currentItem) return;
+
+    if (widget.routes != null) {
+      final route = widget.routes![item];
+      if (route != null) {
+        context.go(route);
+      }
+      return;
+    }
 
     switch (item) {
       case NavigationItem.home:

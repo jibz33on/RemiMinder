@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 # )
 from services.gcs_service import upload_audio, upload_image
 from services.auth_gateway import get_current_user_jwt as get_current_user
+from services.access_control import assert_patient_access
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ async def upload_audio_for_visit(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "full")
 
         # Step 2: Upload to GCS first (fail fast if storage fails)
         audio_url = await upload_audio(file, visit_id)
@@ -177,6 +179,7 @@ async def upload_image_for_visit(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "full")
 
         # Step 2: Upload to GCS first (fail fast if storage fails)
         image_result = await upload_image(file, visit_id)
@@ -261,7 +264,8 @@ async def process_visit_ocr(
     try:
         # Step 1: Resolve user UUID (for future validation if needed)
         from services.db_service import get_user_uuid
-        await get_user_uuid(user_id)  # Validate user exists
+        user_uuid = await get_user_uuid(user_id)  # Validate user exists
+        await assert_patient_access(user_uuid, user_uuid, "full")
 
         # Step 2: Run OCR pipeline
         from services.media.image_pipeline import run_ocr_for_visit
@@ -292,6 +296,10 @@ async def process_visit_audio(
     Background pipeline: GCS -> STT -> Cloud SQL.
     """
     from services.jobs_service import create_job
+    from services.db_service import get_user_uuid
+
+    user_uuid = await get_user_uuid(user_id)
+    await assert_patient_access(user_uuid, user_uuid, "full")
 
     job_id = create_job(
         job_type="STT_JOB",
@@ -350,6 +358,7 @@ async def get_visit_audio_url_endpoint(
         # Get user UUID from Firebase UID
         from services.db_service import get_user_uuid
         user_uuid = await get_user_uuid(user_id)  # user_id is Firebase UID from JWT
+        await assert_patient_access(user_uuid, user_uuid, "view")
 
         from services.db_service import get_audio_gcs_url
         audio_url = await get_audio_gcs_url(visit_id, user_uuid)
@@ -380,6 +389,7 @@ async def get_visit_summary(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, get_latest_ai_summary_for_visit
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "view")
 
         logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
 
@@ -418,6 +428,7 @@ async def get_visit_summary_structured(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, get_latest_ai_structured_summary_for_visit
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "view")
 
         logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
 
@@ -459,6 +470,7 @@ async def get_user_summaries_endpoint(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, get_user_summaries
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "view")
 
         logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
 
@@ -490,6 +502,7 @@ async def delete_user_summary_endpoint(
         # Step 1: Resolve Firebase UID to Cloud SQL user UUID
         from services.db_service import get_user_uuid, delete_user_summary
         user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "full")
 
         logger.info(f"Resolved firebase_uid={user_id} to user_uuid={user_uuid}")
 

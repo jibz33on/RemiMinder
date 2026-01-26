@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../shared/utilities/greeting_utils.dart';
+import '../../../patient/presentation/widgets/widgets.dart';
+import '../../../care_team/data/models/care_team_invitation.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class CaregiverHomeScreen extends ConsumerStatefulWidget {
   const CaregiverHomeScreen({super.key});
@@ -14,200 +17,288 @@ class CaregiverHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
+  List<CareTeamInvitation> _invitations = [];
+  bool _isLoadingInvitations = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvitations();
+  }
+
+  Future<void> _loadInvitations() async {
+    try {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingInvitations = true;
+      });
+      final invitations = await CareTeamApiService().getMyInvitations();
+      if (!mounted) return;
+      setState(() {
+        _invitations = invitations;
+        _isLoadingInvitations = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingInvitations = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final userName = authState.profile?.fullName ?? 'Caregiver';
-    final greeting = GreetingUtils.getWelcomeBackGreeting(userName);
+    final greeting = GreetingUtils.getTimeBasedGreeting();
+    final firstName = userName.split(' ').first;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          onPressed: () => context.go('/login'),
-        ),
-        title: Row(
-          children: [
-            // User Avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.favorite,
-                color: Colors.white,
-                size: 24,
-              ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.transparent,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0)
+                    .copyWith(top: MediaQuery.of(context).padding.top + 16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.favorite,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        greeting,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              firstName,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '✨',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Caregiver dashboard',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.notifications_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  onPressed: () => context.go('/caregiver/alerts'),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            // Welcome Text
-            Expanded(
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    greeting,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  if (!_isLoadingInvitations && _invitations.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildInvitationsSection(),
+                    const SizedBox(height: 32),
+                  ],
+                  const SectionHeader(
+                    title: 'Recent Alerts',
+                    icon: Icons.notifications,
                   ),
-                  Text(
-                    'Caregiver Dashboard',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 14,
-                    ),
+                  const SizedBox(height: 16),
+                  _buildAlertsSection(),
+                  const SizedBox(height: 32),
+                  const SectionHeader(
+                    title: 'My Patients',
+                    icon: Icons.people,
                   ),
+                  const SizedBox(height: 16),
+                  _buildPatientList(),
+                  const SizedBox(height: 32),
+                  const SectionHeader(
+                    title: 'Today\'s Care Tasks',
+                    icon: Icons.task,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCareTasks(),
+                  const SizedBox(height: 32),
+                  const SectionHeader(
+                    title: 'Upcoming Appointments',
+                    icon: Icons.calendar_today,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildUpcomingAppointments(),
+                  const SizedBox(height: 32),
+                  const SectionHeader(
+                    title: 'Quick Actions',
+                    icon: Icons.flash_on,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildQuickActions(),
+                  const SizedBox(height: 32),
+                  const SectionHeader(
+                    title: 'Care Summary',
+                    icon: Icons.analytics,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCaregiverStats(),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-
-              // Invitations Section
-              _buildSectionHeader('Pending Invitations', Icons.mail),
-              const SizedBox(height: 16),
-              _buildInvitationsSection(),
-
-              const SizedBox(height: 24),
-
-              // Alerts Section
-              _buildSectionHeader('Recent Alerts', Icons.notifications),
-              const SizedBox(height: 16),
-              _buildAlertsSection(),
-
-              const SizedBox(height: 32),
-
-              // My Patients Section
-              _buildSectionHeader('My Patients', Icons.people),
-              const SizedBox(height: 16),
-              _buildPatientList(),
-
-              const SizedBox(height: 32),
-
-              // Today's Care Tasks
-              _buildSectionHeader('Today\'s Care Tasks', Icons.task),
-              const SizedBox(height: 16),
-              _buildCareTasks(),
-
-              const SizedBox(height: 32),
-
-              // Upcoming Appointments
-              _buildSectionHeader(
-                  'Upcoming Appointments', Icons.calendar_today),
-              const SizedBox(height: 16),
-              _buildUpcomingAppointments(),
-
-              const SizedBox(height: 32),
-
-              // Quick Actions
-              _buildSectionHeader('Quick Actions', Icons.flash_on),
-              const SizedBox(height: 16),
-              _buildQuickActions(),
-
-              const SizedBox(height: 32),
-
-              // Caregiver Stats
-              _buildSectionHeader('Care Summary', Icons.analytics),
-              const SizedBox(height: 16),
-              _buildCaregiverStats(),
-
-              const SizedBox(height: 24),
-            ],
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildInvitationsSection() {
-    // Mock pending invitations count
-    const pendingInvitations = 2; // In real app, this would come from API/state
+    final pendingInvitations = _invitations.length;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF1A4D4D), // Dark teal-green
+            Color(0xFF051818), // Very dark green/black
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: const Border(
+          top: BorderSide(
+            color: Colors.white,
+            width: 0.5,
+          ),
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.mail,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 24,
-                ),
+              const Icon(
+                Icons.mail,
+                color: Colors.white,
+                size: 28,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$pendingInvitations Pending Invitation${pendingInvitations > 1 ? 's' : ''}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Family members have invited you to help manage their health',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .secondary
-                            .withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+              const SizedBox(width: 12),
+              Text(
+                'Pending Invitations',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
+          Text(
+            '$pendingInvitations invitation${pendingInvitations > 1 ? 's' : ''} waiting',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Review and accept caregiver invitations.',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
             onPressed: () => context.go('/caregiver/accept-invitations'),
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('View Invitations'),
             style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 44),
+              backgroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(25),
+              ),
+            ),
+            child: const Text(
+              'View Invitations',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -402,72 +493,57 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     }
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 24,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      ],
-    );
-  }
+  // Section headers use shared SectionHeader widget for consistency
 
   Widget _buildPatientList() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildPatientCard(
-            'John Doe',
-            'Father',
-            '85% medication adherence',
-            'active',
-            null,
-          ),
-          const Divider(height: 16),
-          _buildPatientCard(
-            'Mary Smith',
-            'Mother',
-            'Needs medication reminder',
-            'attention',
-            null,
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () {
-              context.go('/caregiver/patients');
-            },
-            child: Text(
-              'View All Patients',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600,
+    return InkWell(
+      onTap: () => context.go('/caregiver/patients'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildPatientCard(
+              'John Doe',
+              'Father',
+              '85% medication adherence',
+              'active',
+              null,
+            ),
+            const Divider(height: 16),
+            _buildPatientCard(
+              'Mary Smith',
+              'Mother',
+              'Needs medication reminder',
+              'attention',
+              null,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                context.go('/caregiver/patients');
+              },
+              child: Text(
+                'View All Patients',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -668,9 +744,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
         // Checkbox
         Checkbox(
           value: isCompleted,
-          onChanged: (value) {
-            // TODO: Update task status
-          },
+          onChanged: (value) {},
           activeColor: Theme.of(context).colorScheme.primary,
         ),
         const SizedBox(width: 8),
@@ -805,30 +879,22 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
         _buildQuickActionItem(
           'Add Patient',
           Icons.person_add,
-          () {
-            // TODO: Navigate to add patient
-          },
+          () {},
         ),
         _buildQuickActionItem(
           'Schedule',
           Icons.schedule,
-          () {
-            // TODO: Navigate to schedule
-          },
+          () {},
         ),
         _buildQuickActionItem(
           'Messages',
           Icons.message,
-          () {
-            // TODO: Navigate to messages
-          },
+          () {},
         ),
         _buildQuickActionItem(
           'Reports',
           Icons.bar_chart,
-          () {
-            // TODO: Navigate to reports
-          },
+          () {},
         ),
       ],
     );

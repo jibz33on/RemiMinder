@@ -1,4 +1,3 @@
-import 'dart:developer' as logger;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +5,8 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
 import '../../data/services/patient_api_service.dart';
 import '../../data/models/summary_item.dart';
+import '../../../care_team/data/models/care_team_member.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -29,7 +30,10 @@ class _OverviewScreenState extends State<OverviewScreen>
   bool _isLatestVisitProcessing = false;
 
   // Sharing state
-  final Map<String, bool> _shareStates = {};
+  CareTeamMember? _activeCaregiver;
+  bool _isLoadingCaregiver = true;
+  String? _caregiverError;
+  bool _isUpdatingShare = false;
 
   // Selection state
   bool _isSelectionMode = false;
@@ -41,6 +45,7 @@ class _OverviewScreenState extends State<OverviewScreen>
     _tabController = TabController(length: 3, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _loadSeenSummaryIds().then((_) => _fetchSummaries());
+    _loadCaregiver();
   }
 
   @override
@@ -138,6 +143,29 @@ class _OverviewScreenState extends State<OverviewScreen>
         _summariesError = e.toString();
         _isLoadingSummaries = false;
         _isLatestVisitProcessing = false;
+      });
+    }
+  }
+
+  Future<void> _loadCaregiver() async {
+    try {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCaregiver = true;
+        _caregiverError = null;
+      });
+
+      final members = await CareTeamApiService().getCareTeam();
+      if (!mounted) return;
+      setState(() {
+        _activeCaregiver = members.isNotEmpty ? members.first : null;
+        _isLoadingCaregiver = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _caregiverError = e.toString();
+        _isLoadingCaregiver = false;
       });
     }
   }
@@ -332,7 +360,6 @@ class _OverviewScreenState extends State<OverviewScreen>
             _selectedSummaryIds.remove(summaryId);
           });
         } catch (e) {
-          logger.log('Failed to delete summary $summaryId: $e');
           // Continue with other deletions even if one fails
         }
       }
@@ -349,7 +376,6 @@ class _OverviewScreenState extends State<OverviewScreen>
         );
       }
     } catch (e) {
-      logger.log('Error during delete operation: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -361,7 +387,15 @@ class _OverviewScreenState extends State<OverviewScreen>
     }
   }
 
-  void _toggleShare(String summaryId, bool value) {
+  void _toggleShare(bool value) {
+    if (_activeCaregiver == null || _isUpdatingShare) {
+      if (!_isLoadingCaregiver && _caregiverError == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No caregiver added yet')),
+        );
+      }
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -379,7 +413,7 @@ class _OverviewScreenState extends State<OverviewScreen>
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _confirmShareToggle(summaryId, value);
+              _confirmShareToggle(value);
             },
             style: TextButton.styleFrom(
               foregroundColor:
@@ -392,32 +426,72 @@ class _OverviewScreenState extends State<OverviewScreen>
     );
   }
 
-  void _confirmShareToggle(String summaryId, bool value) {
+  Future<void> _confirmShareToggle(bool value) async {
+    final caregiver = _activeCaregiver;
+    if (caregiver == null) return;
+
+    final previousPermission = caregiver.permission;
+    final newPermission = value ? 'full' : 'view';
+
     setState(() {
-      _shareStates[summaryId] = value;
+      _isUpdatingShare = true;
+      _activeCaregiver = CareTeamMember(
+        id: caregiver.id,
+        patientId: caregiver.patientId,
+        memberUserId: caregiver.memberUserId,
+        fullName: caregiver.fullName,
+        email: caregiver.email,
+        role: caregiver.role,
+        permission: newPermission,
+        status: caregiver.status,
+      );
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(value
-            ? 'Caregiver sharing coming soon'
-            : 'Sharing settings will be available soon'),
-      ),
-    );
+    try {
+      await CareTeamApiService().updatePermission(
+        memberId: caregiver.id,
+        permission: newPermission,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isUpdatingShare = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(value
+              ? 'Caregiver sharing enabled'
+              : 'Caregiver sharing disabled'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isUpdatingShare = false;
+        _activeCaregiver = CareTeamMember(
+          id: caregiver.id,
+          patientId: caregiver.patientId,
+          memberUserId: caregiver.memberUserId,
+          fullName: caregiver.fullName,
+          email: caregiver.email,
+          role: caregiver.role,
+          permission: previousPermission,
+          status: caregiver.status,
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   void _toggleSummarySelection(String summaryId) {
-    logger.log("Toggling selection for summaryId = $summaryId");
     setState(() {
       if (_selectedSummaryIds.contains(summaryId)) {
-        logger.log("Removing summaryId = $summaryId from selection");
         _selectedSummaryIds.remove(summaryId);
       } else {
-        logger.log("Adding summaryId = $summaryId to selection");
         _selectedSummaryIds.add(summaryId);
       }
     });
-    logger.log("Current selected IDs: $_selectedSummaryIds");
   }
 
   Widget _buildSummariesTab() {
@@ -565,7 +639,9 @@ class _OverviewScreenState extends State<OverviewScreen>
   Widget _buildSummaryCard(SummaryItem summary) {
     final summaryId = summary.summaryId;
     final isSelected = _selectedSummaryIds.contains(summaryId);
-    final isShared = _shareStates[summaryId] ?? false;
+    final isShared = _activeCaregiver?.permission == 'full';
+    final isShareDisabled =
+        _activeCaregiver == null || _isUpdatingShare || _isLoadingCaregiver;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -579,8 +655,6 @@ class _OverviewScreenState extends State<OverviewScreen>
         onTap: _isSelectionMode
             ? () => _toggleSummarySelection(summaryId)
             : () {
-                print(
-                    "🧨 Tapping summary card for visitId = ${summary.visitId}");
                 context.go('/patient/visit-details?visitId=${summary.visitId}');
               },
         borderRadius: BorderRadius.circular(12),
@@ -628,7 +702,9 @@ class _OverviewScreenState extends State<OverviewScreen>
                         ),
                         Switch(
                           value: isShared,
-                          onChanged: (value) => _toggleShare(summaryId, value),
+                          onChanged: isShareDisabled
+                              ? null
+                              : (value) => _toggleShare(value),
                           activeThumbColor:
                               Theme.of(context).colorScheme.primary,
                           materialTapTargetSize:

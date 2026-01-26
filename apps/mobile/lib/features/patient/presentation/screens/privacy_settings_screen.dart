@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../care_team/data/models/care_team_member.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
@@ -19,13 +21,15 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   bool _allowSmsNotifications = false;
   bool _allowPushNotifications = true;
 
-  void _showSettingUpdatedSnackBar(String setting) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$setting updated'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  CareTeamMember? _activeCaregiver;
+  bool _isLoadingCaregiver = true;
+  String? _caregiverError;
+  bool _isUpdatingPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCaregiver();
   }
 
   void _showComingSoonSnackBar(String feature) {
@@ -35,6 +39,107 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  void _setAllToggleStates(bool value) {
+    _allowCaregiverSummaries = value;
+    _allowCaregiverMedications = value;
+    _allowCaregiverReminders = value;
+    _allowAiImprovement = value;
+    _allowEmailNotifications = value;
+    _allowSmsNotifications = value;
+    _allowPushNotifications = value;
+  }
+
+  Future<void> _loadCaregiver() async {
+    try {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCaregiver = true;
+        _caregiverError = null;
+      });
+
+      final members = await CareTeamApiService().getCareTeam();
+      if (!mounted) return;
+      final caregiver = members.isNotEmpty ? members.first : null;
+      setState(() {
+        _activeCaregiver = caregiver;
+        _isLoadingCaregiver = false;
+        _setAllToggleStates(caregiver?.permission == 'full');
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _caregiverError = e.toString();
+        _isLoadingCaregiver = false;
+        _setAllToggleStates(false);
+      });
+    }
+  }
+
+  Future<void> _updateCaregiverPermission(bool value) async {
+    final caregiver = _activeCaregiver;
+    if (caregiver == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No caregiver added yet')),
+      );
+      return;
+    }
+
+    final previousPermission = caregiver.permission;
+    final newPermission = value ? 'full' : 'view';
+
+    setState(() {
+      _isUpdatingPermission = true;
+      _setAllToggleStates(value);
+      _activeCaregiver = CareTeamMember(
+        id: caregiver.id,
+        patientId: caregiver.patientId,
+        memberUserId: caregiver.memberUserId,
+        fullName: caregiver.fullName,
+        email: caregiver.email,
+        role: caregiver.role,
+        permission: newPermission,
+        status: caregiver.status,
+      );
+    });
+
+    try {
+      await CareTeamApiService().updatePermission(
+        memberId: caregiver.id,
+        permission: newPermission,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isUpdatingPermission = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(value
+              ? 'Caregiver sharing enabled'
+              : 'Caregiver sharing disabled'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isUpdatingPermission = false;
+        _setAllToggleStates(previousPermission == 'full');
+        _activeCaregiver = CareTeamMember(
+          id: caregiver.id,
+          patientId: caregiver.patientId,
+          memberUserId: caregiver.memberUserId,
+          fullName: caregiver.fullName,
+          email: caregiver.email,
+          role: caregiver.role,
+          permission: previousPermission,
+          status: caregiver.status,
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   Future<void> _showDeleteConfirmationDialog(
@@ -186,40 +291,59 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     // Data Sharing Section
                     _buildSectionHeader('Data Sharing', Icons.share),
                     const SizedBox(height: 8),
+                    if (_caregiverError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          _caregiverError!,
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    if (!_isLoadingCaregiver && _activeCaregiver == null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'No caregiver added yet',
+                          style: TextStyle(
+                            color: theme.colorScheme.secondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     _buildToggleTile(
                       'Allow caregiver to view summaries',
                       _allowCaregiverSummaries,
-                      (value) {
-                        setState(() => _allowCaregiverSummaries = value);
-                        _showSettingUpdatedSnackBar(
-                            'Caregiver summaries access');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
                     _buildToggleTile(
                       'Allow caregiver to view medications',
                       _allowCaregiverMedications,
-                      (value) {
-                        setState(() => _allowCaregiverMedications = value);
-                        _showSettingUpdatedSnackBar(
-                            'Caregiver medications access');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
                     _buildToggleTile(
                       'Allow caregiver to view reminders',
                       _allowCaregiverReminders,
-                      (value) {
-                        setState(() => _allowCaregiverReminders = value);
-                        _showSettingUpdatedSnackBar(
-                            'Caregiver reminders access');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
                     _buildToggleTile(
                       'Allow AI to use my data to improve the product',
                       _allowAiImprovement,
-                      (value) {
-                        setState(() => _allowAiImprovement = value);
-                        _showSettingUpdatedSnackBar('AI improvement access');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
 
                     const SizedBox(height: 24),
@@ -231,26 +355,26 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     _buildToggleTile(
                       'Allow email notifications',
                       _allowEmailNotifications,
-                      (value) {
-                        setState(() => _allowEmailNotifications = value);
-                        _showSettingUpdatedSnackBar('Email notifications');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
                     _buildToggleTile(
                       'Allow SMS notifications',
                       _allowSmsNotifications,
-                      (value) {
-                        setState(() => _allowSmsNotifications = value);
-                        _showSettingUpdatedSnackBar('SMS notifications');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
                     _buildToggleTile(
                       'Allow push notifications',
                       _allowPushNotifications,
-                      (value) {
-                        setState(() => _allowPushNotifications = value);
-                        _showSettingUpdatedSnackBar('Push notifications');
-                      },
+                      _updateCaregiverPermission,
+                      isEnabled: !_isLoadingCaregiver &&
+                          !_isUpdatingPermission &&
+                          _activeCaregiver != null,
                     ),
 
                     const SizedBox(height: 24),
@@ -337,7 +461,11 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   }
 
   Widget _buildToggleTile(
-      String title, bool value, ValueChanged<bool> onChanged) {
+    String title,
+    bool value,
+    ValueChanged<bool> onChanged, {
+    bool isEnabled = true,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
@@ -353,7 +481,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           ),
         ),
         value: value,
-        onChanged: onChanged,
+        onChanged: isEnabled ? onChanged : null,
         activeColor: Theme.of(context).colorScheme.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: RoundedRectangleBorder(

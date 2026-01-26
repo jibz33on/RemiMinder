@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../care_team/data/services/care_team_api_service.dart';
 
 class SendInvitationsScreen extends StatefulWidget {
   const SendInvitationsScreen({super.key});
@@ -14,50 +15,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   final _nameController = TextEditingController();
   String _selectedRelationship = 'Family Member';
 
-  // Mock caregivers data
-  final List<Map<String, dynamic>> _caregivers = [
-    {
-      'id': '1',
-      'name': 'Jane Doe',
-      'email': 'jane.doe@email.com',
-      'relationship': 'Sister',
-      'status': 'accepted',
-      'invitedDate': DateTime.now().subtract(const Duration(days: 30)),
-      'acceptedDate': DateTime.now().subtract(const Duration(days: 25)),
-      'permissions': ['view_medications', 'view_visits', 'view_health_data'],
-      'lastActivity': DateTime.now().subtract(const Duration(hours: 2)),
-      'activityCount': 45,
-    },
-    {
-      'id': '2',
-      'name': 'Mike Johnson',
-      'email': 'mike.johnson@email.com',
-      'relationship': 'Friend',
-      'status': 'pending',
-      'invitedDate': DateTime.now().subtract(const Duration(days: 5)),
-      'permissions': [],
-      'lastActivity': null,
-      'activityCount': 0,
-    },
-    {
-      'id': '3',
-      'name': 'Dr. Emily Chen',
-      'email': 'dr.chen@hospital.com',
-      'relationship': 'Healthcare Professional',
-      'status': 'accepted',
-      'invitedDate': DateTime.now().subtract(const Duration(days: 15)),
-      'acceptedDate': DateTime.now().subtract(const Duration(days: 12)),
-      'permissions': [
-        'view_medications',
-        'view_visits',
-        'view_health_data',
-        'edit_medications',
-        'manage_emergency'
-      ],
-      'lastActivity': DateTime.now().subtract(const Duration(hours: 6)),
-      'activityCount': 23,
-    },
-  ];
+  bool _isLoading = true;
+  String? _error;
+  List<Map<String, dynamic>> _caregivers = [];
 
   final List<String> _relationshipOptions = [
     'Family Member',
@@ -75,6 +35,33 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
     _emailController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCareTeam();
+  }
+
+  Future<void> _loadCareTeam() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+      final members = await CareTeamApiService().getCareTeam();
+      if (!mounted) return;
+      setState(() {
+        _caregivers = members.map(_mapMemberToUi).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -112,17 +99,22 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           children: [
             // Current Caregivers Section
             Expanded(
-              child: _caregivers.isEmpty
-                  ? _buildEmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.all(20),
-                      children: [
-                        _buildSectionHeader('My Caregivers'),
-                        const SizedBox(height: 16),
-                        ..._caregivers
-                            .map((caregiver) => _buildCaregiverCard(caregiver)),
-                      ],
-                    ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? _buildErrorState()
+                      : _caregivers.isEmpty
+                          ? _buildEmptyState()
+                          : ListView(
+                              padding: const EdgeInsets.all(20),
+                              children: [
+                                _buildSectionHeader('My Caregivers'),
+                                const SizedBox(height: 16),
+                                ..._caregivers.map(
+                                  (caregiver) => _buildCaregiverCard(caregiver),
+                                ),
+                              ],
+                            ),
             ),
           ],
         ),
@@ -173,6 +165,38 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _error ?? 'Failed to load caregivers',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadCareTeam,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -465,6 +489,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   void _showAddCaregiverDialog() {
+    bool isSending = false;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -545,8 +570,28 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: _sendInvitation,
-              child: const Text('Send Invitation'),
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      if (!(_formKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                      setState(() {
+                        isSending = true;
+                      });
+                      await _sendInvitation();
+                      if (!mounted) return;
+                      setState(() {
+                        isSending = false;
+                      });
+                    },
+              child: isSending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Send Invitation'),
             ),
           ],
         ),
@@ -554,49 +599,53 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
     );
   }
 
-  void _sendInvitation() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final newCaregiver = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'relationship': _selectedRelationship,
-        'status': 'pending',
-        'invitedDate': DateTime.now(),
-      };
+  Future<void> _sendInvitation() async {
+    try {
+      final email = _emailController.text.trim();
+      final role = _selectedRelationship;
+      await CareTeamApiService().inviteCaregiver(
+        email: email,
+        role: role,
+        permission: 'view',
+      );
 
-      setState(() {
-        _caregivers.add(newCaregiver);
-      });
-
-      // Clear form
       _nameController.clear();
       _emailController.clear();
       _selectedRelationship = 'Family Member';
 
+      if (!mounted) return;
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Invitation sent to ${newCaregiver['name']}!'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              setState(() {
-                _caregivers.remove(newCaregiver);
-              });
-            },
-          ),
-        ),
+        SnackBar(content: Text('Invitation sent to $email')),
+      );
+
+      await _loadCareTeam();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
 
-  void _resendInvitation(Map<String, dynamic> caregiver) {
-    // TODO: Implement resend invitation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invitation resent to ${caregiver['name']}')),
-    );
+  Future<void> _resendInvitation(Map<String, dynamic> caregiver) async {
+    try {
+      await CareTeamApiService().inviteCaregiver(
+        email: caregiver['email'] as String,
+        role: caregiver['relationship'] as String,
+        permission: 'view',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invitation resent to ${caregiver['email']}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   void _cancelInvitation(Map<String, dynamic> caregiver) {
@@ -612,13 +661,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ),
           TextButton(
             onPressed: () {
-              setState(() {
-                _caregivers.remove(caregiver);
-              });
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invitation cancelled')),
-              );
+              _removeMember(caregiver['id'] as String);
             },
             child: const Text('Cancel Invitation',
                 style: TextStyle(color: Colors.red)),
@@ -758,9 +802,88 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
 
   void _updatePermissions(
       Map<String, dynamic> caregiver, List<String> newPermissions) {
-    setState(() {
-      caregiver['permissions'] = newPermissions;
-    });
+    final permission = _mapPermissionsToLevel(newPermissions);
+    _updatePermission(caregiver['id'] as String, permission);
+  }
+
+  Future<void> _updatePermission(String memberId, String permission) async {
+    try {
+      await CareTeamApiService().updatePermission(
+        memberId: memberId,
+        permission: permission,
+      );
+      await _loadCareTeam();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _removeMember(String memberId) async {
+    try {
+      await CareTeamApiService().removeMember(memberId: memberId);
+      await _loadCareTeam();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Access removed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Map<String, dynamic> _mapMemberToUi(dynamic member) {
+    final permission = member.permission as String;
+    final displayName = member.fullName as String? ??
+        member.email as String? ??
+        member.memberUserId;
+    final displayEmail =
+        member.email as String? ?? member.memberUserId as String;
+    return {
+      'id': member.id,
+      'name': displayName,
+      'email': displayEmail,
+      'relationship': member.role,
+      'status': member.status == 'active' ? 'accepted' : 'declined',
+      'invitedDate': DateTime.now(),
+      'acceptedDate': DateTime.now(),
+      'permissions': _mapPermissionToList(permission),
+      'lastActivity': null,
+      'activityCount': 0,
+    };
+  }
+
+  List<String> _mapPermissionToList(String permission) {
+    if (permission == 'full') {
+      return [
+        'view_medications',
+        'view_visits',
+        'view_health_data',
+        'edit_medications',
+        'manage_emergency',
+        'receive_alerts',
+      ];
+    }
+    return [
+      'view_medications',
+      'view_visits',
+      'view_health_data',
+    ];
+  }
+
+  String _mapPermissionsToLevel(List<String> permissions) {
+    final fullPermissions = {
+      'edit_medications',
+      'manage_emergency',
+      'receive_alerts',
+    };
+    final hasFull = permissions.any(fullPermissions.contains);
+    return hasFull ? 'full' : 'view';
   }
 
   String _formatLastActivity(DateTime lastActivity) {

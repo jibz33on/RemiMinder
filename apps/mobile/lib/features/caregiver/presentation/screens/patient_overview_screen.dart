@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../patient/data/models/summary_item.dart';
+import '../../../patient/data/services/patient_api_service.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
 
 class PatientOverviewScreen extends StatefulWidget {
   const PatientOverviewScreen({super.key});
@@ -11,129 +15,32 @@ class PatientOverviewScreen extends StatefulWidget {
 class _PatientOverviewScreenState extends State<PatientOverviewScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String? _patientId;
+  bool _hasLoaded = false;
+  bool _isLoading = true;
+  String? _error;
 
-  // Mock patient data (would come from navigation params)
-  final Map<String, dynamic> _patientData = {
-    'id': '1',
-    'name': 'John Doe',
-    'age': 68,
-    'relationship': 'Father',
-    'condition': 'Hypertension, Diabetes',
+  Map<String, dynamic> _patientData = {
+    'id': '',
+    'name': '',
+    'age': 0,
+    'relationship': 'Care Team',
+    'condition': 'Authorized access',
     'status': 'active',
-    'phone': '+1 (555) 123-4567',
-    'emergencyContact': 'Jane Doe (Daughter) - +1 (555) 123-4568',
-    'address': '123 Main St, Springfield, IL 62701',
-    'primaryCarePhysician': 'Dr. Sarah Johnson',
-    'lastVisit': DateTime.now().subtract(const Duration(days: 7)),
-    'medicationAdherence': 85,
-    'upcomingAppointments': 2,
+    'phone': '',
+    'emergencyContact': '',
+    'address': '',
+    'primaryCarePhysician': '',
+    'lastVisit': DateTime.now(),
+    'medicationAdherence': 0,
+    'upcomingAppointments': 0,
   };
 
-  // Mock visits data
-  final List<Map<String, dynamic>> _visits = [
-    {
-      'id': 'v1',
-      'doctor': 'Dr. Sarah Johnson',
-      'specialty': 'Cardiology',
-      'date': DateTime.now().subtract(const Duration(days: 7)),
-      'type': 'Follow-up',
-      'summary': 'Blood pressure stable, medication adjustment discussed',
-      'nextAppointment': DateTime.now().add(const Duration(days: 30)),
-    },
-    {
-      'id': 'v2',
-      'doctor': 'Dr. Michael Chen',
-      'specialty': 'Endocrinology',
-      'date': DateTime.now().subtract(const Duration(days: 45)),
-      'type': 'Diabetes Management',
-      'summary': 'HbA1c improved, metformin dosage optimized',
-      'nextAppointment': DateTime.now().add(const Duration(days: 90)),
-    },
-    {
-      'id': 'v3',
-      'doctor': 'Dr. Emily Davis',
-      'specialty': 'General Practice',
-      'date': DateTime.now().subtract(const Duration(days: 120)),
-      'type': 'Annual Physical',
-      'summary': 'Overall health good, routine checkup completed',
-      'nextAppointment': DateTime.now().add(const Duration(days: 245)),
-    },
-  ];
+  List<Map<String, dynamic>> _visits = [];
 
-  // Mock reminders data
-  final List<Map<String, dynamic>> _reminders = [
-    {
-      'id': 'r1',
-      'title': 'Lisinopril 10mg',
-      'type': 'medication',
-      'dosage': '10mg',
-      'frequency': 'Once daily',
-      'nextDue': DateTime.now().add(const Duration(hours: 2)),
-      'adherence': 85,
-      'status': 'active',
-    },
-    {
-      'id': 'r2',
-      'title': 'Metformin 500mg',
-      'type': 'medication',
-      'dosage': '500mg',
-      'frequency': 'Twice daily',
-      'nextDue': DateTime.now().add(const Duration(hours: 6)),
-      'adherence': 90,
-      'status': 'active',
-    },
-    {
-      'id': 'r3',
-      'title': 'Blood Pressure Check',
-      'type': 'measurement',
-      'dosage': null,
-      'frequency': 'Twice weekly',
-      'nextDue': DateTime.now().add(const Duration(days: 1)),
-      'adherence': 75,
-      'status': 'active',
-    },
-    {
-      'id': 'r4',
-      'title': 'Blood Work',
-      'type': 'appointment',
-      'dosage': null,
-      'frequency': 'Every 3 months',
-      'nextDue': DateTime.now().add(const Duration(days: 14)),
-      'adherence': 100,
-      'status': 'upcoming',
-    },
-  ];
+  List<Map<String, dynamic>> _reminders = [];
 
-  // Mock notes data
-  final List<Map<String, dynamic>> _notes = [
-    {
-      'id': 'n1',
-      'title': 'Morning Medication Routine',
-      'content':
-          'Patient reports difficulty remembering morning medications. Suggested using pill organizer and setting phone reminders.',
-      'date': DateTime.now().subtract(const Duration(days: 3)),
-      'author': 'Caregiver',
-      'priority': 'medium',
-    },
-    {
-      'id': 'n2',
-      'title': 'Blood Pressure Improvement',
-      'content':
-          'Blood pressure readings have improved since last visit. Continue monitoring twice weekly.',
-      'date': DateTime.now().subtract(const Duration(days: 7)),
-      'author': 'Dr. Sarah Johnson',
-      'priority': 'low',
-    },
-    {
-      'id': 'n3',
-      'title': 'Emergency Contact Update',
-      'content':
-          'Updated emergency contact information. Daughter Jane is primary contact.',
-      'date': DateTime.now().subtract(const Duration(days: 14)),
-      'author': 'Caregiver',
-      'priority': 'high',
-    },
-  ];
+  List<Map<String, dynamic>> _notes = [];
 
   @override
   void initState() {
@@ -142,9 +49,59 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasLoaded) return;
+    _patientId = GoRouterState.of(context).uri.queryParameters['patientId'];
+    _hasLoaded = true;
+    _loadPatientData();
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPatientData() async {
+    if (_patientId == null || _patientId!.isEmpty) {
+      setState(() {
+        _error = 'Missing patientId';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final authToken = await AuthService().getAccessToken();
+      if (authToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final apiService = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: authToken,
+      );
+
+      final summaries = await apiService.getSummaries();
+      final visits = summaries.map(_mapSummaryToVisit).toList();
+
+      setState(() {
+        _visits = visits;
+        _patientData = _buildPatientData(visits);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -396,6 +353,15 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildVisitsTab() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+    if (_visits.isEmpty) {
+      return const Center(child: Text('No visits available'));
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _visits.length,
@@ -458,6 +424,15 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildRemindersTab() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+    if (_reminders.isEmpty) {
+      return const Center(child: Text('No reminders available'));
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _reminders.length,
@@ -530,6 +505,15 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildNotesTab() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+    if (_notes.isEmpty) {
+      return const Center(child: Text('No notes available'));
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _notes.length,
@@ -648,7 +632,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _editPatient() {
-    // TODO: Navigate to edit patient screen
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Edit Patient - Coming Soon!')),
     );
@@ -665,7 +648,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             title: const Text('Call Patient'),
             onTap: () {
               Navigator.of(context).pop();
-              // TODO: Call patient
             },
           ),
           ListTile(
@@ -673,7 +655,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             title: const Text('Send Message'),
             onTap: () {
               Navigator.of(context).pop();
-              // TODO: Send message
             },
           ),
           ListTile(
@@ -681,7 +662,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             title: const Text('Emergency Contact'),
             onTap: () {
               Navigator.of(context).pop();
-              // TODO: Call emergency contact
             },
           ),
           ListTile(
@@ -689,7 +669,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
             title: const Text('Share Patient Info'),
             onTap: () {
               Navigator.of(context).pop();
-              // TODO: Share patient information
             },
           ),
         ],
@@ -700,20 +679,17 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   void _addNewItem() {
     switch (_tabController.index) {
       case 0: // Visits
-        // TODO: Schedule new appointment
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Schedule New Appointment - Coming Soon!')),
         );
         break;
       case 1: // Reminders
-        // TODO: Add new reminder
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Add New Reminder - Coming Soon!')),
         );
         break;
       case 2: // Notes
-        // TODO: Add new note
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Add New Note - Coming Soon!')),
         );
@@ -722,14 +698,12 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _viewVisitDetails(Map<String, dynamic> visit) {
-    // TODO: Navigate to visit details
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('View ${visit['type']} details - Coming Soon!')),
     );
   }
 
   void _viewReminderDetails(Map<String, dynamic> reminder) {
-    // TODO: Navigate to reminder details
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text('View ${reminder['title']} details - Coming Soon!')),
@@ -737,7 +711,6 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _viewNoteDetails(Map<String, dynamic> note) {
-    // TODO: Navigate to note details
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('View ${note['title']} details - Coming Soon!')),
     );
@@ -879,6 +852,38 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
     } else {
       return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
     }
+  }
+
+  Map<String, dynamic> _buildPatientData(List<Map<String, dynamic>> visits) {
+    return {
+      'id': _patientId ?? '',
+      'name': _patientId ?? '',
+      'age': 0,
+      'relationship': 'Care Team',
+      'condition': 'Authorized access',
+      'status': 'active',
+      'phone': '',
+      'emergencyContact': '',
+      'address': '',
+      'primaryCarePhysician': '',
+      'lastVisit': visits.isNotEmpty ? visits.first['date'] : DateTime.now(),
+      'medicationAdherence': 0,
+      'upcomingAppointments': 0,
+    };
+  }
+
+  Map<String, dynamic> _mapSummaryToVisit(SummaryItem summary) {
+    final dateSource = summary.visitDate ?? summary.summaryCreatedAt;
+    final parsedDate = DateTime.tryParse(dateSource) ?? DateTime.now();
+    return {
+      'id': summary.visitId,
+      'doctor': summary.doctorName,
+      'specialty': summary.specialty,
+      'date': parsedDate,
+      'type': summary.specialty.isNotEmpty ? summary.specialty : 'Visit',
+      'summary': summary.summaryPreview,
+      'nextAppointment': parsedDate,
+    };
   }
 }
 

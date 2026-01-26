@@ -23,6 +23,7 @@ import '../features/patient/presentation/screens/send_invitations_screen.dart';
 
 import '../features/shared/presentation/screens/loading_screen.dart';
 import '../features/patient/presentation/widgets/patient_app_shell.dart';
+import '../features/patient/presentation/widgets/rounded_navigation_bar.dart';
 
 // Placeholder screens - we'll implement these one by one
 class PlaceholderScreen extends StatelessWidget {
@@ -73,21 +74,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      // Patient shell route with navigation
+      // Patient/Caregiver shell route with navigation
       ShellRoute(
         builder: (context, state, child) {
           final location = state.uri.path;
           final currentItem = getCurrentNavigationItem(location);
+          final isCaregiver = location.startsWith('/caregiver');
+          final caregiverRoutes = isCaregiver
+              ? {
+                  NavigationItem.home: '/caregiver/home',
+                  NavigationItem.visits: '/caregiver/patients',
+                  NavigationItem.overview: '/caregiver/alerts',
+                  NavigationItem.careTeam: '/caregiver/accept-invitations',
+                  NavigationItem.profile: '/profile',
+                }
+              : null;
           return PatientAppShell(
             currentItem: currentItem,
+            routes: caregiverRoutes,
             child: child,
           );
         },
         routes: [
-      GoRoute(
-        path: '/patient/home',
-        builder: (context, state) => const PatientHomeScreen(),
-      ),
+          GoRoute(
+            path: '/patient/home',
+            builder: (context, state) => const PatientHomeScreen(),
+          ),
           GoRoute(
             path: '/patient/overview',
             builder: (context, state) => const OverviewScreen(),
@@ -99,6 +111,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/patient/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/home',
+            builder: (context, state) => const CaregiverHomeScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/patients',
+            builder: (context, state) => const PatientListScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/patient-overview',
+            builder: (context, state) => const PatientOverviewScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/alerts',
+            builder: (context, state) => const AlertListScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/accept-invitations',
+            builder: (context, state) => const AcceptInvitationsScreen(),
           ),
         ],
       ),
@@ -139,28 +175,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patient/invitations',
         builder: (context, state) => const SendInvitationsScreen(),
-      ),
-
-      // Caregiver routes
-      GoRoute(
-        path: '/caregiver/home',
-        builder: (context, state) => const CaregiverHomeScreen(),
-      ),
-      GoRoute(
-        path: '/caregiver/patients',
-        builder: (context, state) => const PatientListScreen(),
-      ),
-      GoRoute(
-        path: '/caregiver/patient-overview',
-        builder: (context, state) => const PatientOverviewScreen(),
-      ),
-      GoRoute(
-        path: '/caregiver/alerts',
-        builder: (context, state) => const AlertListScreen(),
-      ),
-      GoRoute(
-        path: '/caregiver/accept-invitations',
-        builder: (context, state) => const AcceptInvitationsScreen(),
       ),
     ],
   );
