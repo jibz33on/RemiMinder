@@ -3,6 +3,7 @@ class SummaryItem {
   final String visitId;
   final String doctorName;
   final String specialty;
+  final String? title;
   final String? visitDate;
   final String summaryCreatedAt;
   final String summaryPreview;
@@ -13,6 +14,7 @@ class SummaryItem {
     required this.visitId,
     required this.doctorName,
     required this.specialty,
+    this.title,
     this.visitDate,
     required this.summaryCreatedAt,
     required this.summaryPreview,
@@ -25,6 +27,7 @@ class SummaryItem {
       visitId: json['visit_id'] as String,
       doctorName: json['doctor_name'] as String? ?? 'Unknown Doctor',
       specialty: json['specialty'] as String? ?? 'Unknown Specialty',
+      title: json['title'] as String?,
       visitDate: json['visit_date'] as String?,
       summaryCreatedAt: json['summary_created_at'] as String,
       summaryPreview: json['summary_preview'] as String,
@@ -37,6 +40,7 @@ class SummaryItem {
       'visit_id': visitId,
       'doctor_name': doctorName,
       'specialty': specialty,
+      'title': title,
       'visit_date': visitDate,
       'summary_created_at': summaryCreatedAt,
       'summary_preview': summaryPreview,

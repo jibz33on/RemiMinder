@@ -11,10 +11,12 @@ This orchestrator contains no LLM code, no SQL strings, and no business logic.
 
 import logging
 import os
+import re
 from services.ai.vertex_gemini_service import generate_visit_summary
 from services.ai.summary_normalizer_v2 import normalize_v2_summary
 from services.cache_service import get, set
 from services.db_service import get_transcript_text, insert_ai_summary_log, update_visit_with_structured_data, get_user_language_preferences
+from services.tasks_service import generate_reminders_from_actions, generate_tasks_from_summary
 
 logger = logging.getLogger(__name__)
 
@@ -88,21 +90,53 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
 
         # Step C: Save structured summary to database
         logger.info(f"Saving structured summary to database for transcript {transcript_id}")
-        await insert_ai_summary_log(transcript_id, visit_id, user_id, summary_text, structured_result)
+        summary_id = await insert_ai_summary_log(
+            transcript_id,
+            visit_id,
+            user_id,
+            summary_text,
+            structured_result,
+        )
         logger.info(f"Structured summary saved successfully for visit {visit_id}")
-
-        # Step D: Update visit with structured data (V1 only)
-        if prompt_version == "v1":
-            logger.info(f"Updating visit {visit_id} with structured data")
-            await update_visit_with_structured_data(
+        if summary_id:
+            await generate_tasks_from_summary(
+                user_id=user_id,
                 visit_id=visit_id,
-                doctor_name=structured_result.get("doctor_name"),
-                specialty=structured_result.get("specialty"),
-                title=structured_result.get("visit_display_title")
+                summary_id=summary_id,
+                structured_summary=structured_result,
             )
-            logger.info(f"Visit {visit_id} updated with structured data")
-        else:
-            logger.info("Skipping visit metadata update for V2 summaries")
+            await generate_reminders_from_actions(
+                user_id=user_id,
+                visit_id=visit_id,
+                actions=structured_result.get("actions", []),
+            )
+
+        # Step D: Update visit with structured data (always after summary generation)
+        doctor_name = structured_result.get("doctor_name")
+        if not isinstance(doctor_name, str) or not doctor_name.strip():
+            # Fallback: extract doctor name from transcript when LLM omits it.
+            match = re.search(
+                r"(?:Dr\.?|Doctor)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3})",
+                raw_text or "",
+                flags=re.IGNORECASE,
+            )
+            if match:
+                doctor_name = match.group(1).strip()
+        specialty = structured_result.get("specialty")
+        title = structured_result.get("visit_display_title")
+        logger.info(
+            "Updating visit metadata: visit_id=%s, doctor_name=%s, specialty=%s, title=%s",
+            visit_id,
+            doctor_name,
+            specialty,
+            title,
+        )
+        await update_visit_with_structured_data(
+            visit_id=visit_id,
+            doctor_name=doctor_name,
+            specialty=specialty,
+            title=title,
+        )
 
         # Step E: Return the summary text (for backward compatibility)
         return summary_text

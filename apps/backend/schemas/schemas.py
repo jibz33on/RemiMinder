@@ -10,7 +10,7 @@ from uuid import UUID
 class VisitSummary(BaseModel):
     visit_id: UUID                               # FK to visits.id
     transcript_id: UUID           # FK to visit_transcripts.transcript_id
-    user_id: UUID                                # Used for RLS
+    user_id: str                                 # Firebase UID
     summary: str
     action_items: Optional[List[str]] = Field(default_factory=list)
     questions_next_visit: Optional[List[str]] = Field(default_factory=list)
@@ -28,7 +28,7 @@ class VisitSummaryPayload(BaseModel):
 # Visit (Master Consultation Record)
 # -------------------------------
 class Visit(BaseModel):
-    user_id: UUID
+    user_id: str
     transcript_id: Optional[UUID] = None
     title: Optional[str] = None
     status: Optional[str] = None
@@ -44,7 +44,7 @@ class Visit(BaseModel):
 class VisitTranscript(BaseModel):
     transcript_id: Optional[UUID] = None
     visit_id: Optional[UUID] = None
-    user_id: UUID
+    user_id: str
     audio_url: Optional[str] = None
     transcript_text: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -60,4 +60,4 @@ class AIUsage(BaseModel):
     total_cost: Optional[float] = None
     visit_id: Optional[UUID] = None
     transcript_id: Optional[UUID] = None
-    user_id: Optional[UUID] = None
+    user_id: Optional[str] = None

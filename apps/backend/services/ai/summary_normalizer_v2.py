@@ -15,6 +15,7 @@ Purpose:
 - Guarantee the backend and UI always receive safe, predictable data
 """
 
+import json
 import logging
 from typing import Any, Dict, List, Tuple
 
@@ -39,21 +40,50 @@ def _ensure_string_list(value: Any) -> List[str]:
     - If value is a string: wrap it into a list
     - Otherwise: return empty list
     """
+    cleaned: List[str] = []
+
+    def _append_text(text: str) -> None:
+        # Normalize whitespace and skip empty entries.
+        normalized = text.strip()
+        if normalized:
+            cleaned.append(normalized)
+
+    def _handle_item(item: Any) -> None:
+        if isinstance(item, str):
+            _append_text(item)
+            return
+        if isinstance(item, dict):
+            # Prefer human-readable fields when present.
+            parts: List[str] = []
+            for key in ("name", "dose", "instruction"):
+                value = item.get(key)
+                if isinstance(value, str) and value.strip():
+                    parts.append(value.strip())
+            if parts:
+                _append_text(" - ".join(parts))
+            else:
+                _append_text(json.dumps(item, ensure_ascii=True))
+            return
+        if isinstance(item, list):
+            # Flatten nested lists recursively.
+            for nested in item:
+                _handle_item(nested)
+            return
+
     if isinstance(value, list):
-        cleaned: List[str] = []
         for item in value:
-            if isinstance(item, str):
-                text = item.strip()
-                if text:
-                    cleaned.append(text)
+            _handle_item(item)
         return cleaned
 
     if isinstance(value, str):
-        text = value.strip()
-        if text:
-            return [text]
+        _append_text(value)
+        return cleaned
 
-    return []
+    if isinstance(value, dict):
+        _handle_item(value)
+        return cleaned
+
+    return cleaned
 
 
 def _get_fallbacks(language_code: str) -> Tuple[str, str, str, str]:

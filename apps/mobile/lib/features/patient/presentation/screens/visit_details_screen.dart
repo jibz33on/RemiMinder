@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
 import '../../data/services/patient_api_service.dart';
@@ -29,10 +31,15 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   bool _isLoadingSummary = true;
   String _summaryStatus =
       'loading'; // 'loading', 'processing', 'ready', 'error'
+  bool _isLoadingVisit = true;
+  String? _visitDoctor;
+  String? _visitSpecialty;
+  String? _visitTitle;
 
   @override
   void initState() {
     super.initState();
+    _fetchVisitMetadata();
     _fetchAISummary();
   }
 
@@ -93,6 +100,47 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     }
   }
 
+  Future<void> _fetchVisitMetadata() async {
+    try {
+      final authToken = await AuthService().getAccessToken();
+      if (authToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final uri = Uri.parse(
+          '${Environment.apiBaseUrl}/api/visits/${widget.visitId}');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        if (!mounted) return;
+        setState(() {
+          _visitDoctor = data['doctor'] as String?;
+          _visitSpecialty = data['specialty'] as String?;
+          _visitTitle = data['title'] as String?;
+          _isLoadingVisit = false;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoadingVisit = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingVisit = false;
+      });
+    }
+  }
+
   List<String> _toStringList(dynamic value) {
     if (value is List) {
       return value.map((item) => item.toString()).toList();
@@ -133,6 +181,11 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
+
+                if (!_isLoadingVisit && _hasVisitMetadata())
+                  _buildVisitHeader(),
+                if (!_isLoadingVisit && _hasVisitMetadata())
+                  const SizedBox(height: 16),
 
                 // AI Summary Card
                 _buildAISummaryCard(),
@@ -326,6 +379,51 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  bool _hasVisitMetadata() {
+    return (_visitDoctor != null && _visitDoctor!.trim().isNotEmpty) ||
+        (_visitSpecialty != null && _visitSpecialty!.trim().isNotEmpty) ||
+        (_visitTitle != null && _visitTitle!.trim().isNotEmpty);
+  }
+
+  Widget _buildVisitHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_visitTitle != null && _visitTitle!.trim().isNotEmpty)
+          Text(
+            _visitTitle!,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        if (_visitDoctor != null && _visitDoctor!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              _visitDoctor!,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        if (_visitSpecialty != null && _visitSpecialty!.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              _visitSpecialty!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+          ),
+      ],
     );
   }
 

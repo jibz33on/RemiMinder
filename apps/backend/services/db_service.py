@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 async def get_user_uuid(firebase_uid: str) -> str:
     """
-    Get the Cloud SQL user UUID from Firebase UID.
+    Validate Firebase UID exists in users table and return it.
     """
     try:
         cache_key = f"user_uuid:{firebase_uid}"
@@ -27,7 +27,7 @@ async def get_user_uuid(firebase_uid: str) -> str:
             engine = get_cloud_sql_engine()
             with engine.connect() as conn:
                 query = text("""
-                    SELECT id FROM users WHERE firebase_uid = :firebase_uid
+                    SELECT firebase_uid FROM users WHERE firebase_uid = :firebase_uid
                 """)
 
                 result = conn.execute(query, {"firebase_uid": firebase_uid})
@@ -43,7 +43,7 @@ async def get_user_uuid(firebase_uid: str) -> str:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user UUID for Firebase UID {firebase_uid}: {e}")
+        logger.error(f"Error validating Firebase UID {firebase_uid}: {e}")
         raise
 
 
@@ -55,7 +55,7 @@ async def get_user_email(user_id: str) -> str:
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
             query = text("""
-                SELECT email FROM users WHERE id = :user_id
+                SELECT email FROM users WHERE firebase_uid = :user_id
             """)
             result = conn.execute(query, {"user_id": user_id})
             row = result.fetchone()
@@ -229,7 +229,7 @@ async def get_transcript_text(transcript_id: str) -> str:
         raise
 
 
-async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str, summary_text: str, structured_data: dict = None) -> None:
+async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str, summary_text: str, structured_data: dict = None) -> str:
     """
     Insert AI-generated summary into summaries_log table with structured data.
     Used by AI pipeline to persist generated summaries.
@@ -241,6 +241,7 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
                 INSERT INTO summaries_log
                 (transcript_id, visit_id, user_id, model_name, summary_text, structured_data_json, cost_usd)
                 VALUES (:transcript_id, :visit_id, :user_id, :model, :summary, :structured_data, :cost)
+                RETURNING id
             """)
 
             # Convert structured_data dict to JSON string if provided
@@ -248,7 +249,7 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
             if structured_data is not None:
                 structured_data_json = json.dumps(structured_data)
 
-            conn.execute(insert_query, {
+            result = conn.execute(insert_query, {
                 "transcript_id": transcript_id,
                 "visit_id": visit_id,
                 "user_id": user_id,
@@ -260,7 +261,10 @@ async def insert_ai_summary_log(transcript_id: str, visit_id: str, user_id: str,
 
             from services.cache_service import invalidate
             invalidate(f"summaries_list:{user_id}")
+            row = result.fetchone()
+            summary_id = str(row[0]) if row and row[0] else ""
             logger.info(f"Inserted AI summary with structured data for transcript {transcript_id}")
+            return summary_id
 
     except Exception as e:
         logger.error(f"Error inserting AI summary for transcript {transcript_id}: {e}")
@@ -301,6 +305,11 @@ async def update_visit_with_structured_data(visit_id: str, doctor_name: str = No
                 WHERE id = :visit_id
             """)
 
+            logger.info(
+                "Updating visit %s with fields: %s",
+                visit_id,
+                ", ".join(update_values.keys()),
+            )
             conn.execute(update_query, update_values)
             logger.info(f"Updated visit {visit_id} with structured data: {list(update_values.keys())}")
 
@@ -424,13 +433,13 @@ async def get_latest_ai_structured_summary_for_visit(visit_id: str, user_id: str
         raise
 
 
-async def get_user_summaries(user_uuid: str) -> list[dict]:
+async def get_user_summaries(user_id: str) -> list[dict]:
     """
     Get all summaries for a user by joining summaries_log and visits tables.
     Returns list of summary objects with visit metadata, ordered by newest first.
     """
     try:
-        logger.info(f"Fetching summaries for user_uuid={user_uuid}")
+        logger.info(f"Fetching summaries for user_id={user_id}")
 
         engine = get_cloud_sql_engine()
         with engine.connect() as conn:
@@ -443,19 +452,20 @@ async def get_user_summaries(user_uuid: str) -> list[dict]:
                     s.summary_text,
                     v.doctor AS doctor_name,
                     v.specialty AS specialty,
+                    v.title AS title,
                     s.created_at AS visit_date
                 FROM summaries_log s
                 JOIN visits v ON v.id = s.visit_id
-                WHERE s.user_id = :user_uuid
+                WHERE s.user_id = :user_id
                 ORDER BY s.created_at DESC;
             """)
 
-            result = conn.execute(query, {"user_uuid": user_uuid})
+            result = conn.execute(query, {"user_id": user_id})
             rows = result.fetchall()
 
             summaries = []
             for row in rows:
-                summary_id, visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, visit_date = row
+                summary_id, visit_id, summary_created_at, model_name, summary_text, doctor_name, specialty, title, visit_date = row
 
                 # Truncate summary_text to ~160 characters for preview
                 summary_preview = summary_text[:160] + "..." if len(summary_text) > 160 else summary_text
@@ -465,21 +475,22 @@ async def get_user_summaries(user_uuid: str) -> list[dict]:
                     "visit_id": str(visit_id),
                     "doctor_name": doctor_name,
                     "specialty": specialty,
+                    "title": title,
                     "visit_date": str(visit_date) if visit_date else None,
                     "summary_created_at": str(summary_created_at),
                     "summary_preview": summary_preview,
                     "model_name": model_name,
                 })
 
-            logger.info(f"Found {len(summaries)} summaries for user_uuid={user_uuid}")
+            logger.info(f"Found {len(summaries)} summaries for user_id={user_id}")
             return summaries
 
     except Exception as e:
-        logger.error(f"Error fetching user summaries for user_uuid={user_uuid}: {e}")
+        logger.error(f"Error fetching user summaries for user_id={user_id}: {e}")
         raise
 
 
-async def get_user_language_preferences(user_uuid: str) -> dict:
+async def get_user_language_preferences(firebase_uid: str) -> dict:
     """
     Get user's language preferences.
 
@@ -495,10 +506,10 @@ async def get_user_language_preferences(user_uuid: str) -> dict:
             query = text("""
                 SELECT app_language, visit_language
                 FROM users
-                WHERE id = :user_uuid
+                WHERE firebase_uid = :firebase_uid
             """)
 
-            result = conn.execute(query, {"user_uuid": user_uuid})
+            result = conn.execute(query, {"firebase_uid": firebase_uid})
             row = result.fetchone()
 
             if not row:
@@ -521,11 +532,11 @@ async def get_user_language_preferences(user_uuid: str) -> dict:
             return preferences
 
     except Exception as e:
-        logger.error(f"Error getting language preferences for user_uuid={user_uuid}: {e}")
+        logger.error(f"Error getting language preferences for firebase_uid={firebase_uid}: {e}")
         raise
 
 
-async def update_user_language_preferences(user_uuid: str, app_language: str, visit_language: str) -> bool:
+async def update_user_language_preferences(firebase_uid: str, app_language: str, visit_language: str) -> bool:
     """
     Update user's language preferences.
 
@@ -547,11 +558,11 @@ async def update_user_language_preferences(user_uuid: str, app_language: str, vi
                 SET app_language = :app_language,
                     visit_language = :visit_language,
                     updated_at = now()
-                WHERE id = :user_uuid
+                WHERE firebase_uid = :firebase_uid
             """)
 
             result = conn.execute(query, {
-                "user_uuid": user_uuid,
+                "firebase_uid": firebase_uid,
                 "app_language": app_language,
                 "visit_language": visit_language
             })
@@ -560,7 +571,7 @@ async def update_user_language_preferences(user_uuid: str, app_language: str, vi
             return success
 
     except Exception as e:
-        logger.error(f"Error updating language preferences for user_uuid={user_uuid}: {e}")
+        logger.error(f"Error updating language preferences for firebase_uid={firebase_uid}: {e}")
         raise
 
 
@@ -799,7 +810,7 @@ async def get_care_team_members(patient_id: str) -> list[dict]:
                     m.created_at,
                     m.revoked_at
                 FROM care_team_members m
-                LEFT JOIN users u ON u.id = m.member_user_id
+                LEFT JOIN users u ON u.firebase_uid = m.member_user_id
                 WHERE m.patient_id = :patient_id
                 ORDER BY m.created_at DESC
             """)
@@ -849,7 +860,7 @@ async def get_my_care_team_invitations(user_email: str) -> list[dict]:
                     i.created_at,
                     u.full_name AS patient_name
                 FROM care_team_invitations i
-                JOIN users u ON u.id = i.patient_id
+                JOIN users u ON u.firebase_uid = i.patient_id
                 WHERE i.invitee_email = :email
                   AND i.status = 'pending'
                 ORDER BY i.created_at DESC;

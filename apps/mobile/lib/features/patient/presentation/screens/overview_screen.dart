@@ -687,6 +687,8 @@ class _OverviewScreenState extends State<OverviewScreen>
     final isShared = _activeCaregiver?.permission == 'full';
     final isShareDisabled =
         _activeCaregiver == null || _isUpdatingShare || _isLoadingCaregiver;
+    final doctorText = _formatDoctorName(summary.doctorName);
+    final hasTitle = (summary.title ?? '').trim().isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -723,12 +725,52 @@ class _OverviewScreenState extends State<OverviewScreen>
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      _formatDoctorName(summary.doctorName),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasTitle)
+                          Text(
+                            summary.title!,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        if (!hasTitle)
+                          Text(
+                            doctorText,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        if (hasTitle && doctorText.trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              doctorText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondary,
+                              ),
+                            ),
+                          ),
+                        if (summary.specialty.trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              summary.specialty,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondary,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   // Action widget (Checkbox or Share toggle)

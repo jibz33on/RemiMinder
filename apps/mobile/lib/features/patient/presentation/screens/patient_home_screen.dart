@@ -1,9 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/config/environment.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../shared/utilities/greeting_utils.dart';
+import '../../data/models/patient_task.dart';
+import '../../data/services/patient_tasks_api_service.dart';
 import '../widgets/widgets.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
@@ -14,6 +20,89 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
+  final AuthService _authService = AuthService();
+  final PatientTasksApiService _tasksApiService = PatientTasksApiService();
+  List<PatientTask> _tasks = [];
+  bool _isLoadingTasks = true;
+  bool _isLoadingUpNext = true;
+  Map<String, dynamic>? _upNextReminder;
+  List<Map<String, dynamic>> _todayReminders = [];
+  bool _remindersError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTasks();
+    _fetchUpNextReminder();
+  }
+
+  Future<void> _fetchTasks() async {
+    try {
+      final tasks = await _tasksApiService.fetchTasks();
+      if (!mounted) return;
+      setState(() {
+        _tasks = tasks;
+        _isLoadingTasks = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _tasks = [];
+        _isLoadingTasks = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUpNextReminder() async {
+    try {
+      final accessToken = await _authService.getAccessToken();
+      if (accessToken == null) {
+        throw Exception('Authentication required');
+      }
+
+      final uri = Uri.parse('${Environment.apiBaseUrl}/api/reminders');
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final upcoming = data['upcoming'] as List<dynamic>? ?? [];
+        final today = data['today'] as List<dynamic>? ?? [];
+        if (!mounted) return;
+        setState(() {
+          _upNextReminder =
+              upcoming.isNotEmpty ? upcoming.first as Map<String, dynamic> : null;
+          _todayReminders = today
+              .whereType<Map<String, dynamic>>()
+              .toList();
+          _isLoadingUpNext = false;
+          _remindersError = false;
+        });
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _upNextReminder = null;
+        _todayReminders = [];
+        _isLoadingUpNext = false;
+        _remindersError = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _upNextReminder = null;
+        _todayReminders = [];
+        _isLoadingUpNext = false;
+        _remindersError = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -171,6 +260,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Widget _buildUpNextCard() {
+    final reminder = _upNextReminder;
+    final title = reminder?['title'] as String?;
+    final message = reminder?['message'] as String?;
+    final scheduledTime = reminder?['scheduled_time'] as String?;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -219,9 +313,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Lisinopril 10mg',
+          if (_isLoadingUpNext)
+            const Center(child: CircularProgressIndicator())
+          else if (reminder == null)
+            Text(
+              'No upcoming reminders',
             style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else ...[
+            Text(
+              title?.trim().isNotEmpty == true ? title! : (message ?? ''),
+              style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -229,18 +335,21 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Due in 2 hours 15 minutes',
+              _formatDueText(scheduledTime),
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 16,
             ),
           ),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: reminder == null
+                      ? null
+                      : () {
                     // TODO: Mark as taken
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Marked as taken!')),
@@ -265,7 +374,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
               const SizedBox(width: 12),
               IconButton(
-                onPressed: () {
+                onPressed: reminder == null
+                    ? null
+                    : () {
                   // TODO: Snooze reminder
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -301,82 +412,86 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ),
       child: Column(
         children: [
-          // Medications Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+          if (_isLoadingUpNext)
+            const Center(child: CircularProgressIndicator())
+          else if (_remindersError)
               Text(
-                'Medications',
+              'Nothing scheduled for today',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.secondary,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '1/3 taken',
+            )
+          else if (_todayReminders.isEmpty)
+            Text(
+              'Nothing scheduled for today',
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.secondary,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          _buildMedicationItem(
-            'Lisinopril',
-            '10mg',
-            '08:00 AM',
-            true, // taken
-          ),
-          const Divider(height: 12),
-          _buildMedicationItem(
-            'Metformin',
-            '500mg',
-            '02:00 PM',
-            false, // not taken
-          ),
-          const Divider(height: 12),
-          _buildMedicationItem(
-            'Atorvastatin',
-            '20mg',
-            '08:00 PM',
-            false, // not taken
-          ),
-
-          const SizedBox(height: 24),
-
-          // Appointments Section
-          Row(
+            )
+          else
+            Column(
+              children: _todayReminders.map((reminder) {
+                final title = reminder['title'] as String?;
+                final message = reminder['message'] as String?;
+                final scheduledTime = reminder['scheduled_time'] as String?;
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.schedule,
+                            color: Theme.of(context).colorScheme.secondary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Appointments',
+                                title?.trim().isNotEmpty == true
+                                    ? title!
+                                    : (message ?? ''),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
+                                  color:
+                                      Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              Text(
+                                _formatScheduleTime(scheduledTime),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .secondary
+                                      .withOpacity(0.7),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          _buildAppointmentItem(
-            'Dr. Sarah Johnson',
-            'Cardiology Checkup',
-            '2:30 PM',
-            'City Medical Center',
-          ),
-
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 12),
+                  ],
+                );
+              }).toList(),
+            ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -418,31 +533,29 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
         ],
       ),
-      child: Column(
+      child: _isLoadingTasks
+          ? const Center(child: CircularProgressIndicator())
+          : _tasks.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No tasks yet',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                )
+              : Column(
+                  children: [
+                    ..._tasks.map((task) {
+                      return Column(
         children: [
           _buildTodoItem(
-            'Take blood pressure reading',
-            'Due today',
+                            task.title,
+                            _formatTaskCreatedAt(task.createdAt),
             false,
           ),
           const Divider(height: 12),
-          _buildTodoItem(
-            'Schedule annual physical',
-            'Due in 2 weeks',
-            false,
-          ),
-          const Divider(height: 12),
-          _buildTodoItem(
-            'Refill Lisinopril prescription',
-            'Due in 5 days',
-            false,
-          ),
-          const Divider(height: 12),
-          _buildTodoItem(
-            'Complete health questionnaire',
-            'Due tomorrow',
-            true, // completed
-          ),
+                        ],
+                      );
+                    }),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -509,209 +622,51 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildMedicationItem(
-      String name, String dosage, String time, bool isTaken) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isTaken ? Colors.green.withOpacity(0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isTaken
-              ? Colors.green.withOpacity(0.3)
-              : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Medication Icon with status indicator
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isTaken
-                      ? Colors.green.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.medication,
-                  color: isTaken
-                      ? Colors.green
-                      : Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
-              ),
-              if (isTaken)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 10,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          // Medication Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                    decoration: isTaken ? TextDecoration.lineThrough : null,
-                    decorationColor: Colors.green,
-                    decorationThickness: 2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.schedule,
-                      size: 12,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .secondary
-                          .withOpacity(0.7),
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      time,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.local_pharmacy,
-                      size: 12,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .secondary
-                          .withOpacity(0.7),
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      dosage,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Status/Action Button
-          ElevatedButton(
-            onPressed: isTaken
-                ? null
-                : () {
-                    // TODO: Mark as taken and update state
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$name marked as taken!')),
-                    );
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isTaken
-                  ? Colors.green
-                  : Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: isTaken ? 0 : 2,
-            ),
-            child: Text(
-              isTaken ? '✓ Taken' : 'Take Now',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _formatTaskCreatedAt(DateTime? createdAt) {
+    if (createdAt == null) {
+      return 'Added recently';
+    }
+    return 'Added ${createdAt.month}/${createdAt.day}/${createdAt.year}';
   }
 
-  Widget _buildAppointmentItem(
-      String doctor, String type, String dateTime, String location) {
-    return Row(
-      children: [
-        // Calendar Icon
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.calendar_today,
-            color: Theme.of(context).colorScheme.secondary,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Appointment Details
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                doctor,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              Text(
-                type,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              Text(
-                '$dateTime • $location',
-                style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+  String _formatDueText(String? scheduledTime) {
+    if (scheduledTime == null || scheduledTime.trim().isEmpty) {
+      return 'Upcoming';
+    }
+    final scheduled = DateTime.tryParse(scheduledTime);
+    if (scheduled == null) {
+      return 'Upcoming';
+    }
+    final now = DateTime.now();
+    final diff = scheduled.difference(now);
+    if (diff.inMinutes <= 0) {
+      return 'Due now';
+    }
+    if (diff.inMinutes < 60) {
+      return 'Due in ${diff.inMinutes} min';
+    }
+    if (diff.inHours < 24) {
+      return 'Due in ${diff.inHours} hours';
+    }
+    if (diff.inDays < 7) {
+      return 'Due in ${diff.inDays} days';
+    }
+    return 'Due ${scheduled.month}/${scheduled.day}';
   }
+
+  String _formatScheduleTime(String? scheduledTime) {
+    if (scheduledTime == null || scheduledTime.trim().isEmpty) {
+      return '';
+    }
+    final scheduled = DateTime.tryParse(scheduledTime);
+    if (scheduled == null) {
+      return scheduledTime;
+    }
+    final hour = scheduled.hour;
+    final minute = scheduled.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+    return '$hour12:$minute $period';
+  }
+
 }

@@ -6,7 +6,8 @@ import google.generativeai as genai
 from typing import Dict, Optional, Any
 
 from .db_reminders import get_templates_by_type
-from .db_service import get_prompt_text_supabase, log_ai_usage
+from services.cloud_sql_engine import get_cloud_sql_engine
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ async def build_reminder_prompt(
     
     # 1. Get Base Prompt Text
     try:
-        base_prompt_text, _ = await get_prompt_text_supabase(prompt_category, limit=1)
+        base_prompt_text = await get_prompt_text_cloud_sql(prompt_category)
         print("\n BASE PROMPT TEXT", base_prompt_text)
     except Exception as e:
         logger.error(f"Failed to fetch prompt from database: {str(e)}")
@@ -63,6 +64,29 @@ async def build_reminder_prompt(
     final_prompt += "Output ONLY the final message text, no explanations or prefixes"
     print("\n FINAL PROMPT: ", final_prompt)
     return final_prompt
+
+
+async def get_prompt_text_cloud_sql(template_name: str) -> Optional[str]:
+    """
+    Fetch prompt text from reminder_templates by template_name.
+    """
+    engine = get_cloud_sql_engine()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                SELECT template_content
+                FROM reminder_templates
+                WHERE template_name = :template_name
+                LIMIT 1
+            """),
+            {"template_name": template_name},
+        ).fetchone()
+
+    if not row:
+        return None
+    if hasattr(row, "_mapping"):
+        return row._mapping.get("template_content")
+    return row[0]
 
 
 async def generate_reminder_message(

@@ -19,6 +19,7 @@ from utils.prompts.medical_summary_actions_v2 import build_medical_summary_promp
 
 # Constants
 GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_REGION = "us-west4"
 logger = logging.getLogger(__name__)
 
 # Language name mapping for Gemini prompts
@@ -136,17 +137,16 @@ async def generate_visit_summary(raw_text: str, language: str = "en") -> dict:
         Exception: If Gemini API call fails or JSON parsing fails
     """
     try:
-        # Get configuration from environment
+        # Get configuration from environment (region is fixed to us-west4)
         project_id = os.getenv("GCP_PROJECT")
-        region = os.getenv("GCP_REGION")
 
-        if not project_id or not region:
-            raise ValueError("GCP_PROJECT and GCP_REGION environment variables must be set")
+        if not project_id:
+            raise ValueError("GCP_PROJECT environment variable must be set")
 
-        logger.info(f"Initializing Vertex AI with project: {project_id}, region: {region}")
+        logger.info(f"Initializing Vertex AI with project: {project_id}, region: {GEMINI_REGION}")
 
         # Initialize Vertex AI
-        aiplatform.init(project=project_id, location=region)
+        aiplatform.init(project=project_id, location=GEMINI_REGION)
 
         # Get the model
         model = GenerativeModel(GEMINI_MODEL)

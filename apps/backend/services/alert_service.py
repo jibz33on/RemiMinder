@@ -23,37 +23,6 @@ async def get_patient_caregiver(user_id: str) -> Optional[dict]:
     """
     raise RuntimeError("Legacy Supabase path disabled. Patient-caregiver lookup temporarily unavailable.")
 
-    """
-    DISABLED LEGACY CODE - DO NOT ENABLE
-    from .db_reminders import get_supabase_client
-
-    supabase = get_supabase_client()
-
-    try:
-        # Query patient_caregiver join caregivers table
-        response = (
-            supabase.table("patient_caregiver")
-            .select("caregiver_id, caregivers(id, email, full_name)")
-            .eq("patient_id", user_id)
-            .single()
-            .execute()
-        )
-
-        if response.data:
-            caregiver_data = response.data.get('caregivers')
-            return {
-                'caregiver_id': response.data['caregiver_id'],
-                'email': caregiver_data.get('email'),
-                'full_name': caregiver_data.get('full_name')
-            }
-
-        return None
-
-    except Exception as e:
-        logger.warning(f"No caregiver found for patient {user_id}: {str(e)}")
-        return None
-    """
-
 async def check_and_send_caregiver_alerts(
     reminder_id: str,
     user_id: str,

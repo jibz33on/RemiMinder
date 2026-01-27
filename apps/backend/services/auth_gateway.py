@@ -11,6 +11,7 @@ from fastapi import HTTPException, status, Request
 
 import jwt
 import requests
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 

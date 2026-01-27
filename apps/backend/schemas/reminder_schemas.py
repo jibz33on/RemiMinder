@@ -7,7 +7,7 @@ from uuid import UUID
 # REQUEST SCHEMAS
 # ============================================================================
 class ReminderCreate(BaseModel):
-    user_id: UUID
+    user_id: str
     visit_id: Optional[UUID] = None
     reminder_type: Literal["medication", "task", "appointment"]
     title: str
@@ -32,7 +32,7 @@ class ReminderAction(BaseModel):
 
 class ReminderResponse(BaseModel):
     id: UUID
-    user_id: UUID
+    user_id: str
     visit_id: Optional[UUID]
     
     title: str

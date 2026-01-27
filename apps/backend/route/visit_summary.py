@@ -384,6 +384,52 @@ async def get_visit_audio_url_endpoint(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
 
 
+@router.get("/visits/{visit_id}")
+async def get_visit_metadata(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Get visit metadata from visits table.
+    """
+    try:
+        from services.db_service import get_user_uuid
+        from services.cloud_sql_engine import get_cloud_sql_engine
+        from sqlalchemy import text
+
+        user_uuid = await get_user_uuid(user_id)
+        await assert_patient_access(user_uuid, user_uuid, "view")
+
+        engine = get_cloud_sql_engine()
+        with engine.connect() as conn:
+            row = conn.execute(
+                text("""
+                    SELECT id, doctor, specialty, title, created_at, status
+                    FROM visits
+                    WHERE id = :visit_id AND user_id = :user_id
+                    LIMIT 1
+                """),
+                {"visit_id": visit_id, "user_id": user_uuid},
+            ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Visit not found")
+
+        return {
+            "id": str(row[0]),
+            "doctor": row[1],
+            "specialty": row[2],
+            "title": row[3],
+            "created_at": row[4].isoformat() if row[4] else None,
+            "status": row[5],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve visit: {str(e)}")
+
+
 @router.get("/visits/{visit_id}/summary")
 async def get_visit_summary(
     visit_id: str,

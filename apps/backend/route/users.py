@@ -374,7 +374,7 @@ async def update_language_preferences(
         user_uuid = await get_user_uuid(firebase_uid)
 
         success = await update_user_language_preferences(
-            user_uuid=user_uuid,
+            firebase_uid=user_uuid,
             app_language=request.app_language,
             visit_language=request.visit_language
         )

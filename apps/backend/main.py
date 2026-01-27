@@ -48,12 +48,20 @@ logger.info("Database provider: Cloud SQL")
 
 logger.info("Environment variables verified")
 
+# Ensure backend package paths are preferred (avoid shadowing by legacy modules).
+backend_dir = os.path.dirname(__file__)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+sys.path = [
+    path for path in sys.path
+    if "phase1/backend/main_backend" not in path.replace("\\", "/")
+]
 sys.path.append('..')
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from route import care_team, visit_summary, users
+from route import care_team, patient_tasks, reminders, visit_summary, users
 # DISABLED: Other routes temporarily disabled to focus on audio + STT features
 # from route import invitations, patient_register, caregiver_patient, caregivers
 # DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
@@ -79,8 +87,9 @@ app.add_middleware(
 app.include_router(visit_summary.router)      # Visit summaries (audio + STT only)
 app.include_router(users.router)              # User authentication
 app.include_router(care_team.router)          # Care team invitations
-# DISABLED: Reminders temporarily disabled due to Supabase dependency cleanup
-# app.include_router(reminders.router)          # Reminders
+app.include_router(patient_tasks.router)      # Patient tasks
+app.include_router(reminders.router)          # Reminders
+logger.info("Reminders routes registered")
 
 @app.get("/")
 def root() -> dict:

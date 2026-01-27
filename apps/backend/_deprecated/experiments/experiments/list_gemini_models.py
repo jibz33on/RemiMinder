@@ -3,7 +3,7 @@ from google import genai
 client = genai.Client(
     vertexai=True,
     project="stunning-ripsaw-480402-i4",
-    location="us-central1",
+    location="us-west4",
 )
 
 print("Listing models...\n")
