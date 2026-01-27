@@ -700,7 +700,12 @@ class _OverviewScreenState extends State<OverviewScreen>
         onTap: _isSelectionMode
             ? () => _toggleSummarySelection(summaryId)
             : () {
-                context.go('/patient/visit-details?visitId=${summary.visitId}');
+                final visitDateParam = summary.visitDate;
+                final visitDateQuery = visitDateParam == null
+                    ? ''
+                    : '&visitDate=${Uri.encodeComponent(visitDateParam)}';
+                context.push(
+                    '/patient/visit-details?visitId=${summary.visitId}$visitDateQuery');
               },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -719,7 +724,7 @@ class _OverviewScreenState extends State<OverviewScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      summary.doctorName,
+                      _formatDoctorName(summary.doctorName),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
@@ -773,7 +778,7 @@ class _OverviewScreenState extends State<OverviewScreen>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      _formatDate(summary.visitDate!),
+                      _formatSmartTime(DateTime.parse(summary.visitDate!)),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -802,13 +807,70 @@ class _OverviewScreenState extends State<OverviewScreen>
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.month}/${date.day}/${date.year}';
-    } catch (e) {
-      return dateString;
+  String _formatDoctorName(String? doctorName) {
+    final rawName = (doctorName ?? '').trim();
+    if (rawName.isEmpty || rawName.toLowerCase() == 'unknown doctor') {
+      return 'Doctor Visit';
     }
+
+    final normalized = rawName
+        .replaceFirst(RegExp(r'^(dr\.?|doctor)\s+', caseSensitive: false), '')
+        .trim();
+
+    if (normalized.isEmpty) {
+      return 'Doctor Visit';
+    }
+    return 'Dr. $normalized';
+  }
+
+  String _formatSmartTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 60) {
+      final minutes = difference.inMinutes < 1 ? 1 : difference.inMinutes;
+      return '$minutes min ago';
+    }
+
+    final isSameDay = now.year == dateTime.year &&
+        now.month == dateTime.month &&
+        now.day == dateTime.day;
+    if (isSameDay) {
+      return 'Today, ${_formatTimeOfDay(dateTime)}';
+    }
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = yesterday.year == dateTime.year &&
+        yesterday.month == dateTime.month &&
+        yesterday.day == dateTime.day;
+    if (isYesterday) {
+      return 'Yesterday, ${_formatTimeOfDay(dateTime)}';
+    }
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final month = months[dateTime.month - 1];
+    return '$month ${dateTime.day}, ${dateTime.year}';
+  }
+
+  String _formatTimeOfDay(DateTime dateTime) {
+    final hour = dateTime.hour;
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+    return '$hour12:$minute $period';
   }
 
   Widget _buildLabResultsTab() {

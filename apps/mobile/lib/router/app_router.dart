@@ -165,7 +165,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/patient/visit-details',
         builder: (context, state) {
           final visitId = state.uri.queryParameters['visitId']!;
-          return VisitDetailsScreen(visitId: visitId);
+          final visitDate = state.uri.queryParameters['visitDate'];
+          return VisitDetailsScreen(visitId: visitId, visitDate: visitDate);
         },
       ),
       GoRoute(

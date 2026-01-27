@@ -6,10 +6,12 @@ import '../../data/services/patient_api_service.dart';
 
 class VisitDetailsScreen extends StatefulWidget {
   final String visitId;
+  final String? visitDate;
 
   VisitDetailsScreen({
     super.key,
     required this.visitId,
+    this.visitDate,
   }) {
     print("🧨🧨🧨 Opening VisitDetailsScreen with visitId = $visitId");
   }
@@ -113,7 +115,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
             Icons.arrow_back,
             color: Theme.of(context).colorScheme.primary,
           ),
-          onPressed: () => context.go('/patient/home'),
+          onPressed: () => context.pop(),
         ),
         title: const Text(
           'Visit Details',
@@ -177,13 +179,29 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: const Text(
-                  'AI Visit Summary',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Health Visit Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    if (widget.visitDate != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _formatVisitDate(widget.visitDate!),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               IconButton(
@@ -224,7 +242,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          '🧠 Generating summary...',
+                          'Preparing visit summary...',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -267,7 +285,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: const Text(
-                      'Failed to load AI summary',
+                      'Unable to load visit summary',
                       style: TextStyle(
                         color: Colors.red,
                         fontSize: 14,
@@ -297,7 +315,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Unable to load AI summary',
+                    'Visit summary is unavailable',
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: 14,
@@ -316,7 +334,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSummarySection(
-          title: 'Summary',
+          title: 'Visit Summary',
           content: Text(
             _summaryText ?? '',
             style: TextStyle(
@@ -327,11 +345,11 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           ),
         ),
         if (_decisions.isNotEmpty)
-          _buildListSection(title: 'Decisions', items: _decisions),
+          _buildListSection(title: 'Clinical Decisions', items: _decisions),
         if (_medications.isNotEmpty)
           _buildListSection(title: 'Medications', items: _medications),
         if (_actions.isNotEmpty)
-          _buildListSection(title: 'Actions', items: _actions),
+          _buildListSection(title: 'Next Steps', items: _actions),
       ],
     );
   }
@@ -417,5 +435,29 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         ],
       ),
     );
+  }
+
+  String _formatVisitDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      final month = months[date.month - 1];
+      return '$month ${date.day}, ${date.year}';
+    } catch (e) {
+      return dateString;
+    }
   }
 }
