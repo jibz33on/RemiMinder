@@ -6,14 +6,16 @@ This module provides Firebase ID token verification and user resolution.
 
 import os
 import time
-import logging
-from fastapi import HTTPException, status, Request
+from fastapi import Request
 
 import jwt
 import requests
 from sqlalchemy import text
 
-logger = logging.getLogger(__name__)
+from domain.errors import DomainError, InternalError, PermissionDeniedError
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 # Firebase JWKS cache
 _firebase_jwks_cache = None
@@ -47,9 +49,9 @@ def _get_firebase_jwks() -> dict:
         return _firebase_jwks_cache
     except Exception as e:
         logger.warning(f"Failed to fetch Firebase JWKS: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service temporarily unavailable"
+        raise InternalError(
+            "Authentication service temporarily unavailable",
+            status_code=503,
         )
 
 
@@ -67,7 +69,7 @@ def _verify_google_token(token: str) -> dict:
         Dict containing decoded JWT claims
 
     Raises:
-        HTTPException: If token verification fails
+        PermissionDeniedError: If token verification fails
     """
     try:
         # Get Firebase public keys for RS256 verification
@@ -78,10 +80,7 @@ def _verify_google_token(token: str) -> dict:
         kid = header.get("kid")
 
         if not kid:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing key ID"
-            )
+            raise PermissionDeniedError("Invalid token: missing key ID", status_code=401)
 
         # Find the correct key
         public_key = None
@@ -91,10 +90,7 @@ def _verify_google_token(token: str) -> dict:
                 break
 
         if not public_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: unknown key ID"
-            )
+            raise PermissionDeniedError("Invalid token: unknown key ID", status_code=401)
 
         # First decode to check issuer (Firebase uses project-specific issuers)
         decoded = jwt.decode(
@@ -114,27 +110,18 @@ def _verify_google_token(token: str) -> dict:
         # Manually verify issuer for Firebase/Google Identity Platform tokens
         issuer = decoded.get("iss")
         if not issuer:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing issuer"
-            )
+            raise PermissionDeniedError("Invalid token: missing issuer", status_code=401)
 
         # Accept Firebase Auth tokens (https://securetoken.google.com/<project_id>)
         # or Google Identity Platform tokens (https://accounts.google.com)
         if not (issuer.startswith("https://securetoken.google.com/") or
                 issuer == "https://accounts.google.com"):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token issuer"
-            )
+            raise PermissionDeniedError("Invalid token issuer", status_code=401)
 
         # Verify audience based on issuer type
         audience = decoded.get("aud")
         if not audience:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing audience"
-            )
+            raise PermissionDeniedError("Invalid token: missing audience", status_code=401)
 
         # Determine expected audience based on issuer
         expected_audience = None
@@ -147,34 +134,19 @@ def _verify_google_token(token: str) -> dict:
 
         # Verify audience if we have an expected value
         if expected_audience and audience != expected_audience:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token audience"
-            )
+            raise PermissionDeniedError("Invalid token audience", status_code=401)
 
         return decoded
 
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired"
-        )
+        raise PermissionDeniedError("Token expired", status_code=401)
     except jwt.InvalidIssuerError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token issuer"
-        )
+        raise PermissionDeniedError("Invalid token issuer", status_code=401)
     except jwt.InvalidAudienceError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token audience"
-        )
+        raise PermissionDeniedError("Invalid token audience", status_code=401)
     except Exception as e:
         logger.warning(f"Google token verification failed: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
 
 def verify_auth_token(token: str) -> dict:
@@ -193,32 +165,33 @@ def verify_auth_token(token: str) -> dict:
         Dict containing decoded JWT claims plus 'auth_provider' key set to 'firebase'.
 
     Raises:
-        HTTPException: If token is invalid or not a Firebase token
+        PermissionDeniedError: If token is invalid or not a Firebase token
     """
     auth_mode = os.getenv("AUTH_MODE", "google")
 
     # Log authentication attempt (minimal, safe logging)
-    logger.info(f"Auth attempt", extra={
-        "auth_mode": auth_mode,
-        "token_prefix": token[:10] if len(token) > 10 else token
-    })
+    logger.info(
+        "Auth attempt",
+        auth_mode=auth_mode,
+        token_prefix=token[:10] if len(token) > 10 else token,
+    )
 
     try:
         if auth_mode == "google":
             result = _verify_google_token(token)
             result["auth_provider"] = "firebase"
-            logger.info("Auth success", extra={"auth_provider": "firebase"})
+            logger.info("Auth success", auth_provider="firebase")
             return result
 
         else:
             logger.warning(f"Unsupported auth mode: {auth_mode}. Only 'google' (Firebase) is supported.")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Supabase authentication is no longer supported. Please use Firebase authentication."
+            raise PermissionDeniedError(
+                "Supabase authentication is no longer supported. Please use Firebase authentication.",
+                status_code=401,
             )
 
-    except HTTPException:
-        logger.warning("Auth failure", extra={"auth_mode": auth_mode})
+    except DomainError:
+        logger.warning("Auth failure", auth_mode=auth_mode)
         raise
 
 
@@ -236,7 +209,7 @@ def get_current_user_with_db_lookup(token: str) -> str:
         Internal user ID string
 
     Raises:
-        HTTPException: If token is invalid or user lookup fails
+        PermissionDeniedError: If token is invalid or user lookup fails
     """
     # First verify the token (will only accept Firebase tokens now)
     decoded_token = verify_auth_token(token)
@@ -246,9 +219,9 @@ def get_current_user_with_db_lookup(token: str) -> str:
     user_email = decoded_token.get("email")
 
     if not external_auth_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Firebase token: missing subject claim"
+        raise PermissionDeniedError(
+            "Invalid Firebase token: missing subject claim",
+            status_code=401,
         )
 
     # Perform database lookup for Firebase user
@@ -261,9 +234,9 @@ def get_current_user_with_db_lookup(token: str) -> str:
 
     except Exception as e:
         logger.error(f"Database lookup failed for Firebase user {external_auth_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication error: {str(e)}"
+        raise PermissionDeniedError(
+            f"Authentication error: {str(e)}",
+            status_code=401,
         )
 
 
@@ -280,7 +253,7 @@ def _get_or_create_external_user(engine, external_auth_id: str, email: str) -> s
         Internal user ID string
 
     Raises:
-        HTTPException: For creation failures
+        DomainError: For creation failures
     """
     # 1. Try direct external_auth_id lookup
     try:
@@ -293,12 +266,10 @@ def _get_or_create_external_user(engine, external_auth_id: str, email: str) -> s
             if row:
                 logger.info(
                     "Auth user resolved",
-                    extra={
-                        "auth_provider": "firebase",
-                        "user_resolved": True,
-                        "linked_existing": False,
-                        "external_auth_id": external_auth_id,
-                    },
+                    auth_provider="firebase",
+                    user_resolved=True,
+                    linked_existing=False,
+                    external_auth_id=external_auth_id,
                 )
                 return str(row[0])
     except Exception:
@@ -306,9 +277,9 @@ def _get_or_create_external_user(engine, external_auth_id: str, email: str) -> s
 
     # 2. Create new user
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Firebase token: missing email claim"
+        raise PermissionDeniedError(
+            "Invalid Firebase token: missing email claim",
+            status_code=401,
         )
 
     try:
@@ -331,26 +302,18 @@ def _get_or_create_external_user(engine, external_auth_id: str, email: str) -> s
                 conn.commit()
                 logger.info(
                     "New auth user created",
-                    extra={
-                        "auth_provider": "firebase",
-                        "user_resolved": True,
-                        "linked_existing": False,
-                        "external_auth_id": external_auth_id,
-                        "email": email,
-                    },
+                    auth_provider="firebase",
+                    user_resolved=True,
+                    linked_existing=False,
+                    external_auth_id=external_auth_id,
+                    email=email,
                 )
                 return new_user_id
             else:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create Firebase user record"
-                )
+                raise InternalError("Failed to create Firebase user record", status_code=500)
     except Exception as e:
         logger.error(f"Failed to create Firebase user {external_auth_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user record"
-        )
+        raise InternalError("Failed to create user record", status_code=500)
 
 
 # FastAPI Dependency Functions
@@ -364,10 +327,7 @@ def get_current_user(request: Request) -> str:
     """
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid token"
-        )
+        raise PermissionDeniedError("Missing or invalid token", status_code=401)
 
     token = auth_header.split(" ")[1]
     return get_current_user_with_db_lookup(token)
@@ -381,10 +341,7 @@ def get_current_user_jwt(request: Request) -> dict:
     """
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid token"
-        )
+        raise PermissionDeniedError("Missing or invalid token", status_code=401)
 
     token = auth_header.split(" ")[1]
     return verify_auth_token(token)

@@ -1,5 +1,4 @@
-import logging
-from fastapi import APIRouter, HTTPException, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 # REMOVED: Legacy summary functions deleted during Supabase cleanup
 # from services.db_service import (
 #     fetch_visit_transcript,
@@ -8,15 +7,6 @@ from fastapi import APIRouter, HTTPException, Depends, File, Request, UploadFile
 #     fetch_all_visit_summaries,
 # )
 from domain.auth import get_current_user_jwt as get_current_user_port
-from domain.errors import (
-    ConflictError,
-    DomainError,
-    ForbiddenError,
-    InternalError,
-    NotFoundError,
-    UnauthorizedError,
-    ValidationError,
-)
 from domain.visits.service import (
     get_latest_visit_status,
     get_visit_audio_url,
@@ -27,32 +17,11 @@ from domain.visits.service import (
     upload_visit_image,
 )
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/api", tags=["Visit Summaries"])
 
 
-def _raise_http_for_domain_error(error: DomainError) -> None:
-    if isinstance(error, NotFoundError):
-        raise HTTPException(status_code=404, detail=str(error))
-    if isinstance(error, ForbiddenError):
-        raise HTTPException(status_code=403, detail=str(error))
-    if isinstance(error, ValidationError):
-        raise HTTPException(status_code=400, detail=str(error))
-    if isinstance(error, ConflictError):
-        raise HTTPException(status_code=409, detail=str(error))
-    if isinstance(error, UnauthorizedError):
-        raise HTTPException(status_code=401, detail=str(error))
-    if isinstance(error, InternalError):
-        raise HTTPException(status_code=500, detail=str(error))
-    raise HTTPException(status_code=500, detail=str(error))
-
-
 def get_current_user(request: Request) -> dict:
-    try:
-        return get_current_user_port(request)
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
+    return get_current_user_port(request)
 
 
 def get_user_id(current_user=Depends(get_current_user)) -> str:
@@ -133,16 +102,7 @@ async def upload_audio_for_visit(
     Upload audio file with transactional database consistency.
     Creates visit and visit_transcripts rows if needed, then persists audio_url.
     """
-    try:
-        return await upload_visit_audio(user_id, visit_id, file)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Audio upload failed for visit {visit_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Audio upload failed: {str(e)}")
+    return await upload_visit_audio(user_id, visit_id, file)
 
 
 @router.post("/visits/{visit_id}/image/upload")
@@ -155,16 +115,7 @@ async def upload_image_for_visit(
     Upload image file with transactional database consistency.
     Creates visit and visit_transcripts rows if needed, then persists image_url and metadata.
     """
-    try:
-        return await upload_visit_image(user_id, visit_id, file)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Image upload failed for visit {visit_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+    return await upload_visit_image(user_id, visit_id, file)
 
 
 @router.post("/visits/{visit_id}/ocr")
@@ -176,25 +127,7 @@ async def process_visit_ocr(
     Process uploaded image with OCR using Google Vision API.
     Thin route that delegates to image pipeline.
     """
-    logger.info("OCR requested for visit_id=%s", visit_id)
-    try:
-        return await process_visit_ocr(user_id, visit_id)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except ValueError as e:
-        # Pipeline validation errors
-        if "not found" in str(e):
-            raise HTTPException(status_code=404, detail=str(e))
-        elif "already" in str(e):
-            raise HTTPException(status_code=409, detail=str(e))
-        else:
-            raise HTTPException(status_code=400, detail=str(e))
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.exception(f"OCR route failed for visit {visit_id}")
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+    return await process_visit_ocr(user_id, visit_id)
 
 
 @router.post("/visits/{visit_id}/process-audio")
@@ -214,21 +147,16 @@ async def get_latest_visit_status(user_id: str = Depends(get_user_id)):
     """
     Check whether the latest visit for this user is still processing.
     """
-    try:
-        from domain.ports.cache import get, set
+    from domain.ports.cache import get, set
 
-        cache_key = f"visit_status:{user_id}"
-        cached = get(cache_key)
-        if cached is not None:
-            return cached
+    cache_key = f"visit_status:{user_id}"
+    cached = get(cache_key)
+    if cached is not None:
+        return cached
 
-        response = await get_latest_visit_status(user_id)
-        set(cache_key, response, 5)
-        return response
-
-    except Exception as e:
-        logger.error("Failed to fetch latest visit status for user %s: %s", user_id, e)
-        raise HTTPException(status_code=500, detail="Failed to fetch latest visit status")
+    response = await get_latest_visit_status(user_id)
+    set(cache_key, response, 5)
+    return response
 
 
 @router.get("/visits/{visit_id}/audio")
@@ -236,15 +164,7 @@ async def get_visit_audio_url_endpoint(
     visit_id: str,
     user_id: str = Depends(get_user_id)
 ):
-    try:
-        return await get_visit_audio_url(user_id, visit_id)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve audio: {str(e)}")
+    return await get_visit_audio_url(user_id, visit_id)
 
 
 @router.get("/visits/{visit_id}")
@@ -255,14 +175,6 @@ async def get_visit_metadata(
     """
     Get visit metadata from visits table.
     """
-    try:
-        return await get_visit_details(user_id, visit_id)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve visit: {str(e)}")
+    return await get_visit_details(user_id, visit_id)
 
 

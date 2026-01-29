@@ -6,6 +6,7 @@ from domain.ports import auth as auth_port
 from domain.ports import cache as cache_port
 from domain.ports import db as db_port
 from domain.ports import jobs as jobs_port
+from domain.ports import logging as logging_port
 from domain.ports import notifications as notifications_port
 from domain.ports import stt as stt_port
 from domain.ports import storage as storage_port
@@ -14,6 +15,7 @@ from domain.ports import vision as vision_port
 from infra.cache import cache_service
 from infra.db.cloud_sql_engine import get_cloud_sql_engine
 from infra.jobs.jobs_service import create_job
+from infra.logging.std_logger import StdLogger
 
 
 class CacheAdapter(cache_port.CacheProvider):
@@ -47,6 +49,7 @@ def _load_provider(spec_env: str):
 
 
 def wire_infra_ports() -> None:
+    logging_port.set_logger(StdLogger())
     db_port.set_db_engine_provider(get_cloud_sql_engine)
     cache_port.set_cache_provider(CacheAdapter())
     jobs_port.set_job_creator(create_job)

@@ -16,10 +16,11 @@ Purpose:
 """
 
 import json
-import logging
 from typing import Any, Dict, List, Tuple
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 
 # Fallback texts (single source of truth). Non-English locales default to English.

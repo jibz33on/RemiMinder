@@ -1,7 +1,7 @@
-import logging
 from typing import Optional
 
-from domain.errors import ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+from domain.errors import NotFoundError, PermissionDeniedError, ValidationError
+from domain.ports.logging import get_logger
 
 from domain.users.repo import (
     ensure_user_exists,
@@ -14,7 +14,7 @@ from domain.users.repo import (
 from domain.ports.cache import get, invalidate, set
 from domain.care_team.repo import get_care_team_membership
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def resolve_display_name(full_name: Optional[str]) -> str:
@@ -28,7 +28,7 @@ def resolve_display_name(full_name: Optional[str]) -> str:
 
 async def fetch_profile(external_auth_id: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token: missing user ID")
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
 
     cache_key = f"user_profile:{external_auth_id}"
     cached = get(cache_key)
@@ -63,10 +63,10 @@ async def update_role(
     role: str,
 ) -> dict:
     if not current_external_auth_id:
-        raise UnauthorizedError("Invalid token: missing user ID")
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
 
     if current_external_auth_id != target_external_auth_id:
-        raise ForbiddenError("You can only update your own role")
+        raise PermissionDeniedError("You can only update your own role", status_code=403)
 
     if role not in ["patient", "caregiver"]:
         raise ValidationError("Invalid role. Must be 'patient' or 'caregiver'")
@@ -94,7 +94,7 @@ async def bootstrap(
     auth_display_name: Optional[str],
 ) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token: missing user ID")
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
     if not email:
         raise ValidationError("Email missing from auth token")
 
@@ -109,7 +109,7 @@ async def bootstrap(
 
 async def fetch_me(external_auth_id: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token: missing user ID")
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
 
     cache_key = f"user_profile:{external_auth_id}"
     cached = get(cache_key)
@@ -140,7 +140,7 @@ async def fetch_me(external_auth_id: str) -> dict:
 
 async def get_language_prefs(external_auth_id: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid user authentication")
+        raise PermissionDeniedError("Invalid user authentication", status_code=401)
 
     cache_key = f"language_prefs:{external_auth_id}"
     cached = get(cache_key)
@@ -161,7 +161,7 @@ async def update_language_prefs(
     visit_language: str,
 ) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid user authentication")
+        raise PermissionDeniedError("Invalid user authentication", status_code=401)
 
     success = await update_user_language_preferences(
         external_auth_id=external_auth_id,
@@ -177,7 +177,7 @@ async def update_language_prefs(
 
 async def update_phone(external_auth_id: str, phone: Optional[str]) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid user authentication")
+        raise PermissionDeniedError("Invalid user authentication", status_code=401)
 
     phone_to_save = None
     if phone is not None:
@@ -212,17 +212,17 @@ async def assert_patient_access(
         set(cache_key, membership, 60)
 
     if not membership:
-        raise ForbiddenError("No access to this patient's data")
+        raise PermissionDeniedError("No access to this patient's data", status_code=403)
 
     member_permission = membership.get("permission")
     if required_permission == "view":
         if member_permission in {"view", "full"}:
             return
-        raise ForbiddenError("Insufficient permission")
+        raise PermissionDeniedError("Insufficient permission", status_code=403)
 
     if required_permission == "full":
         if member_permission == "full":
             return
-        raise ForbiddenError("Insufficient permission")
+        raise PermissionDeniedError("Insufficient permission", status_code=403)
 
-    raise ForbiddenError("Insufficient permission")
+    raise PermissionDeniedError("Insufficient permission", status_code=403)

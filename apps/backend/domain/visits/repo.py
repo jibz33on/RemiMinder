@@ -1,10 +1,9 @@
-import logging
-
 from sqlalchemy import text
 
 from domain.ports.db import get_db_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def update_visit_with_structured_data(
@@ -141,5 +140,5 @@ async def get_latest_processing_visit_id(external_auth_id: str) -> str | None:
             ).fetchone()
         return row[0] if row else None
     except Exception as e:
-        logger.error("Error fetching latest visit status for user %s: %s", external_auth_id, e)
+        logger.error(f"Error fetching latest visit status for user {external_auth_id}: {e}")
         raise

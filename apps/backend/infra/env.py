@@ -1,9 +1,9 @@
-import logging
 import os
 
 from dotenv import load_dotenv
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def load_env() -> None:

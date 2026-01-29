@@ -1,8 +1,8 @@
 import asyncio
-import logging
 from datetime import datetime, timezone
 
-from domain.errors import ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
+from domain.errors import NotFoundError, PermissionDeniedError, ValidationError
+from domain.ports.logging import get_logger
 
 from domain.ports.cache import get, set, invalidate
 from domain.care_team.repo import (
@@ -21,7 +21,7 @@ from domain.care_team.repo import (
 )
 from domain.users.repo import get_user_email, get_user_uuid
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def send_invite_email(to_email: str, invite_token: str, patient_name: str) -> bool:
@@ -36,7 +36,7 @@ def send_invite_email(to_email: str, invite_token: str, patient_name: str) -> bo
 
 async def list_members(external_auth_id: str) -> list[dict]:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     cache_key = f"care_team_list:{patient_id}"
@@ -57,7 +57,7 @@ async def invite_member(
     token: str,
 ) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     await create_care_team_invitation(
@@ -86,7 +86,7 @@ async def invite_member(
 
 async def accept_invitation(external_auth_id: str, token: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     invitation = await get_care_team_invitation_by_token(token)
     if not invitation:
@@ -129,7 +129,7 @@ async def accept_invitation(external_auth_id: str, token: str) -> dict:
 
 async def list_my_invitations(external_auth_id: str) -> list[dict]:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     user_id = await get_user_uuid(external_auth_id)
     cache_key = f"care_team_my_invites:{user_id}"
@@ -144,7 +144,7 @@ async def list_my_invitations(external_auth_id: str) -> list[dict]:
 
 async def list_pending_invitations(external_auth_id: str) -> list[dict]:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     cache_key = f"care_team_pending:{patient_id}"
@@ -158,7 +158,7 @@ async def list_pending_invitations(external_auth_id: str) -> list[dict]:
 
 async def cancel_pending_invitation(external_auth_id: str, invitation_id: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     updated = await cancel_care_team_invitation(
@@ -179,7 +179,7 @@ async def resend_pending_invitation(
     patient_name: str,
 ) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     token = await resend_care_team_invitation(
@@ -214,14 +214,14 @@ async def update_permission(
     permission: str,
 ) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     member = await get_care_team_member_by_id(member_id)
     if not member:
         raise NotFoundError("Care team member not found")
     if str(member["patient_id"]) != str(patient_id):
-        raise ForbiddenError("Not authorized")
+        raise PermissionDeniedError("Not authorized", status_code=403)
 
     updated = await update_care_team_member_permission(
         member_id=member_id,
@@ -236,14 +236,14 @@ async def update_permission(
 
 async def delete_member(external_auth_id: str, member_id: str) -> dict:
     if not external_auth_id:
-        raise UnauthorizedError("Invalid token")
+        raise PermissionDeniedError("Invalid token", status_code=401)
 
     patient_id = await get_user_uuid(external_auth_id)
     member = await get_care_team_member_by_id(member_id)
     if not member:
         raise NotFoundError("Care team member not found")
     if str(member["patient_id"]) != str(patient_id):
-        raise ForbiddenError("Not authorized")
+        raise PermissionDeniedError("Not authorized", status_code=403)
 
     deleted = await remove_care_team_member(member_id=member_id)
     if not deleted:

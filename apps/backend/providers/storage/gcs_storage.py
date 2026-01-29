@@ -1,12 +1,13 @@
 import os
 import traceback
 import uuid
-import logging
 from datetime import timedelta
 from google.cloud import storage
 from fastapi import UploadFile
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 async def upload_audio(file: UploadFile, visit_id: str) -> str:
     """
@@ -75,8 +76,12 @@ async def upload_audio(file: UploadFile, visit_id: str) -> str:
 
         # Log full traceback for debugging
         error_details = traceback.format_exc()
-        print(f"GCS upload error for visit {visit_id}: {str(e)}")
-        print(f"Full traceback: {error_details}")
+        logger.error(
+            "GCS upload error for visit %s: %s",
+            visit_id,
+            str(e),
+            traceback=error_details,
+        )
         raise Exception(f"GCS upload failed: {str(e)}")
 
 
@@ -167,8 +172,12 @@ async def upload_image(file: UploadFile, visit_id: str) -> dict:
 
         # Log full traceback for debugging
         error_details = traceback.format_exc()
-        print(f"GCS image upload error for visit {visit_id}: {str(e)}")
-        print(f"Full traceback: {error_details}")
+        logger.error(
+            "GCS image upload error for visit %s: %s",
+            visit_id,
+            str(e),
+            traceback=error_details,
+        )
         raise Exception(f"GCS image upload failed: {str(e)}")
 
 

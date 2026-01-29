@@ -1,12 +1,12 @@
-import logging
 import secrets
 from typing import Optional
 
 from sqlalchemy import text
 
 from domain.ports.db import get_db_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def create_care_team_invitation(

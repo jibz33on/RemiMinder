@@ -1,4 +1,3 @@
-import logging
 from typing import Optional, Dict, Any
 from domain.reminders.repo import (
     create_caregiver_alert,
@@ -9,8 +8,9 @@ from domain.reminders.repo import (
 from workflows.reminder_messages import generate_caregiver_alert_message
 from domain.ports.notifications import send_caregiver_alert_email
 from domain.ports.cache import invalidate, invalidate_prefix
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 # ============================================================================
 # CAREGIVER ALERT LOGIC

@@ -6,7 +6,6 @@ any database operations or business logic. It focuses solely on LLM inference.
 """
 
 import json
-import logging
 import os
 import re
 from datetime import datetime
@@ -16,11 +15,12 @@ from vertexai.generative_models import GenerativeModel  # type: ignore
 
 from utils.prompts.medical_summary import build_medical_summary_prompt
 from utils.prompts.medical_summary_actions_v2 import build_medical_summary_prompt_v2
+from domain.ports.logging import get_logger
 
 # Constants
 GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_REGION = "us-west4"
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 # Language name mapping for Gemini prompts
 LANGUAGE_NAME_MAP = {

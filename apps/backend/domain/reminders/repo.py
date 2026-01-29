@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 import uuid
@@ -8,8 +7,9 @@ import pytz
 from sqlalchemy import text
 
 from domain.ports.db import get_db_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def _row_to_dict(row: Any) -> Optional[Dict[str, Any]]:

@@ -1,6 +1,5 @@
-import logging
-
 from domain.errors import NotFoundError
+from domain.ports.logging import get_logger
 
 from domain.summaries.repo import (
     delete_user_summary,
@@ -12,11 +11,11 @@ from domain.users.repo import get_user_uuid
 from domain.users.service import assert_patient_access
 from domain.ports.cache import get, invalidate, set
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def get_summary(external_auth_id: str, visit_id: str) -> dict:
-    logger.info("Getting summary for visit_id=%s, external_auth_id=%s", visit_id, external_auth_id)
+    logger.info(f"Getting summary for visit_id={visit_id}, external_auth_id={external_auth_id}")
 
     user_uuid = await get_user_uuid(external_auth_id)
     await assert_patient_access(user_uuid, user_uuid, "view")
@@ -28,7 +27,7 @@ async def get_summary(external_auth_id: str, visit_id: str) -> dict:
 
 
 async def get_structured_summary(external_auth_id: str, visit_id: str) -> dict:
-    logger.info("Getting structured summary for visit_id=%s, external_auth_id=%s", visit_id, external_auth_id)
+    logger.info(f"Getting structured summary for visit_id={visit_id}, external_auth_id={external_auth_id}")
 
     user_uuid = await get_user_uuid(external_auth_id)
     await assert_patient_access(user_uuid, user_uuid, "view")

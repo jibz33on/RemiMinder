@@ -1,13 +1,13 @@
 import json
-import logging
 from typing import Optional
 
 from sqlalchemy import text
 
 from domain.ports.cache import invalidate
 from domain.ports.db import get_db_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def insert_ai_summary_log(

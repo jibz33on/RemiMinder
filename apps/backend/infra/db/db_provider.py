@@ -1,12 +1,12 @@
-import logging
 from typing import Optional
 
 from sqlalchemy import Engine
 
 
 from .cloud_sql_engine import get_cloud_sql_engine as _create_cloud_sql_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 # Global variable to cache the Cloud SQL engine (lazy initialization)
 _cloud_sql_engine: Optional[Engine] = None

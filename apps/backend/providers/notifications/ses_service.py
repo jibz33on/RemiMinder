@@ -1,8 +1,9 @@
 
 from typing import Optional
-import logging
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 """
 Email notification provider (no-op stub).

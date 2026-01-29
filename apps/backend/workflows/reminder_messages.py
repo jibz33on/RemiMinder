@@ -1,13 +1,13 @@
 import os
 import json
 import time
-import logging
 from typing import Dict, Optional, Any
 
 from domain.reminders.repo import get_prompt_text_by_name, get_templates_by_type
 from domain.ports.ai import generate_reminder_message as generate_reminder_message_via_port
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 async def build_reminder_prompt(
     prompt_category: str,
@@ -23,7 +23,6 @@ async def build_reminder_prompt(
     # 1. Get Base Prompt Text
     try:
         base_prompt_text = await get_prompt_text_by_name(prompt_category)
-        print("\n BASE PROMPT TEXT", base_prompt_text)
     except Exception as e:
         logger.error(f"Failed to fetch prompt from database: {str(e)}")
         base_prompt_text = None
@@ -60,7 +59,6 @@ async def build_reminder_prompt(
     final_prompt += "\n--- Final Output Instruction ---\n"
     final_prompt += "Using the context above, generate the final reminder message.\n"
     final_prompt += "Output ONLY the final message text, no explanations or prefixes"
-    print("\n FINAL PROMPT: ", final_prompt)
     return final_prompt
 
 
@@ -74,7 +72,6 @@ async def generate_reminder_message(
     Generates a personalized, warm reminder message using the few-shot prompt system.
     Returns the AI-generated message or a fallback message string.
     """
-    print("\n ENTERED GENERATE REMINDER MESSAGE")
     if not context_data:
         context_data = {}
 
@@ -90,8 +87,6 @@ async def generate_reminder_message(
     else:
         prompt_category = 'Reminder Message'
 
-    print("PROMPT_CATEGORY:", prompt_category)
-    
     try:
         # 3. Build Few-Shot Prompt
         prompt = await build_reminder_prompt(
@@ -100,13 +95,11 @@ async def generate_reminder_message(
             reminder_title=title,
         )
         
-        logger.debug(f"Generated prompt (first 200 chars): {prompt[:200]}...")
-
         start_time = time.time()
         ai_message = await generate_reminder_message_via_port(prompt, title)
         latency = time.time() - start_time
 
-        logger.info("Generated message for '%s' | Latency: %.2fs", title, latency)
+        logger.info(f"Generated message for '{title}' | Latency: {latency:.2f}s")
 
         return ai_message
         

@@ -3,10 +3,10 @@ Google Vision API service for OCR processing.
 Processes images from Google Cloud Storage.
 """
 
-import logging
 from google.cloud import vision
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+logger = get_logger()
 _PROVIDER_NAME = "google_vision"
 
 

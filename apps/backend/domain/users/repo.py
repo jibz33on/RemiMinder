@@ -1,13 +1,13 @@
-import logging
 from typing import Optional
 
 from sqlalchemy import text
 
 from domain.ports.cache import get_or_set
 from domain.ports.db import get_db_engine
-from domain.errors import DomainError, NotFoundError
+from domain.errors import DomainError, NotFoundError, ValidationError
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def get_user_uuid(external_auth_id: str) -> str:
@@ -184,10 +184,10 @@ async def update_user_language_preferences(
     try:
         # Simple validation
         if not app_language or not visit_language:
-            raise ValueError("App language and visit language are required")
+            raise ValidationError("App language and visit language are required")
 
         if len(app_language) > 10 or len(visit_language) > 10:
-            raise ValueError("Language codes must be 10 characters or less")
+            raise ValidationError("Language codes must be 10 characters or less")
 
         engine = get_db_engine()
         with engine.connect() as conn:

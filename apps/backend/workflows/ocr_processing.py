@@ -1,6 +1,7 @@
-import logging
 from typing import Any, Dict
 
+from domain.errors import NotFoundError, ValidationError
+from domain.ports.logging import get_logger
 from domain.ports.storage import build_image_reference
 from domain.ports.vision import get_ocr_provider_name, run_ocr_for_image
 from domain.transcripts.repo import (
@@ -10,7 +11,7 @@ from domain.transcripts.repo import (
     save_ocr_result,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
@@ -22,10 +23,10 @@ async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
         image_metadata, ocr_status = await get_image_metadata_and_status(visit_id)
 
         if not image_metadata:
-            raise ValueError(f"No image uploaded for visit {visit_id}")
+            raise NotFoundError(f"No image uploaded for visit {visit_id}")
 
         if ocr_status == "completed":
-            logger.info("OCR already completed for visit %s - returning existing result", visit_id)
+            logger.info(f"OCR already completed for visit {visit_id} - returning existing result")
             return {
                 "status": "completed",
                 "visit_id": visit_id,
@@ -35,23 +36,23 @@ async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
             }
 
         if ocr_status == "processing":
-            logger.info("OCR already in progress for visit %s - returning processing status", visit_id)
+            logger.info(f"OCR already in progress for visit {visit_id} - returning processing status")
             return {
                 "status": "processing",
                 "visit_id": visit_id,
             }
 
         if not isinstance(image_metadata, dict):
-            raise ValueError(f"image_metadata is not a dict for visit {visit_id}")
+            raise ValidationError(f"image_metadata is not a dict for visit {visit_id}")
 
         blob_name = image_metadata.get("blob_name")
         if not blob_name:
-            raise ValueError(f"Blob name not found in image metadata for visit {visit_id}")
+            raise ValidationError(f"Blob name not found in image metadata for visit {visit_id}")
 
         await mark_ocr_processing(visit_id)
 
         image_reference = build_image_reference(blob_name)
-        logger.info("Processing OCR for visit %s: %s", visit_id, image_reference)
+        logger.info(f"Processing OCR for visit {visit_id}: {image_reference}")
 
         ocr_result = await run_ocr_for_image(image_reference)
 
@@ -85,6 +86,6 @@ async def run_ocr_for_visit(visit_id: str) -> Dict[str, Any]:
         try:
             await save_ocr_error(visit_id, str(e))
         except Exception as db_error:
-            logger.error("Failed to update OCR error status: %s", db_error)
-        logger.exception("OCR pipeline failed for visit %s", visit_id)
+            logger.error(f"Failed to update OCR error status: {db_error}")
+        logger.exception(f"OCR pipeline failed for visit {visit_id}")
         raise

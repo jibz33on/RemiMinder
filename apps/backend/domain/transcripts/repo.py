@@ -1,12 +1,12 @@
 import json
-import logging
 
 from sqlalchemy import text
 
 from domain.ports.db import get_db_engine
 from domain.errors import DomainError, NotFoundError
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def save_raw_transcript(
@@ -151,7 +151,7 @@ async def get_image_metadata_and_status(visit_id: str) -> tuple[dict | None, str
             row = result.fetchone()
 
             if not row:
-                raise ValueError(f"Visit {visit_id} not found")
+                raise NotFoundError(f"Visit {visit_id} not found")
 
             image_metadata = row[0]
             ocr_status = row[1]

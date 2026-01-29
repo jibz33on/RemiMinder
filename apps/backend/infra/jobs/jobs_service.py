@@ -1,12 +1,12 @@
 import json
-import logging
 from typing import Any, Dict, Optional
 
 from sqlalchemy import text
 
 from infra.db.cloud_sql_engine import get_cloud_sql_engine
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 MAX_ATTEMPTS = 3
 

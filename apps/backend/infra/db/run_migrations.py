@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 from infra.db.cloud_sql_engine import get_cloud_sql_engine
+from domain.ports.logging import get_logger
 
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def apply_migrations() -> None:
@@ -33,7 +33,7 @@ def apply_migrations() -> None:
                 "INSERT INTO schema_migrations(filename) VALUES (%(filename)s)",
                 {"filename": migration_file.name},
             )
-            logger.info("Applied migration %s", migration_file.name)
+            logger.info(f"Applied migration {migration_file.name}")
 
 
 if __name__ == "__main__":

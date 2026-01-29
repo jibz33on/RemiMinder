@@ -1,5 +1,3 @@
-import logging
-
 from domain.patient_tasks.repo import (
     _normalize_items,
     insert_reminders_from_actions,
@@ -7,8 +5,9 @@ from domain.patient_tasks.repo import (
     list_pending_tasks,
     update_task_status,
 )
+from domain.ports.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def get_pending_tasks(user_id: str) -> list[dict]:
@@ -40,9 +39,9 @@ async def generate_tasks_from_summary(
         actions=actions,
     )
     if not created_count:
-        logger.info("No tasks to insert for summary_id=%s", summary_id)
+        logger.info(f"No tasks to insert for summary_id={summary_id}")
         return
-    logger.info("Created %d tasks from AI actions for visit %s", created_count, visit_id)
+    logger.info(f"Created {created_count} tasks from AI actions for visit {visit_id}")
 
 
 async def generate_reminders_from_actions(
@@ -57,6 +56,6 @@ async def generate_reminders_from_actions(
         actions=actions,
     )
     if not created_count:
-        logger.info("No reminders to create for visit %s", visit_id)
+        logger.info(f"No reminders to create for visit {visit_id}")
         return
-    logger.info("Created %d reminders from AI actions for visit %s", created_count, visit_id)
+    logger.info(f"Created {created_count} reminders from AI actions for visit {visit_id}")

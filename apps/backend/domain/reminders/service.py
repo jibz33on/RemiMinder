@@ -1,9 +1,9 @@
 import asyncio
-import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
 from domain.errors import InternalError, NotFoundError
+from domain.ports.logging import get_logger
 
 from domain.reminders.models import ReminderCreate, ReminderUpdate, ReminderAction
 from domain.reminders.repo import (
@@ -26,7 +26,7 @@ from workflows.reminder_messages import generate_reminder_message
 from workflows.reminder_alerts import check_and_send_caregiver_alerts
 from domain.ports.cache import get, set, invalidate, invalidate_prefix
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 ICON_MAP = {
     "medication": "💊",
@@ -148,13 +148,13 @@ async def create_new_reminder(data: ReminderCreate) -> Optional[Dict[str, Any]]:
         reminder = await db_create_reminder(reminder_data)
 
         if reminder:
-            logger.info("✅ Created reminder %s for patient %s", reminder["id"], data.user_id)
+            logger.info(f"✅ Created reminder {reminder['id']} for patient {data.user_id}")
             return _enrich_reminder_response(reminder)
 
         return None
 
     except Exception as e:
-        logger.error("Error creating reminder: %s", e)
+        logger.error(f"Error creating reminder: {e}")
         raise
 
 
@@ -229,7 +229,7 @@ async def update_reminder_details(
     reminder = await db_update_reminder(reminder_id, user_id, update_dict)
 
     if reminder:
-        logger.info("✅ Updated reminder %s", reminder_id)
+        logger.info(f"✅ Updated reminder {reminder_id}")
         return _enrich_reminder_response(reminder)
 
     return None
@@ -239,7 +239,7 @@ async def cancel_reminder(reminder_id: str, user_id: str) -> bool:
     """Delete/cancel a reminder."""
     success = await db_delete_reminder(reminder_id, user_id)
     if success:
-        logger.info("✅ Deleted reminder %s", reminder_id)
+        logger.info(f"✅ Deleted reminder {reminder_id}")
     return success
 
 
@@ -260,14 +260,14 @@ async def complete_reminder(
     reminder = await mark_reminder_complete(reminder_id, user_id, action_data.notes)
 
     if reminder:
-        logger.info("Completed reminder %s", reminder_id)
+        logger.info(f"Completed reminder {reminder_id}")
 
         if reminder_data.get("recurrence") and reminder_data["recurrence"] != "once":
             from domain.reminders.repo import create_recurring_reminder
 
             new_reminder = await create_recurring_reminder(reminder_data)
             if new_reminder:
-                logger.info("Created next recurring reminder %s from %s", new_reminder["id"], reminder_id)
+                logger.info(f"Created next recurring reminder {new_reminder['id']} from {reminder_id}")
 
         return _enrich_reminder_response(reminder)
 
@@ -283,7 +283,7 @@ async def snooze_reminder(
     reminder = await db_snooze_reminder(reminder_id, user_id, snooze_minutes)
 
     if reminder:
-        logger.info("Snoozed reminder %s for %s minutes", reminder_id, snooze_minutes)
+        logger.info(f"Snoozed reminder {reminder_id} for {snooze_minutes} minutes")
         asyncio.create_task(check_and_send_caregiver_alerts(reminder_id, user_id, "snoozed"))
         return _enrich_reminder_response(reminder)
 
@@ -303,14 +303,14 @@ async def skip_reminder(
     reminder = await db_skip_reminder(reminder_id, user_id, action_data.notes)
 
     if reminder:
-        logger.info("Skipped reminder %s", reminder_id)
+        logger.info(f"Skipped reminder {reminder_id}")
 
         if reminder_data.get("recurrence") and reminder_data["recurrence"] != "once":
             from domain.reminders.repo import create_recurring_reminder
 
             new_reminder = await create_recurring_reminder(reminder_data)
             if new_reminder:
-                logger.info("Created next recurring reminder %s from %s", new_reminder["id"], reminder_id)
+                logger.info(f"Created next recurring reminder {new_reminder['id']} from {reminder_id}")
 
         asyncio.create_task(check_and_send_caregiver_alerts(reminder_id, user_id, "skipped"))
         return _enrich_reminder_response(reminder)
@@ -362,7 +362,7 @@ async def get_caregiver_dashboard_data(caregiver_id: str, user_id: str) -> Dict[
         }
 
     except Exception as e:
-        logger.error("Error getting caregiver dashboard: %s", e)
+        logger.error(f"Error getting caregiver dashboard: {e}")
         raise
 
 

@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import logging
 from datetime import datetime
 from typing import Dict
 
@@ -9,6 +8,7 @@ import google.generativeai as genai
 
 # from .db_service import log_ai_usage  # REMOVED: log_ai_usage was deleted during Supabase cleanup
 from domain.reminders.repo import insert_ai_reminders
+from domain.ports.logging import get_logger
 
 # Import prompt template
 try:
@@ -18,7 +18,7 @@ except ImportError:
     # Fallback to relative import (for package execution)
     from ..utils.prompts.medical_summary import MEDICAL_SUMMARY_PROMPT
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def generate_ai_summary(data: dict) -> Dict:

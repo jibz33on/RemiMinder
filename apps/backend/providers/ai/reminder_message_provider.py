@@ -1,9 +1,10 @@
-import logging
 import os
 import time
 import google.generativeai as genai
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 
 async def generate_reminder_message_from_prompt(prompt: str, title: str) -> str:
@@ -56,5 +57,5 @@ async def generate_reminder_message_from_prompt(prompt: str, title: str) -> str:
         return ai_message
 
     except Exception as e:
-        logger.error("Failed to generate reminder message: %s", e, exc_info=True)
+        logger.exception(f"Failed to generate reminder message: {e}")
         return f"Reminder: {title}"

@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Body, Depends, Request
+from fastapi import APIRouter, status, Body, Depends, Request
 from typing import List
-import logging
 
 from domain.reminders.models import (
     ReminderCreate,
@@ -25,59 +24,19 @@ from domain.reminders.service import (
     update_reminder_for_user,
 )
 from domain.auth import get_current_user as get_current_user_port
-from domain.errors import (
-    ConflictError,
-    DomainError,
-    ForbiddenError,
-    InternalError,
-    NotFoundError,
-    UnauthorizedError,
-    ValidationError,
-)
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["reminders"])
 
 
-def _raise_http_for_domain_error(error: DomainError) -> None:
-    if isinstance(error, NotFoundError):
-        raise HTTPException(status_code=404, detail=str(error))
-    if isinstance(error, ForbiddenError):
-        raise HTTPException(status_code=403, detail=str(error))
-    if isinstance(error, ValidationError):
-        raise HTTPException(status_code=400, detail=str(error))
-    if isinstance(error, ConflictError):
-        raise HTTPException(status_code=409, detail=str(error))
-    if isinstance(error, UnauthorizedError):
-        raise HTTPException(status_code=401, detail=str(error))
-    if isinstance(error, InternalError):
-        raise HTTPException(status_code=500, detail=str(error))
-    raise HTTPException(status_code=500, detail=str(error))
-
-
 def get_current_user(request: Request) -> str:
-    try:
-        return get_current_user_port(request)
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
+    return get_current_user_port(request)
 
 @router.post("/reminders", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 async def create_reminder(data: ReminderCreate, user_id: str = Depends(get_current_user)):
     """
     Create a new reminder with AI-generated personalized message.
     """
-    try:
-        return await create_reminder_for_user(user_id, data)
-        
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in create_reminder endpoint: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create reminder: {str(e)}"
-        )
+    return await create_reminder_for_user(user_id, data)
 
 # Get user_id from JWT token instead of query param
 @router.get("/reminders", response_model=ReminderListResponse)
@@ -85,34 +44,14 @@ async def get_patient_reminders(user_id: str = Depends(get_current_user)):
     """
     Get all reminders for a patient, organized by category (today, upcoming, past).
     """
-    try:
-        return await list_reminders_for_user(user_id)
-        
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in get_patient_reminders: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch reminders: {str(e)}"
-        )
+    return await list_reminders_for_user(user_id)
 
 @router.get("/reminders/{reminder_id}", response_model=ReminderResponse)
 async def get_reminder(reminder_id: str, user_id: str = Depends(get_current_user)):
     """
     Get a single reminder by ID.
     """
-    try:
-        return await get_reminder_for_user(reminder_id, user_id)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in get_reminder: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch reminder: {str(e)}"
-        )
+    return await get_reminder_for_user(reminder_id, user_id)
 
 
 @router.put("/reminders/{reminder_id}", response_model=ReminderResponse)
@@ -120,17 +59,7 @@ async def update_reminder(reminder_id: str, user_id: str = Depends(get_current_u
     """
     Update a reminder (time, title, status, etc.).
     """
-    try:
-        return await update_reminder_for_user(reminder_id, user_id, updates)
-    
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in update_reminder: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update reminder: {str(e)}"
-        )
+    return await update_reminder_for_user(reminder_id, user_id, updates)
 
 
 @router.delete("/reminders/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -138,17 +67,7 @@ async def delete_reminder(reminder_id: str, user_id: str = Depends(get_current_u
     """
     Cancel/delete a reminder.
     """
-    try:
-        return await delete_reminder_for_user(reminder_id, user_id)
-    
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in delete_reminder: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete reminder: {str(e)}"
-        )
+    return await delete_reminder_for_user(reminder_id, user_id)
 
 
 @router.post("/reminders/{reminder_id}/complete", response_model=ReminderResponse)
@@ -160,17 +79,7 @@ async def mark_complete(
     """
     Mark a reminder as completed.
     """
-    try:
-        return await complete_reminder_for_user(reminder_id, user_id, action)
-    
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in mark_complete: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to complete reminder: {str(e)}"
-        )
+    return await complete_reminder_for_user(reminder_id, user_id, action)
 
 @router.post("/reminders/{reminder_id}/snooze", response_model=ReminderResponse)
 async def snooze_reminder_post(
@@ -181,17 +90,7 @@ async def snooze_reminder_post(
     """
     Snooze a reminder. The snooze count is incremented, and the scheduled time is pushed forward.
     """
-    try:
-        return await snooze_reminder_for_user(reminder_id, user_id, snooze_minutes)
-    
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in snooze_reminder: {str(e)}")
-        raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail=f"Failed to snooze reminder: {str(e)}"
-)
+    return await snooze_reminder_for_user(reminder_id, user_id, snooze_minutes)
 
 @router.post("/reminders/{reminder_id}/skip", response_model=ReminderResponse)
 async def skip_reminder_post(
@@ -203,17 +102,7 @@ async def skip_reminder_post(
     """
     Skip a reminder with optional reason.
     """
-    try:
-        return await skip_reminder_for_user(reminder_id, user_id, action)
-
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in skip_reminder: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to skip reminder: {str(e)}"
-        )
+    return await skip_reminder_for_user(reminder_id, user_id, action)
 
 
 # ============================================================================
@@ -226,34 +115,14 @@ async def get_caregiver_activity(caregiver_id: str, user_id: str = Depends(get_c
     Get aggregated activity data for caregiver dashboard.
     Shows next reminders, recent activity, and alert summary.
     """
-    try:
-        return await get_caregiver_activity(caregiver_id, user_id)
-    
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in get_caregiver_activity: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch caregiver activity: {str(e)}"
-        )
+    return await get_caregiver_activity(caregiver_id, user_id)
 
 @router.get("/caregivers/{caregiver_id}/alerts", response_model=List[CaregiverAlertResponse])
 async def get_alerts(caregiver_id: str, unread_only: bool = False):
     """
     Get all alerts for a caregiver.
     """
-    try:
-        return await list_caregiver_alerts(caregiver_id, unread_only)
-        
-    except DomainError as error:
-        _raise_http_for_domain_error(error)
-    except Exception as e:
-        logger.error(f"Error in get_alerts: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch alerts: {str(e)}"
-        )
+    return await list_caregiver_alerts(caregiver_id, unread_only)
 
 
 @router.patch("/caregivers/alerts/{alert_id}/read", response_model=CaregiverAlertResponse)
@@ -261,15 +130,7 @@ async def mark_alert_read(alert_id: str, caregiver_id: str):
     """
     Mark a caregiver alert as read.
     """
-    try:
-        return await mark_alert_read(alert_id, caregiver_id)
-    
-    except Exception as e:
-        logger.error(f"Error in mark_alert_read: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to mark alert as read: {str(e)}"
-        )
+    return await mark_alert_read(alert_id, caregiver_id)
 
 
 # High-accuracy speech-to-text processing

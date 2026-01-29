@@ -1,10 +1,10 @@
-import logging
 import os
 import re
 
 from domain.ports.ai import generate_visit_summary, get_model_name
 from domain.ports.cache import get, set
 from domain.ports.stt import run_audio_stt_pipeline
+from domain.ports.logging import get_logger
 from workflows.summary_normalizer_v2 import normalize_v2_summary
 from domain.patient_tasks.service import generate_reminders_from_actions, generate_tasks_from_summary
 from domain.transcripts.repo import get_transcript_text, save_raw_transcript
@@ -12,7 +12,7 @@ from domain.summaries.repo import insert_ai_summary_log
 from domain.users.repo import get_user_language_preferences, get_user_uuid
 from domain.visits.repo import update_visit_with_structured_data
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 def _get_prompt_version() -> str:
@@ -146,7 +146,7 @@ async def process_audio_visit(visit_id: str, external_auth_id: str) -> None:
     End-to-end audio visit processing:
     GCS audio -> STT -> save transcript -> AI summary pipeline.
     """
-    logger.info("Starting audio visit processing for visit_id=%s", visit_id)
+    logger.info(f"Starting audio visit processing for visit_id={visit_id}")
 
     stt_result = await run_audio_stt_pipeline(visit_id, external_auth_id)
     user_uuid = await get_user_uuid(external_auth_id)
@@ -165,4 +165,4 @@ async def process_audio_visit(visit_id: str, external_auth_id: str) -> None:
         user_id=user_uuid,
     )
 
-    logger.info("Completed audio visit processing for visit_id=%s", visit_id)
+    logger.info(f"Completed audio visit processing for visit_id={visit_id}")

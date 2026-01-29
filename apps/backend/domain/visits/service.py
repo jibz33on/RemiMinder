@@ -1,7 +1,7 @@
-import logging
 from datetime import datetime
 
 from domain.errors import NotFoundError
+from domain.ports.logging import get_logger
 
 from domain.transcripts.repo import (
     ensure_transcript_exists,
@@ -19,7 +19,7 @@ from domain.users.service import assert_patient_access
 from domain.ports.jobs import create_job
 from workflows.visit_media import run_ocr_for_visit_media, upload_audio_file, upload_image_file
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 async def upload_visit_audio(external_auth_id: str, visit_id: str, file) -> dict:

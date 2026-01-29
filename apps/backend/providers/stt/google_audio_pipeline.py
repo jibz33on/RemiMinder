@@ -3,14 +3,15 @@ Simple synchronous Speech-to-Text pipeline for audio files.
 Reads audio from Google Cloud Storage, processes with Google STT, returns transcript.
 """
 
-import logging
 import os
 import tempfile
 import subprocess
 from typing import Dict, Any, List
 from google.cloud import speech, storage
 
-logger = logging.getLogger(__name__)
+from domain.ports.logging import get_logger
+
+logger = get_logger()
 
 # Language mapping for Google STT
 LANGUAGE_MAP = {
@@ -71,7 +72,7 @@ async def run_audio_stt_pipeline(
 
         logger.info(f"Starting STT for visit {visit_id}")
         logger.info(f"Converting {m4a_blob_name} -> WAV")
-        logger.debug(f"Audio URL (DB): {audio_url}")
+        logger.info("Audio URL (DB) resolved")
 
         # Step 3: Download m4a, convert to wav, and upload to GCS temp location
         storage_client = storage.Client()
