@@ -1,1 +1,0 @@
-# MediMinder Backend Package
