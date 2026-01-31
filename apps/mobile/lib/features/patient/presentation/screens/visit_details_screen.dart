@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
 import '../../data/services/patient_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class VisitDetailsScreen extends StatefulWidget {
   final String visitId;
@@ -153,6 +154,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -165,9 +167,9 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           ),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
-          'Visit Details',
-          style: TextStyle(
+        title: Text(
+          l10n?.visitDetailsTitle ?? 'Visit Details',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -200,6 +202,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   }
 
   Widget _buildAISummaryCard() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -235,9 +238,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Health Visit Summary',
-                      style: TextStyle(
+                    Text(
+                      l10n?.visitDetailsSummaryCardTitle ??
+                          'Health Visit Summary',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Colors.blue,
@@ -260,7 +264,8 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
               IconButton(
                 onPressed: _fetchAISummary,
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh summary',
+                tooltip: l10n?.visitDetailsRefreshTooltip ??
+                    'Refresh summary',
               ),
             ],
           ),
@@ -294,9 +299,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Preparing visit summary...',
-                          style: TextStyle(
+                        Text(
+                          l10n?.visitDetailsProcessingTitle ??
+                              'Preparing visit summary...',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.orange,
@@ -304,7 +310,8 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'This may take a minute.',
+                          l10n?.visitDetailsProcessingSubtitle ??
+                              'This may take a minute.',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.orange.shade700,
@@ -337,9 +344,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: const Text(
-                      'Unable to load visit summary',
-                      style: TextStyle(
+                    child: Text(
+                      l10n?.visitDetailsLoadFailed ??
+                          'Unable to load visit summary',
+                      style: const TextStyle(
                         color: Colors.red,
                         fontSize: 14,
                       ),
@@ -347,7 +355,8 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   ),
                   TextButton(
                     onPressed: _fetchAISummary,
-                    child: const Text('Retry'),
+                    child: Text(
+                        l10n?.visitDetailsRetry ?? 'Retry'),
                   ),
                 ],
               ),
@@ -359,17 +368,18 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                 color: Colors.grey.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.error_outline,
                     color: Colors.grey,
                     size: 20,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
-                    'Visit summary is unavailable',
-                    style: TextStyle(
+                    l10n?.visitDetailsUnavailable ??
+                        'Visit summary is unavailable',
+                    style: const TextStyle(
                       color: Colors.grey,
                       fontSize: 14,
                     ),
@@ -428,11 +438,13 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   }
 
   Widget _buildStructuredSummary() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSummarySection(
-          title: 'Visit Summary',
+          title: l10n?.visitDetailsSummarySection ??
+              'Visit Summary',
           content: Text(
             _summaryText ?? '',
             style: TextStyle(
@@ -443,11 +455,20 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
           ),
         ),
         if (_decisions.isNotEmpty)
-          _buildListSection(title: 'Clinical Decisions', items: _decisions),
+          _buildListSection(
+              title: l10n?.visitDetailsDecisionsSection ??
+                  'Clinical Decisions',
+              items: _decisions),
         if (_medications.isNotEmpty)
-          _buildListSection(title: 'Medications', items: _medications),
+          _buildListSection(
+              title: l10n?.visitDetailsMedicationsSection ??
+                  'Medications',
+              items: _medications),
         if (_actions.isNotEmpty)
-          _buildListSection(title: 'Next Steps', items: _actions),
+          _buildListSection(
+              title: l10n?.visitDetailsActionsSection ??
+                  'Next Steps',
+              items: _actions),
       ],
     );
   }
@@ -538,22 +559,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   String _formatVisitDate(String dateString) {
     try {
       final date = DateTime.parse(dateString);
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      final month = months[date.month - 1];
-      return '$month ${date.day}, ${date.year}';
+      return MaterialLocalizations.of(context).formatMediumDate(date);
     } catch (e) {
       return dateString;
     }

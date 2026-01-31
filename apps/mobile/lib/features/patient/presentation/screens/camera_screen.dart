@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/services/consent_service.dart';
 import '../../../../core/services/backend_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CameraScreen extends StatefulWidget {
   final ScanMode? initialMode;
@@ -119,6 +120,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -136,9 +138,9 @@ class _CameraScreenState extends State<CameraScreen>
           if (_scanState == ScanState.completed)
             TextButton(
               onPressed: _saveScan,
-              child: const Text(
-                'Save',
-                style: TextStyle(
+              child: Text(
+                l10n?.cameraSave ?? 'Save',
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
@@ -154,6 +156,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildCameraView() {
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         // Full-screen Camera Preview
@@ -205,9 +208,12 @@ class _CameraScreenState extends State<CameraScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildCompactModeButton(ScanMode.prescription, 'Rx'),
-                _buildCompactModeButton(ScanMode.labReport, 'Lab'),
-                _buildCompactModeButton(ScanMode.medication, 'Med'),
+                _buildCompactModeButton(
+                    ScanMode.prescription, l10n?.cameraModeRx ?? 'Rx'),
+                _buildCompactModeButton(
+                    ScanMode.labReport, l10n?.cameraModeLab ?? 'Lab'),
+                _buildCompactModeButton(
+                    ScanMode.medication, l10n?.cameraModeMed ?? 'Med'),
               ],
             ),
           ),
@@ -259,8 +265,8 @@ class _CameraScreenState extends State<CameraScreen>
                 ),
                 child: Text(
                   _scanState == ScanState.ready
-                      ? 'Tap to capture'
-                      : 'Processing...',
+                      ? (l10n?.cameraTapToCapture ?? 'Tap to capture')
+                      : (l10n?.cameraProcessingShort ?? 'Processing...'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -287,9 +293,9 @@ class _CameraScreenState extends State<CameraScreen>
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Processing image...',
-                      style: TextStyle(
+                    Text(
+                      l10n?.cameraProcessingImage ?? 'Processing image...',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -305,6 +311,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildResultsView() {
+    final l10n = AppLocalizations.of(context);
     if (_scanResults == null) return const SizedBox.shrink();
 
     return Scaffold(
@@ -329,7 +336,7 @@ class _CameraScreenState extends State<CameraScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Scan Successful!',
+                          l10n?.cameraScanSuccessful ?? 'Scan Successful!',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
@@ -377,7 +384,7 @@ class _CameraScreenState extends State<CameraScreen>
                     child: OutlinedButton.icon(
                       onPressed: _shareScan,
                       icon: const Icon(Icons.share),
-                      label: const Text('Share'),
+                      label: Text(l10n?.cameraShare ?? 'Share'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -388,7 +395,7 @@ class _CameraScreenState extends State<CameraScreen>
                     child: ElevatedButton.icon(
                       onPressed: _saveScan,
                       icon: const Icon(Icons.save),
-                      label: const Text('Save'),
+                      label: Text(l10n?.cameraSave ?? 'Save'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -415,79 +422,161 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   Widget _buildPrescriptionResults() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Prescription Details', [
-          _buildResultItem('Medication', 'Lisinopril'),
-          _buildResultItem('Dosage', '10mg'),
-          _buildResultItem('Frequency', 'Once daily'),
-          _buildResultItem('Quantity', '90 tablets'),
-          _buildResultItem('Refills', '3 remaining'),
+        _buildResultSection(
+            l10n?.cameraSectionPrescriptionDetails ?? 'Prescription Details', [
+          _buildResultItem(
+              l10n?.cameraLabelMedication ?? 'Medication',
+              l10n?.cameraValueLisinopril ?? 'Lisinopril'),
+          _buildResultItem(
+              l10n?.cameraLabelDosage ?? 'Dosage',
+              l10n?.cameraValue10mg ?? '10mg'),
+          _buildResultItem(
+              l10n?.cameraLabelFrequency ?? 'Frequency',
+              l10n?.cameraValueOnceDaily ?? 'Once daily'),
+          _buildResultItem(
+              l10n?.cameraLabelQuantity ?? 'Quantity',
+              l10n?.cameraValue90Tablets ?? '90 tablets'),
+          _buildResultItem(
+              l10n?.cameraLabelRefills ?? 'Refills',
+              l10n?.cameraValue3Remaining ?? '3 remaining'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Prescriber Information', [
-          _buildResultItem('Doctor', 'Dr. Sarah Johnson'),
-          _buildResultItem('License', 'MD123456'),
-          _buildResultItem('Date', 'Dec 12, 2024'),
+        _buildResultSection(
+            l10n?.cameraSectionPrescriberInfo ?? 'Prescriber Information', [
+          _buildResultItem(
+              l10n?.cameraLabelDoctor ?? 'Doctor',
+              l10n?.cameraValueDrSarahJohnson ?? 'Dr. Sarah Johnson'),
+          _buildResultItem(
+              l10n?.cameraLabelLicense ?? 'License',
+              l10n?.cameraValueLicenseId ?? 'MD123456'),
+          _buildResultItem(
+              l10n?.cameraLabelDate ?? 'Date',
+              l10n?.cameraValueDec122024 ?? 'Dec 12, 2024'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Pharmacy Information', [
-          _buildResultItem('Pharmacy', 'City Medical Pharmacy'),
-          _buildResultItem('Phone', '(555) 123-4567'),
-          _buildResultItem('Address', '123 Main St, City, ST 12345'),
+        _buildResultSection(
+            l10n?.cameraSectionPharmacyInfo ?? 'Pharmacy Information', [
+          _buildResultItem(
+              l10n?.cameraLabelPharmacy ?? 'Pharmacy',
+              l10n?.cameraValueCityMedicalPharmacy ??
+                  'City Medical Pharmacy'),
+          _buildResultItem(
+              l10n?.cameraLabelPhone ?? 'Phone',
+              l10n?.cameraValuePhoneSample ?? '(555) 123-4567'),
+          _buildResultItem(
+              l10n?.cameraLabelAddress ?? 'Address',
+              l10n?.cameraValuePharmacyAddress ??
+                  '123 Main St, City, ST 12345'),
         ]),
       ],
     );
   }
 
   Widget _buildLabReportResults() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Patient Information', [
-          _buildResultItem('Name', 'John Doe'),
-          _buildResultItem('DOB', '01/15/1985'),
-          _buildResultItem('ID', 'P123456789'),
+        _buildResultSection(
+            l10n?.cameraSectionPatientInfo ?? 'Patient Information', [
+          _buildResultItem(
+              l10n?.cameraLabelName ?? 'Name',
+              l10n?.cameraValueJohnDoe ?? 'John Doe'),
+          _buildResultItem(
+              l10n?.cameraLabelDob ?? 'DOB',
+              l10n?.cameraValueDobSample ?? '01/15/1985'),
+          _buildResultItem(
+              l10n?.cameraLabelId ?? 'ID',
+              l10n?.cameraValuePatientId ?? 'P123456789'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Test Results', [
-          _buildResultItem('Cholesterol (Total)', '185 mg/dL', 'Normal: <200'),
-          _buildResultItem('HDL Cholesterol', '45 mg/dL', 'Normal: >40'),
-          _buildResultItem('LDL Cholesterol', '120 mg/dL', 'Normal: <130'),
-          _buildResultItem('Triglycerides', '150 mg/dL', 'Normal: <150'),
+        _buildResultSection(l10n?.cameraSectionTestResults ?? 'Test Results', [
+          _buildResultItem(
+              l10n?.cameraLabelCholesterolTotal ?? 'Cholesterol (Total)',
+              l10n?.cameraValueCholesterolTotal ?? '185 mg/dL',
+              l10n?.cameraRefCholesterolTotal ?? 'Normal: <200'),
+          _buildResultItem(
+              l10n?.cameraLabelHdlCholesterol ?? 'HDL Cholesterol',
+              l10n?.cameraValueHdl ?? '45 mg/dL',
+              l10n?.cameraRefHdl ?? 'Normal: >40'),
+          _buildResultItem(
+              l10n?.cameraLabelLdlCholesterol ?? 'LDL Cholesterol',
+              l10n?.cameraValueLdl ?? '120 mg/dL',
+              l10n?.cameraRefLdl ?? 'Normal: <130'),
+          _buildResultItem(
+              l10n?.cameraLabelTriglycerides ?? 'Triglycerides',
+              l10n?.cameraValueTriglycerides ?? '150 mg/dL',
+              l10n?.cameraRefTriglycerides ?? 'Normal: <150'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Lab Information', [
-          _buildResultItem('Lab', 'City Medical Labs'),
-          _buildResultItem('Report Date', 'Dec 10, 2024'),
-          _buildResultItem('Collected', 'Dec 9, 2024'),
+        _buildResultSection(
+            l10n?.cameraSectionLabInfo ?? 'Lab Information', [
+          _buildResultItem(
+              l10n?.cameraLabelLab ?? 'Lab',
+              l10n?.cameraValueCityMedicalLabs ?? 'City Medical Labs'),
+          _buildResultItem(
+              l10n?.cameraLabelReportDate ?? 'Report Date',
+              l10n?.cameraValueDec102024 ?? 'Dec 10, 2024'),
+          _buildResultItem(
+              l10n?.cameraLabelCollected ?? 'Collected',
+              l10n?.cameraValueDec092024 ?? 'Dec 9, 2024'),
         ]),
       ],
     );
   }
 
   Widget _buildMedicationResults() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildResultSection('Medication Information', [
-          _buildResultItem('Name', 'Lisinopril'),
-          _buildResultItem('Strength', '10mg'),
-          _buildResultItem('Form', 'Tablet'),
-          _buildResultItem('Quantity', '90 tablets'),
+        _buildResultSection(
+            l10n?.cameraSectionMedicationInfo ?? 'Medication Information', [
+          _buildResultItem(
+              l10n?.cameraLabelMedication ?? 'Medication',
+              l10n?.cameraValueLisinopril ?? 'Lisinopril'),
+          _buildResultItem(
+              l10n?.cameraLabelStrength ?? 'Strength',
+              l10n?.cameraValue10mg ?? '10mg'),
+          _buildResultItem(
+              l10n?.cameraLabelForm ?? 'Form',
+              l10n?.cameraValueTablet ?? 'Tablet'),
+          _buildResultItem(
+              l10n?.cameraLabelQuantity ?? 'Quantity',
+              l10n?.cameraValue90Tablets ?? '90 tablets'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Usage Instructions', [
-          _buildResultItem('Directions', 'Take one tablet by mouth once daily'),
-          _buildResultItem('Purpose', 'Blood pressure management'),
-          _buildResultItem('Storage', 'Store at room temperature'),
+        _buildResultSection(
+            l10n?.cameraSectionUsageInstructions ?? 'Usage Instructions', [
+          _buildResultItem(
+              l10n?.cameraLabelDirections ?? 'Directions',
+              l10n?.cameraValueDirectionsSample ??
+                  'Take one tablet by mouth once daily'),
+          _buildResultItem(
+              l10n?.cameraLabelPurpose ?? 'Purpose',
+              l10n?.cameraValuePurposeSample ??
+                  'Blood pressure management'),
+          _buildResultItem(
+              l10n?.cameraLabelStorage ?? 'Storage',
+              l10n?.cameraValueStorageSample ??
+                  'Store at room temperature'),
         ]),
         const SizedBox(height: 24),
-        _buildResultSection('Additional Information', [
-          _buildResultItem('Manufacturer', 'Generic Pharmaceuticals'),
-          _buildResultItem('Lot Number', 'LP2024001'),
-          _buildResultItem('Expiration', '06/2026'),
+        _buildResultSection(
+            l10n?.cameraSectionAdditionalInfo ?? 'Additional Information', [
+          _buildResultItem(
+              l10n?.cameraLabelManufacturer ?? 'Manufacturer',
+              l10n?.cameraValueManufacturerSample ?? 'Generic Pharmaceuticals'),
+          _buildResultItem(
+              l10n?.cameraLabelLotNumber ?? 'Lot Number',
+              l10n?.cameraValueLotNumberSample ?? 'LP2024001'),
+          _buildResultItem(
+              l10n?.cameraLabelExpiration ?? 'Expiration',
+              l10n?.cameraValueExpirationSample ?? '06/2026'),
         ]),
       ],
     );
@@ -560,6 +649,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   void _captureImage() async {
+    final l10n = AppLocalizations.of(context);
     // Check if user has accepted camera consent
     final hasConsent = await _consentService.hasAcceptedCameraConsent();
     if (!hasConsent) {
@@ -571,7 +661,9 @@ class _CameraScreenState extends State<CameraScreen>
 
     if (!_isCameraInitialized || _cameraController == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera not ready. Please try again.')),
+        SnackBar(
+            content: Text(l10n?.cameraNotReady ??
+                'Camera not ready. Please try again.')),
       );
       return;
     }
@@ -600,12 +692,15 @@ class _CameraScreenState extends State<CameraScreen>
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to capture image: $e')),
+        SnackBar(
+            content: Text(l10n?.cameraCaptureFailed(e.toString()) ??
+                'Failed to capture image: $e')),
       );
     }
   }
 
   void _completeScan() {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _scanState = ScanState.processing;
     });
@@ -625,11 +720,15 @@ class _CameraScreenState extends State<CameraScreen>
             imageFile: File(_lastCapturedImagePath!),
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Image uploaded successfully!')),
+            SnackBar(
+                content: Text(l10n?.cameraUploadSuccess ??
+                    'Image uploaded successfully!')),
           );
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image: $e')),
+            SnackBar(
+                content: Text(l10n?.cameraUploadFailed(e.toString()) ??
+                    'Failed to upload image: $e')),
           );
           // Don't delete the file if upload failed
           _lastCapturedImagePath = null;
@@ -662,6 +761,7 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   void _saveScan() async {
+    final l10n = AppLocalizations.of(context);
     // Trigger OCR processing before navigation
     try {
       await _backendApiService.triggerOcr(visitId: widget.visitId);
@@ -671,7 +771,9 @@ class _CameraScreenState extends State<CameraScreen>
 
     // TODO: Save scan results
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Scan saved successfully!')),
+      SnackBar(
+          content: Text(l10n?.cameraScanSaved ??
+              'Scan saved successfully!')),
     );
 
     if (!mounted) return;
@@ -679,20 +781,27 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   void _shareScan() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Share scan results
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share functionality - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.cameraShareComingSoon ??
+              'Share functionality - Coming Soon!')),
     );
   }
 
   String _getResultTitle() {
+    final l10n = AppLocalizations.of(context);
     switch (_selectedMode) {
       case ScanMode.prescription:
-        return 'Prescription scanned successfully';
+        return l10n?.cameraPrescriptionScanned ??
+            'Prescription scanned successfully';
       case ScanMode.labReport:
-        return 'Lab report processed successfully';
+        return l10n?.cameraLabReportProcessed ??
+            'Lab report processed successfully';
       case ScanMode.medication:
-        return 'Medication information extracted';
+        return l10n?.cameraMedicationExtracted ??
+            'Medication information extracted';
     }
   }
 
@@ -727,26 +836,27 @@ class _CameraScreenState extends State<CameraScreen>
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
+            final l10n = AppLocalizations.of(context);
             return AlertDialog(
-              title: const Text('Document Scanning'),
-              content: const Text(
-                'The camera helps scan medical documents like prescriptions and lab reports.\n\n'
-                '• Camera is used only when you choose to scan\n'
-                '• Images are processed securely and deleted from your phone\n'
-                '• Photos are never saved to your device gallery\n\n'
-                'Would you like to proceed?',
-              ),
+              title:
+                  Text(l10n?.cameraConsentTitle ?? 'Document Scanning'),
+              content: Text(l10n?.cameraConsentBody ??
+                  'The camera helps scan medical documents like prescriptions and lab reports.\n\n'
+                      '• Camera is used only when you choose to scan\n'
+                      '• Images are processed securely and deleted from your phone\n'
+                      '• Photos are never saved to your device gallery\n\n'
+                      'Would you like to proceed?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Not Now'),
+                  child: Text(l10n?.cameraConsentNotNow ?? 'Not Now'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     await _consentService.acceptCameraConsent();
                     Navigator.of(context).pop(true);
                   },
-                  child: const Text('Yes, Scan'),
+                  child: Text(l10n?.cameraConsentConfirm ?? 'Yes, Scan'),
                 ),
               ],
             );

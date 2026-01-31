@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -29,6 +30,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -41,9 +43,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           ),
           onPressed: () => context.go('/patient/home'),
         ),
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          l10n?.notificationSettingsTitle ?? 'Notifications',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -57,43 +59,51 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const SizedBox(height: 20),
 
               // Notification Types Section
-              _buildSectionHeader('Notification Types'),
+              _buildSectionHeader(
+                  l10n?.notificationSectionTypes ?? 'Notification Types'),
               const SizedBox(height: 16),
               _buildNotificationToggle(
-                'Medication Reminders',
-                'Get notified when it\'s time to take your medications',
+                l10n?.notificationMedicationTitle ?? 'Medication Reminders',
+                l10n?.notificationMedicationSubtitle ??
+                    'Get notified when it\'s time to take your medications',
                 _medicationReminders,
                 (value) => setState(() => _medicationReminders = value),
                 Icons.medication,
                 Colors.blue,
               ),
               _buildNotificationToggle(
-                'Appointment Reminders',
-                'Reminders for upcoming doctor visits and tests',
+                l10n?.notificationAppointmentTitle ?? 'Appointment Reminders',
+                l10n?.notificationAppointmentSubtitle ??
+                    'Reminders for upcoming doctor visits and tests',
                 _appointmentReminders,
                 (value) => setState(() => _appointmentReminders = value),
                 Icons.calendar_today,
                 Colors.purple,
               ),
               _buildNotificationToggle(
-                'Health Tips',
-                'Daily tips for managing your health conditions',
+                l10n?.notificationHealthTipsTitle ?? 'Health Tips',
+                l10n?.notificationHealthTipsSubtitle ??
+                    'Daily tips for managing your health conditions',
                 _healthTips,
                 (value) => setState(() => _healthTips = value),
                 Icons.health_and_safety,
                 Colors.green,
               ),
               _buildNotificationToggle(
-                'Caregiver Updates',
-                'Notifications when caregivers view your information',
+                l10n?.notificationCaregiverUpdatesTitle ??
+                    'Caregiver Updates',
+                l10n?.notificationCaregiverUpdatesSubtitle ??
+                    'Notifications when caregivers view your information',
                 _caregiverUpdates,
                 (value) => setState(() => _caregiverUpdates = value),
                 Icons.people,
                 Colors.orange,
               ),
               _buildNotificationToggle(
-                'Emergency Alerts',
-                'Critical health alerts and emergency notifications',
+                l10n?.notificationEmergencyAlertsTitle ??
+                    'Emergency Alerts',
+                l10n?.notificationEmergencyAlertsSubtitle ??
+                    'Critical health alerts and emergency notifications',
                 _emergencyAlerts,
                 (value) => setState(() => _emergencyAlerts = value),
                 Icons.emergency,
@@ -101,8 +111,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 enabled: false, // Always enabled for safety
               ),
               _buildNotificationToggle(
-                'Daily Summary',
-                'Evening summary of your day\'s health activities',
+                l10n?.notificationDailySummaryTitle ?? 'Daily Summary',
+                l10n?.notificationDailySummarySubtitle ??
+                    'Evening summary of your day\'s health activities',
                 _dailySummary,
                 (value) => setState(() => _dailySummary = value),
                 Icons.summarize,
@@ -112,15 +123,19 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const SizedBox(height: 32),
 
               // Timing Preferences Section
-              _buildSectionHeader('Timing Preferences'),
+              _buildSectionHeader(
+                  l10n?.notificationSectionTiming ??
+                      'Timing Preferences'),
               const SizedBox(height: 16),
               _buildTimePreference(
-                'Morning Reminder Time',
+                l10n?.notificationMorningReminder ??
+                    'Morning Reminder Time',
                 _morningReminder,
                 (time) => setState(() => _morningReminder = time),
               ),
               _buildTimePreference(
-                'Evening Reminder Time',
+                l10n?.notificationEveningReminder ??
+                    'Evening Reminder Time',
                 _eveningReminder,
                 (time) => setState(() => _eveningReminder = time),
               ),
@@ -129,7 +144,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const SizedBox(height: 32),
 
               // Sound & Alert Preferences Section
-              _buildSectionHeader('Sound & Alerts'),
+              _buildSectionHeader(
+                  l10n?.notificationSectionSound ?? 'Sound & Alerts'),
               const SizedBox(height: 16),
               _buildSoundToggle(),
               _buildVibrationToggle(),
@@ -138,14 +154,16 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const SizedBox(height: 32),
 
               // Test Notifications
-              _buildSectionHeader('Test Notifications'),
+              _buildSectionHeader(
+                  l10n?.notificationSectionTest ?? 'Test Notifications'),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _sendTestNotification,
                   icon: const Icon(Icons.notifications_active),
-                  label: const Text('Send Test Notification'),
+                  label: Text(l10n?.notificationSendTest ??
+                      'Send Test Notification'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -306,6 +324,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Widget _buildAdvanceTimePreference() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -330,7 +349,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Reminder Advance Time',
+              l10n?.notificationAdvanceTime ?? 'Reminder Advance Time',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -345,12 +364,27 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 setState(() => _reminderAdvanceMinutes = value);
               }
             },
-            items: const [
-              DropdownMenuItem(value: 5, child: Text('5 min')),
-              DropdownMenuItem(value: 10, child: Text('10 min')),
-              DropdownMenuItem(value: 15, child: Text('15 min')),
-              DropdownMenuItem(value: 30, child: Text('30 min')),
-              DropdownMenuItem(value: 60, child: Text('1 hour')),
+            items: [
+              DropdownMenuItem(
+                  value: 5,
+                  child:
+                      Text(l10n?.notificationAdvance5Min ?? '5 min')),
+              DropdownMenuItem(
+                  value: 10,
+                  child:
+                      Text(l10n?.notificationAdvance10Min ?? '10 min')),
+              DropdownMenuItem(
+                  value: 15,
+                  child:
+                      Text(l10n?.notificationAdvance15Min ?? '15 min')),
+              DropdownMenuItem(
+                  value: 30,
+                  child:
+                      Text(l10n?.notificationAdvance30Min ?? '30 min')),
+              DropdownMenuItem(
+                  value: 60,
+                  child:
+                      Text(l10n?.notificationAdvance60Min ?? '1 hour')),
             ],
           ),
         ],
@@ -359,6 +393,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Widget _buildSoundToggle() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -383,7 +418,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Sound Notifications',
+              l10n?.notificationSoundTitle ?? 'Sound Notifications',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -402,6 +437,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Widget _buildVibrationToggle() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -426,7 +462,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Vibration',
+              l10n?.notificationVibrationTitle ?? 'Vibration',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -445,6 +481,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   Widget _buildVolumeSlider() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -471,7 +508,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               ),
               const SizedBox(width: 16),
               Text(
-                'Volume Level',
+                l10n?.notificationVolumeTitle ?? 'Volume Level',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -504,9 +541,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   }
 
   void _sendTestNotification() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Send test notification
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Test notification sent!')),
+      SnackBar(
+          content: Text(l10n?.notificationTestSent ??
+              'Test notification sent!')),
     );
   }
 }

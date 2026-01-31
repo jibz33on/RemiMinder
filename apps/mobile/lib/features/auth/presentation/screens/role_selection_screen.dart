@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class RoleSelectionScreen extends ConsumerWidget {
@@ -11,6 +12,7 @@ class RoleSelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final selectedRole = ref.watch(selectedRoleProvider);
 
     return Scaffold(
@@ -34,7 +36,7 @@ class RoleSelectionScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 20),
               Text(
-                'Choose Your Role',
+                l10n?.roleChooseYourRole ?? 'Choose Your Role',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontSize: 32,
                       fontWeight: FontWeight
@@ -43,7 +45,8 @@ class RoleSelectionScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Select how you\'ll be using RemiMinder',
+                l10n?.roleSelectHowYouUse ??
+                    'Select how you\'ll be using RemiMinder',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Theme.of(context).colorScheme.secondary,
                       fontSize: 18,
@@ -54,9 +57,10 @@ class RoleSelectionScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     _RoleCard(
-                      title: 'Patient',
+                      title: l10n?.rolePatient ?? 'Patient',
                       description:
-                          'Manage your own medications, appointments, and health records',
+                          l10n?.rolePatientDescription ??
+                              'Manage your own medications, appointments, and health records',
                       iconPath: 'assets/images/patient_icon.svg',
                       isSelected: selectedRole == UserRole.patient,
                       onTap: () => ref
@@ -65,9 +69,10 @@ class RoleSelectionScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                     _RoleCard(
-                      title: 'Caregiver',
+                      title: l10n?.roleCaregiver ?? 'Caregiver',
                       description:
-                          'Help manage medications and care for family members or patients',
+                          l10n?.roleCaregiverDescription ??
+                              'Help manage medications and care for family members or patients',
                       iconPath: 'assets/images/caregiver_icon.svg',
                       isSelected: selectedRole == UserRole.caregiver,
                       onTap: () => ref
@@ -93,9 +98,9 @@ class RoleSelectionScreen extends ConsumerWidget {
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(context).disabledColor,
                   ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
+                  child: Text(
+                    l10n?.roleContinue ?? 'Continue',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),

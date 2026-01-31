@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
@@ -33,9 +34,11 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   }
 
   void _showComingSoonSnackBar(String feature) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature coming soon'),
+        content: Text(
+            l10n?.commonComingSoon(feature) ?? '$feature coming soon'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -78,10 +81,13 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   }
 
   Future<void> _updateCaregiverPermission(bool value) async {
+    final l10n = AppLocalizations.of(context);
     final caregiver = _activeCaregiver;
     if (caregiver == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No caregiver added yet')),
+        SnackBar(
+            content: Text(l10n?.privacyNoCaregiver ??
+                'No caregiver added yet')),
       );
       return;
     }
@@ -116,8 +122,10 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(value
-              ? 'Caregiver sharing enabled'
-              : 'Caregiver sharing disabled'),
+              ? (l10n?.privacyCaregiverSharingEnabled ??
+                  'Caregiver sharing enabled')
+              : (l10n?.privacyCaregiverSharingDisabled ??
+                  'Caregiver sharing disabled')),
         ),
       );
     } catch (e) {
@@ -157,7 +165,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)?.commonCancel ??
+                'Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -179,24 +188,25 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final l10n = AppLocalizations.of(context);
         return AlertDialog(
-          title: const Text('Terms of Service'),
-          content: const SingleChildScrollView(
-            child: Text(
-              'Terms of Service for RemiMinder\n\n'
-              '1. Acceptance of Terms\n'
-              'By using RemiMinder, you agree to these terms.\n\n'
-              '2. Use of Service\n'
-              'RemiMinder is designed to help manage healthcare and medication reminders.\n\n'
-              '3. Privacy\n'
-              'Your privacy is important to us. All health data is handled securely.\n\n'
-              'For the complete Terms of Service, please visit our website.',
-            ),
+          title: Text(l10n?.privacyTermsTitle ?? 'Terms of Service'),
+          content: SingleChildScrollView(
+            child: Text(l10n?.privacyTermsBody ??
+                'Terms of Service for RemiMinder\n\n'
+                    '1. Acceptance of Terms\n'
+                    'By using RemiMinder, you agree to these terms.\n\n'
+                    '2. Use of Service\n'
+                    'RemiMinder is designed to help manage healthcare and medication reminders.\n\n'
+                    '3. Privacy\n'
+                    'Your privacy is important to us. All health data is handled securely.\n\n'
+                    'For the complete Terms of Service, please visit our website.'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(
+                  l10n?.commonClose ?? 'Close'),
             ),
           ],
         );
@@ -208,24 +218,25 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final l10n = AppLocalizations.of(context);
         return AlertDialog(
-          title: const Text('Privacy Policy'),
-          content: const SingleChildScrollView(
-            child: Text(
-              'Privacy Policy for RemiMinder\n\n'
-              '1. Information We Collect\n'
-              'We collect information you provide and usage data to improve our service.\n\n'
-              '2. How We Use Information\n'
-              'Information is used to provide healthcare management services.\n\n'
-              '3. Information Sharing\n'
-              'We do not sell your personal information.\n\n'
-              'For the complete Privacy Policy, please visit our website.',
-            ),
+          title: Text(l10n?.privacyPolicyTitle ?? 'Privacy Policy'),
+          content: SingleChildScrollView(
+            child: Text(l10n?.privacyPolicyBody ??
+                'Privacy Policy for RemiMinder\n\n'
+                    '1. Information We Collect\n'
+                    'We collect information you provide and usage data to improve our service.\n\n'
+                    '2. How We Use Information\n'
+                    'Information is used to provide healthcare management services.\n\n'
+                    '3. Information Sharing\n'
+                    'We do not sell your personal information.\n\n'
+                    'For the complete Privacy Policy, please visit our website.'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(
+                  l10n?.commonClose ?? 'Close'),
             ),
           ],
         );
@@ -235,6 +246,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -265,10 +277,10 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Privacy Settings',
-                      style: TextStyle(
+                      l10n?.privacyTitle ?? 'Privacy Settings',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -289,7 +301,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Data Sharing Section
-                    _buildSectionHeader('Data Sharing', Icons.share),
+                    _buildSectionHeader(
+                        l10n?.privacyDataSharing ?? 'Data Sharing',
+                        Icons.share),
                     const SizedBox(height: 8),
                     if (_caregiverError != null)
                       Padding(
@@ -306,7 +320,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
-                          'No caregiver added yet',
+                          l10n?.privacyNoCaregiver ??
+                              'No caregiver added yet',
                           style: TextStyle(
                             color: theme.colorScheme.secondary,
                             fontSize: 12,
@@ -314,7 +329,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                         ),
                       ),
                     _buildToggleTile(
-                      'Allow caregiver to view summaries',
+                      l10n?.privacyAllowCaregiverSummaries ??
+                          'Allow caregiver to view summaries',
                       _allowCaregiverSummaries,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -322,7 +338,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           _activeCaregiver != null,
                     ),
                     _buildToggleTile(
-                      'Allow caregiver to view medications',
+                      l10n?.privacyAllowCaregiverMedications ??
+                          'Allow caregiver to view medications',
                       _allowCaregiverMedications,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -330,7 +347,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           _activeCaregiver != null,
                     ),
                     _buildToggleTile(
-                      'Allow caregiver to view reminders',
+                      l10n?.privacyAllowCaregiverReminders ??
+                          'Allow caregiver to view reminders',
                       _allowCaregiverReminders,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -338,7 +356,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           _activeCaregiver != null,
                     ),
                     _buildToggleTile(
-                      'Allow AI to use my data to improve the product',
+                      l10n?.privacyAllowAiImprove ??
+                          'Allow AI to use my data to improve the product',
                       _allowAiImprovement,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -350,10 +369,13 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
 
                     // Communication & Consent Section
                     _buildSectionHeader(
-                        'Communication & Consent', Icons.notifications),
+                        l10n?.privacyCommunicationConsent ??
+                            'Communication & Consent',
+                        Icons.notifications),
                     const SizedBox(height: 8),
                     _buildToggleTile(
-                      'Allow email notifications',
+                      l10n?.privacyAllowEmailNotifications ??
+                          'Allow email notifications',
                       _allowEmailNotifications,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -361,7 +383,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           _activeCaregiver != null,
                     ),
                     _buildToggleTile(
-                      'Allow SMS notifications',
+                      l10n?.privacyAllowSmsNotifications ??
+                          'Allow SMS notifications',
                       _allowSmsNotifications,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -369,7 +392,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           _activeCaregiver != null,
                     ),
                     _buildToggleTile(
-                      'Allow push notifications',
+                      l10n?.privacyAllowPushNotifications ??
+                          'Allow push notifications',
                       _allowPushNotifications,
                       _updateCaregiverPermission,
                       isEnabled: !_isLoadingCaregiver &&
@@ -380,33 +404,40 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     const SizedBox(height: 24),
 
                     // Data Control Section
-                    _buildSectionHeader('Data Control', Icons.storage),
+                    _buildSectionHeader(
+                        l10n?.privacyDataControl ?? 'Data Control',
+                        Icons.storage),
                     const SizedBox(height: 8),
                     _buildActionButton(
-                      'Export my data',
+                      l10n?.privacyExportData ?? 'Export my data',
                       Icons.download,
-                      () => _showComingSoonSnackBar('Data export'),
+                      () => _showComingSoonSnackBar(
+                          l10n?.privacyDataExportLabel ?? 'Data export'),
                     ),
                     const SizedBox(height: 8),
                     _buildActionButton(
-                      'Delete all my medical records',
+                      l10n?.privacyDeleteRecords ??
+                          'Delete all my medical records',
                       Icons.delete_forever,
                       () => _showDeleteConfirmationDialog(
                         context,
-                        'Delete Medical Records',
-                        'This will permanently delete all your medical records. This action cannot be undone.',
-                        'Delete Records',
+                        l10n?.privacyDeleteRecordsTitle ??
+                            'Delete Medical Records',
+                        l10n?.privacyDeleteRecordsBody ??
+                            'This will permanently delete all your medical records. This action cannot be undone.',
+                        l10n?.privacyDeleteRecordsAction ?? 'Delete Records',
                         Colors.red,
                       ),
                     ),
                     const SizedBox(height: 8),
                     _buildDangerButton(
-                      'Delete my account',
+                      l10n?.privacyDeleteAccount ?? 'Delete my account',
                       () => _showDeleteConfirmationDialog(
                         context,
-                        'Delete Account',
-                        'This will permanently delete your account and all associated data. This action cannot be undone.',
-                        'Delete Account',
+                        l10n?.privacyDeleteAccountTitle ?? 'Delete Account',
+                        l10n?.privacyDeleteAccountBody ??
+                            'This will permanently delete your account and all associated data. This action cannot be undone.',
+                        l10n?.privacyDeleteAccountAction ?? 'Delete Account',
                         Colors.red,
                       ),
                     ),
@@ -414,16 +445,18 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     const SizedBox(height: 24),
 
                     // Legal Section
-                    _buildSectionHeader('Legal', Icons.gavel),
+                    _buildSectionHeader(
+                        l10n?.privacyLegal ?? 'Legal',
+                        Icons.gavel),
                     const SizedBox(height: 8),
                     _buildActionButton(
-                      'View Privacy Policy',
+                      l10n?.privacyViewPolicy ?? 'View Privacy Policy',
                       Icons.policy,
                       _showPrivacyPolicy,
                     ),
                     const SizedBox(height: 8),
                     _buildActionButton(
-                      'View Terms of Service',
+                      l10n?.privacyViewTerms ?? 'View Terms of Service',
                       Icons.description,
                       _showTermsOfService,
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../care_team/data/models/care_team_invitation.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AcceptInvitationsScreen extends StatefulWidget {
   const AcceptInvitationsScreen({super.key});
@@ -25,6 +26,7 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -37,9 +39,9 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
           ),
           onPressed: () => context.go('/caregiver/home'),
         ),
-        title: const Text(
-          'Caregiver Invitations',
-          style: TextStyle(
+        title: Text(
+          l10n?.caregiverInvitationsTitle ?? 'Caregiver Invitations',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -49,6 +51,7 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
   }
 
   Widget _buildContent() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -76,7 +79,8 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadInvitations,
-                child: const Text('Retry'),
+                child: Text(
+                    l10n?.caregiverInvitationsRetry ?? 'Retry'),
               ),
             ],
           ),
@@ -87,7 +91,7 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
     if (_invitations.isEmpty) {
       return Center(
         child: Text(
-          'No pending invitations',
+          l10n?.caregiverInvitationsEmpty ?? 'No pending invitations',
           style: TextStyle(
             color: Theme.of(context).colorScheme.secondary,
           ),
@@ -111,7 +115,7 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
                 Text(
                   invitation.patientName ??
                       invitation.patientId ??
-                      'Patient',
+                      (l10n?.caregiverInvitationsPatientFallback ?? 'Patient'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -120,14 +124,17 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Role: ${invitation.role}',
+                  l10n?.caregiverInvitationsRole(invitation.role) ??
+                      'Role: ${invitation.role}',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Permission: ${invitation.permission}',
+                  l10n?.caregiverInvitationsPermission(
+                          invitation.permission) ??
+                      'Permission: ${invitation.permission}',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.secondary,
                   ),
@@ -145,7 +152,8 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Accept'),
+                        : Text(
+                            l10n?.caregiverInvitationsAccept ?? 'Accept'),
                   ),
                 ),
               ],
@@ -179,10 +187,13 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
   }
 
   Future<void> _acceptInvitation(CareTeamInvitation invitation) async {
+    final l10n = AppLocalizations.of(context);
     final token = invitation.token;
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation token is missing')),
+        SnackBar(
+            content: Text(l10n?.caregiverInvitationsMissingToken ??
+                'Invitation token is missing')),
       );
       return;
     }
@@ -197,7 +208,9 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
         _invitations.removeWhere((item) => item.id == invitation.id);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invitation accepted')),
+        SnackBar(
+            content: Text(l10n?.caregiverInvitationsAccepted ??
+                'Invitation accepted')),
       );
     } catch (e) {
       if (!mounted) return;

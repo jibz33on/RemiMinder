@@ -6,6 +6,10 @@ import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../features/auth/presentation/screens/onboarding_app_language_screen.dart';
+import '../features/auth/presentation/screens/onboarding_country_screen.dart';
+import '../features/auth/presentation/screens/onboarding_timezone_screen.dart';
+import '../features/auth/presentation/screens/onboarding_visit_language_screen.dart';
 import '../features/patient/presentation/screens/patient_home_screen.dart';
 import '../features/caregiver/presentation/screens/caregiver_home_screen.dart';
 import '../features/caregiver/presentation/screens/patient_list_screen.dart';
@@ -56,6 +60,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/app-language',
+        builder: (context, state) => const OnboardingAppLanguageScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/country',
+        builder: (context, state) => const OnboardingCountryScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/timezone',
+        builder: (context, state) => const OnboardingTimezoneScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/visit-language',
+        builder: (context, state) => const OnboardingVisitLanguageScreen(),
       ),
       GoRoute(
         path: '/role-selection',

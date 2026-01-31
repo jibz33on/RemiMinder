@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -81,6 +82,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -93,9 +95,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
           ),
           onPressed: () => context.go('/caregiver/home'),
         ),
-        title: const Text(
-          'My Patients',
-          style: TextStyle(
+        title: Text(
+          l10n?.caregiverPatientsTitle ?? 'My Patients',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -117,7 +119,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText:
+                hintText: l10n?.caregiverPatientsSearchHint ??
                     'Search patients by name, relationship, or condition...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -147,7 +149,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
             child: Row(
               children: [
                 Text(
-                  '${_filteredPatients.length} ${_filteredPatients.length == 1 ? 'Patient' : 'Patients'}',
+                  l10n?.caregiverPatientsCount(_filteredPatients.length) ??
+                      '${_filteredPatients.length} ${_filteredPatients.length == 1 ? 'Patient' : 'Patients'}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -164,7 +167,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      _selectedFilter,
+                      _filterLabel(_selectedFilter, l10n),
                       style: TextStyle(
                         fontSize: 12,
                         color: _getFilterColor(_selectedFilter),
@@ -181,7 +184,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                         _selectedFilter = 'All';
                       });
                     },
-                    child: const Text('Clear Filter'),
+                    child:
+                        Text(l10n?.caregiverPatientsClearFilter ?? 'Clear Filter'),
                   ),
               ],
             ),
@@ -209,7 +213,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add New Patient - Coming Soon!')),
+            SnackBar(
+                content: Text(l10n?.caregiverPatientsAddNewComingSoon ??
+                    'Add New Patient - Coming Soon!')),
           );
         },
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -219,6 +225,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -231,8 +238,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
           const SizedBox(height: 24),
           Text(
             _searchQuery.isNotEmpty
-                ? 'No patients match your search'
-                : 'No patients found',
+                ? l10n?.caregiverPatientsEmptyNoMatch ??
+                    'No patients match your search'
+                : l10n?.caregiverPatientsEmptyNone ?? 'No patients found',
             style: TextStyle(
               fontSize: 20,
               color: Theme.of(context).colorScheme.secondary,
@@ -243,8 +251,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
           const SizedBox(height: 8),
           Text(
             _searchQuery.isNotEmpty
-                ? 'Try adjusting your search terms'
-                : 'Add patients to start managing their care',
+                ? l10n?.caregiverPatientsEmptyAdjustSearch ??
+                    'Try adjusting your search terms'
+                : l10n?.caregiverPatientsEmptyAddPatients ??
+                    'Add patients to start managing their care',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -256,12 +266,15 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ElevatedButton.icon(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Add First Patient - Coming Soon!')),
+                  SnackBar(
+                      content: Text(
+                          l10n?.caregiverPatientsAddFirstComingSoon ??
+                              'Add First Patient - Coming Soon!')),
                 );
               },
               icon: const Icon(Icons.person_add),
-              label: const Text('Add Patient'),
+              label: Text(
+                  l10n?.caregiverPatientsAddPatientButton ?? 'Add Patient'),
               style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -274,6 +287,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildErrorState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -287,7 +301,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _error ?? 'Failed to load patients',
+            _error ??
+                (l10n?.caregiverPatientsLoadFailed ?? 'Failed to load patients'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -297,7 +312,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadPatients,
-              child: const Text('Retry'),
+            child: Text(l10n?.commonRetry ?? 'Retry'),
             ),
           ],
         ),
@@ -306,6 +321,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildPatientCard(Map<String, dynamic> patient) {
+    final l10n = AppLocalizations.of(context);
     final status = patient['status'] as String;
     final medicationAdherence = patient['medicationAdherence'] as int;
     final upcomingAppointments = patient['upcomingAppointments'] as int;
@@ -405,7 +421,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           ],
                         ),
                         Text(
-                          '${patient['relationship']} • Age ${patient['age']}',
+                          (l10n?.caregiverPatientsRelationshipAge(
+                                  patient['relationship'], patient['age']) ??
+                              '${patient['relationship']} • Age ${patient['age']}'),
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context).colorScheme.secondary,
@@ -441,7 +459,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
               Row(
                 children: [
                   _buildStatItem(
-                    'Adherence',
+                    l10n?.caregiverPatientsStatAdherence ?? 'Adherence',
                     '$medicationAdherence%',
                     medicationAdherence >= 80
                         ? Colors.green
@@ -450,12 +468,12 @@ class _PatientListScreenState extends State<PatientListScreen> {
                             : Colors.red,
                   ),
                   _buildStatItem(
-                    'Appointments',
+                    l10n?.caregiverPatientsStatAppointments ?? 'Appointments',
                     upcomingAppointments.toString(),
                     upcomingAppointments > 0 ? Colors.blue : Colors.grey,
                   ),
                   _buildStatItem(
-                    'Last Visit',
+                    l10n?.caregiverPatientsStatLastVisit ?? 'Last Visit',
                     _formatLastVisit(patient['lastVisit']),
                     Colors.purple,
                   ),
@@ -475,7 +493,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           onPressed: () => _viewAlerts(patient),
                           icon: const Icon(Icons.notifications, size: 16),
                           label: Text(
-                              'View $unreadAlerts Alert${unreadAlerts > 1 ? 's' : ''}'),
+                              l10n?.caregiverPatientsViewAlerts(unreadAlerts) ??
+                                  'View $unreadAlerts Alert${unreadAlerts > 1 ? 's' : ''}'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                           ),
@@ -489,7 +508,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           onPressed: () => _viewAppointments(patient),
                           icon: const Icon(Icons.calendar_today, size: 16),
                           label: Text(
-                              '$upcomingAppointments Appointment${upcomingAppointments > 1 ? 's' : ''}'),
+                              l10n?.caregiverPatientsViewAppointments(
+                                      upcomingAppointments) ??
+                                  '$upcomingAppointments Appointment${upcomingAppointments > 1 ? 's' : ''}'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                           ),
@@ -535,7 +556,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Filter Patients'),
+        title: Text(
+            AppLocalizations.of(context)?.caregiverPatientsFilterDialogTitle ??
+                'Filter Patients'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -548,7 +571,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(
+                AppLocalizations.of(context)?.commonCancel ?? 'Cancel'),
           ),
         ],
       ),
@@ -556,8 +580,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildFilterOption(String filter) {
+    final l10n = AppLocalizations.of(context);
     return RadioListTile<String>(
-      title: Text(filter),
+      title: Text(_filterLabel(filter, l10n)),
       value: filter,
       groupValue: _selectedFilter,
       onChanged: (value) {
@@ -578,17 +603,22 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   void _viewAlerts(Map<String, dynamic> patient) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('View alerts for ${patient['name']} - Coming Soon!')),
+          content: Text(l10n?.caregiverPatientsViewAlertsComingSoon(
+                  patient['name']) ??
+              'View alerts for ${patient['name']} - Coming Soon!')),
     );
   }
 
   void _viewAppointments(Map<String, dynamic> patient) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content:
-              Text('View appointments for ${patient['name']} - Coming Soon!')),
+          content: Text(l10n?.caregiverPatientsViewAppointmentsComingSoon(
+                  patient['name']) ??
+              'View appointments for ${patient['name']} - Coming Soon!')),
     );
   }
 
@@ -619,21 +649,40 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   String _formatLastVisit(DateTime lastVisit) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(lastVisit).inDays;
 
     if (difference == 0) {
-      return 'Today';
+      return l10n?.caregiverPatientsLastVisitToday ?? 'Today';
     } else if (difference == 1) {
-      return 'Yesterday';
+      return l10n?.caregiverPatientsLastVisitYesterday ?? 'Yesterday';
     } else if (difference < 7) {
-      return '$difference days ago';
+      return l10n?.caregiverPatientsLastVisitDays(difference) ??
+          '$difference days ago';
     } else if (difference < 30) {
       final weeks = (difference / 7).floor();
-      return '$weeks week${weeks > 1 ? 's' : ''} ago';
+      return l10n?.caregiverPatientsLastVisitWeeks(weeks) ??
+          '$weeks week${weeks > 1 ? 's' : ''} ago';
     } else {
       final months = (difference / 30).floor();
-      return '$months month${months > 1 ? 's' : ''} ago';
+      return l10n?.caregiverPatientsLastVisitMonths(months) ??
+          '$months month${months > 1 ? 's' : ''} ago';
+    }
+  }
+
+  String _filterLabel(String filter, AppLocalizations? l10n) {
+    switch (filter.toLowerCase()) {
+      case 'all':
+        return l10n?.caregiverPatientsFilterAll ?? 'All';
+      case 'active':
+        return l10n?.caregiverPatientsFilterActive ?? 'Active';
+      case 'attention':
+        return l10n?.caregiverPatientsFilterAttention ?? 'Attention';
+      case 'critical':
+        return l10n?.caregiverPatientsFilterCritical ?? 'Critical';
+      default:
+        return filter;
     }
   }
 

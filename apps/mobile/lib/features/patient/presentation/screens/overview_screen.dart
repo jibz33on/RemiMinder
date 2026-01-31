@@ -7,6 +7,7 @@ import '../../data/services/patient_api_service.dart';
 import '../../data/models/summary_item.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -133,24 +134,31 @@ class _OverviewScreenState extends State<OverviewScreen>
         if (!mounted) return;
         await showDialog<void>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('🎉 Your visit summary is ready!'),
-            content: const Text('Would you like to view it now?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Later'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go(
-                      '/patient/visit-details?visitId=${newSummary.visitId}');
-                },
-                child: const Text('View Summary'),
-              ),
-            ],
-          ),
+          builder: (context) {
+            final l10n = AppLocalizations.of(context);
+            return AlertDialog(
+              title: Text(l10n?.overviewNewSummaryTitle ??
+                  '🎉 Your visit summary is ready!'),
+              content: Text(l10n?.overviewNewSummaryPrompt ??
+                  'Would you like to view it now?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                      l10n?.overviewNewSummaryLater ?? 'Later'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go(
+                        '/patient/visit-details?visitId=${newSummary.visitId}');
+                  },
+                  child: Text(
+                      l10n?.overviewNewSummaryView ?? 'View Summary'),
+                ),
+              ],
+            );
+          },
         );
       }
       _hasLoadedSummariesOnce = true;
@@ -217,6 +225,7 @@ class _OverviewScreenState extends State<OverviewScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -240,9 +249,9 @@ class _OverviewScreenState extends State<OverviewScreen>
                 children: [
                   const SizedBox(width: 48),
                   Expanded(
-                    child: const Text(
-                      'Overview',
-                      style: TextStyle(
+                    child: Text(
+                      l10n?.overviewTitle ?? 'Overview',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -269,7 +278,7 @@ class _OverviewScreenState extends State<OverviewScreen>
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search summaries...',
+                  hintText: l10n?.overviewSearchHint ?? 'Search summaries...',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -291,10 +300,10 @@ class _OverviewScreenState extends State<OverviewScreen>
               unselectedLabelColor: Theme.of(context).colorScheme.secondary,
               indicatorColor: Theme.of(context).colorScheme.primary,
               indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'SUMMARIES'),
-                Tab(text: 'LAB RESULTS'),
-                Tab(text: 'SCANNED DOCS'),
+              tabs: [
+                Tab(text: l10n?.overviewTabSummaries ?? 'SUMMARIES'),
+                Tab(text: l10n?.overviewTabLabResults ?? 'LAB RESULTS'),
+                Tab(text: l10n?.overviewTabScannedDocs ?? 'SCANNED DOCS'),
               ],
             ),
 
@@ -333,9 +342,12 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   void _deleteSelectedSummaries() {
+    final l10n = AppLocalizations.of(context);
     if (_selectedSummaryIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one summary')),
+        SnackBar(
+            content: Text(l10n?.overviewSelectAtLeastOne ??
+                'Select at least one summary')),
       );
       return;
     }
@@ -346,16 +358,22 @@ class _OverviewScreenState extends State<OverviewScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isSingular ? 'Delete summary?' : 'Delete summaries?'),
+        title: Text(isSingular
+            ? (l10n?.overviewDeleteSummaryTitleSingular ??
+                'Delete summary?')
+            : (l10n?.overviewDeleteSummaryTitlePlural ??
+                'Delete summaries?')),
         content: Text(
           isSingular
-              ? 'Are you sure you want to delete this summary? This cannot be undone.'
-              : 'Are you sure you want to delete $count summaries? This cannot be undone.',
+              ? (l10n?.overviewDeleteSummaryConfirmSingular ??
+                  'Are you sure you want to delete this summary? This cannot be undone.')
+              : (l10n?.overviewDeleteSummaryConfirmPlural(count) ??
+                  'Are you sure you want to delete $count summaries? This cannot be undone.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.commonCancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -365,7 +383,7 @@ class _OverviewScreenState extends State<OverviewScreen>
             style: TextButton.styleFrom(
               foregroundColor: Colors.red,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n?.commonDelete ?? 'Delete'),
           ),
         ],
       ),
@@ -373,14 +391,16 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   void _confirmDelete() async {
+    final l10n = AppLocalizations.of(context);
     try {
       // Get authentication token
       final authToken = await AuthService().getAccessToken();
       if (authToken == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Authentication error. Please log in again.')),
+          SnackBar(
+              content: Text(l10n?.overviewAuthError ??
+                  'Authentication error. Please log in again.')),
         );
         return;
       }
@@ -416,15 +436,16 @@ class _OverviewScreenState extends State<OverviewScreen>
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
+              content: Text(l10n?.overviewDeleteSuccess(deletedCount) ??
                   'Successfully deleted $deletedCount summary${deletedCount == 1 ? '' : 'ies'}')),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Failed to delete summaries. Please try again.')),
+        SnackBar(
+            content: Text(l10n?.overviewDeleteFailed ??
+                'Failed to delete summaries. Please try again.')),
       );
     } finally {
       if (!mounted) return;
@@ -433,10 +454,13 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   void _toggleShare(bool value) {
+    final l10n = AppLocalizations.of(context);
     if (_activeCaregiver == null || _isUpdatingShare) {
       if (!_isLoadingCaregiver && _caregiverError == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No caregiver added yet')),
+          SnackBar(
+              content: Text(l10n?.overviewNoCaregiver ??
+                  'No caregiver added yet')),
         );
       }
       return;
@@ -444,16 +468,20 @@ class _OverviewScreenState extends State<OverviewScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(value ? 'Share summary?' : 'Stop sharing?'),
+        title: Text(value
+            ? (l10n?.overviewShareTitleShare ?? 'Share summary?')
+            : (l10n?.overviewShareTitleStop ?? 'Stop sharing?')),
         content: Text(
           value
-              ? 'You are about to share this summary with your caregivers. They will be able to view this visit summary.'
-              : 'Caregivers will no longer be able to view this summary.',
+              ? (l10n?.overviewShareConfirmShare ??
+                  'You are about to share this summary with your caregivers. They will be able to view this visit summary.')
+              : (l10n?.overviewShareConfirmStop ??
+                  'Caregivers will no longer be able to view this summary.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.commonCancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -464,7 +492,9 @@ class _OverviewScreenState extends State<OverviewScreen>
               foregroundColor:
                   value ? Theme.of(context).colorScheme.primary : Colors.red,
             ),
-            child: Text(value ? 'Share' : 'Stop Sharing'),
+            child: Text(value
+                ? (l10n?.overviewShareAction ?? 'Share')
+                : (l10n?.overviewStopShareAction ?? 'Stop Sharing')),
           ),
         ],
       ),
@@ -472,6 +502,7 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   Future<void> _confirmShareToggle(bool value) async {
+    final l10n = AppLocalizations.of(context);
     final caregiver = _activeCaregiver;
     if (caregiver == null) return;
 
@@ -504,8 +535,8 @@ class _OverviewScreenState extends State<OverviewScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(value
-              ? 'Caregiver sharing enabled'
-              : 'Caregiver sharing disabled'),
+              ? (l10n?.overviewSharingEnabled ?? 'Caregiver sharing enabled')
+              : (l10n?.overviewSharingDisabled ?? 'Caregiver sharing disabled')),
         ),
       );
     } catch (e) {
@@ -540,6 +571,7 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   Widget _buildSummariesTab() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoadingSummaries) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -558,7 +590,8 @@ class _OverviewScreenState extends State<OverviewScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Failed to load summaries',
+              l10n?.overviewSummariesLoadFailed ??
+                  'Failed to load summaries',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -576,7 +609,7 @@ class _OverviewScreenState extends State<OverviewScreen>
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _fetchSummaries,
-              child: const Text('Retry'),
+              child: Text(l10n?.commonRetry ?? 'Retry'),
             ),
           ],
         ),
@@ -595,7 +628,7 @@ class _OverviewScreenState extends State<OverviewScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No summaries yet',
+              l10n?.overviewNoSummariesTitle ?? 'No summaries yet',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -603,7 +636,8 @@ class _OverviewScreenState extends State<OverviewScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Your visit summaries will appear here',
+              l10n?.overviewNoSummariesSubtitle ??
+                  'Your visit summaries will appear here',
               style: TextStyle(
                 color: Colors.grey[500],
                 fontSize: 12,
@@ -646,6 +680,7 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   Widget _buildProcessingCard() {
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: Colors.orange.withOpacity(0.08),
@@ -663,17 +698,19 @@ class _OverviewScreenState extends State<OverviewScreen>
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    '🕒 Your latest visit is being processed',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(height: 4),
-                  Text('We’ll notify you when it’s ready.'),
-                ],
-              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n?.overviewProcessingTitle ??
+                          '🕒 Your latest visit is being processed',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(l10n?.overviewProcessingSubtitle ??
+                        "We'll notify you when it's ready."),
+                  ],
+                ),
             ),
           ],
         ),
@@ -682,6 +719,7 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   Widget _buildSummaryCard(SummaryItem summary) {
+    final l10n = AppLocalizations.of(context);
     final summaryId = summary.summaryId;
     final isSelected = _selectedSummaryIds.contains(summaryId);
     final isShared = _activeCaregiver?.permission == 'full';
@@ -786,7 +824,7 @@ class _OverviewScreenState extends State<OverviewScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Share',
+                          l10n?.overviewShareLabel ?? 'Share',
                           style: TextStyle(
                             fontSize: 12,
                             color: Theme.of(context).colorScheme.secondary,
@@ -850,9 +888,10 @@ class _OverviewScreenState extends State<OverviewScreen>
   }
 
   String _formatDoctorName(String? doctorName) {
+    final l10n = AppLocalizations.of(context);
     final rawName = (doctorName ?? '').trim();
     if (rawName.isEmpty || rawName.toLowerCase() == 'unknown doctor') {
-      return 'Doctor Visit';
+      return l10n?.overviewDoctorVisit ?? 'Doctor Visit';
     }
 
     final normalized = rawName
@@ -860,25 +899,28 @@ class _OverviewScreenState extends State<OverviewScreen>
         .trim();
 
     if (normalized.isEmpty) {
-      return 'Doctor Visit';
+      return l10n?.overviewDoctorVisit ?? 'Doctor Visit';
     }
-    return 'Dr. $normalized';
+    return l10n?.overviewDoctorPrefix(normalized) ?? 'Dr. $normalized';
   }
 
   String _formatSmartTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 60) {
       final minutes = difference.inMinutes < 1 ? 1 : difference.inMinutes;
-      return '$minutes min ago';
+      return l10n?.overviewMinutesAgo(minutes) ??
+          '$minutes min ago';
     }
 
     final isSameDay = now.year == dateTime.year &&
         now.month == dateTime.month &&
         now.day == dateTime.day;
     if (isSameDay) {
-      return 'Today, ${_formatTimeOfDay(dateTime)}';
+      final timeText = _formatTimeOfDay(dateTime);
+      return l10n?.overviewTodayAt(timeText) ?? 'Today, $timeText';
     }
 
     final yesterday = now.subtract(const Duration(days: 1));
@@ -886,44 +928,33 @@ class _OverviewScreenState extends State<OverviewScreen>
         yesterday.month == dateTime.month &&
         yesterday.day == dateTime.day;
     if (isYesterday) {
-      return 'Yesterday, ${_formatTimeOfDay(dateTime)}';
+      final timeText = _formatTimeOfDay(dateTime);
+      return l10n?.overviewYesterdayAt(timeText) ?? 'Yesterday, $timeText';
     }
 
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final month = months[dateTime.month - 1];
-    return '$month ${dateTime.day}, ${dateTime.year}';
+    return MaterialLocalizations.of(context).formatMediumDate(dateTime);
   }
 
   String _formatTimeOfDay(DateTime dateTime) {
-    final hour = dateTime.hour;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
-    return '$hour12:$minute $period';
+    return MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(dateTime),
+      alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+    );
   }
 
   Widget _buildLabResultsTab() {
-    return const Center(
-      child: Text('Lab Results - Coming Soon'),
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Text(l10n?.overviewLabResultsComingSoon ??
+          'Lab Results - Coming Soon'),
     );
   }
 
   Widget _buildScannedDocsTab() {
-    return const Center(
-      child: Text('Scanned Documents - Coming Soon'),
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Text(l10n?.overviewScannedDocsComingSoon ??
+          'Scanned Documents - Coming Soon'),
     );
   }
 }

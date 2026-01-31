@@ -4,6 +4,7 @@ import '../../../patient/data/models/summary_item.dart';
 import '../../../patient/data/services/patient_api_service.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../core/config/environment.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PatientOverviewScreen extends StatefulWidget {
   const PatientOverviewScreen({super.key});
@@ -65,8 +66,10 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
 
   Future<void> _loadPatientData() async {
     if (_patientId == null || _patientId!.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       setState(() {
-        _error = 'Missing patientId';
+        _error = l10n?.caregiverPatientOverviewMissingPatientId ??
+            'Missing patientId';
         _isLoading = false;
       });
       return;
@@ -106,6 +109,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: NestedScrollView(
@@ -122,9 +126,9 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
                 ),
                 onPressed: () => context.go('/caregiver/patients'),
               ),
-              title: const Text(
-                'Patient Overview',
-                style: TextStyle(
+              title: Text(
+                l10n?.caregiverPatientOverviewTitle ?? 'Patient Overview',
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -157,10 +161,18 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
               delegate: _SliverAppBarDelegate(
                 TabBar(
                   controller: _tabController,
-                  tabs: const [
-                    Tab(text: 'Visits', icon: Icon(Icons.medical_services)),
-                    Tab(text: 'Reminders', icon: Icon(Icons.notifications)),
-                    Tab(text: 'Notes', icon: Icon(Icons.note)),
+                  tabs: [
+                    Tab(
+                        text: l10n?.caregiverPatientOverviewTabVisits ?? 'Visits',
+                        icon: const Icon(Icons.medical_services)),
+                    Tab(
+                        text: l10n?.caregiverPatientOverviewTabReminders ??
+                            'Reminders',
+                        icon: const Icon(Icons.notifications)),
+                    Tab(
+                        text:
+                            l10n?.caregiverPatientOverviewTabNotes ?? 'Notes',
+                        icon: const Icon(Icons.note)),
                   ],
                   labelColor: Theme.of(context).colorScheme.primary,
                   unselectedLabelColor: Theme.of(context).colorScheme.secondary,
@@ -188,6 +200,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildPatientHeader() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -257,7 +270,9 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
                       ),
                     ),
                     Text(
-                      '${_patientData['relationship']} • Age ${_patientData['age']}',
+                      l10n?.caregiverPatientsRelationshipAge(
+                              _patientData['relationship'], _patientData['age']) ??
+                          '${_patientData['relationship']} • Age ${_patientData['age']}',
                       style: TextStyle(
                         fontSize: 16,
                         color: Theme.of(context).colorScheme.secondary,
@@ -286,19 +301,19 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
           Row(
             children: [
               _buildStatItem(
-                'Adherence',
+                l10n?.caregiverPatientsStatAdherence ?? 'Adherence',
                 '${_patientData['medicationAdherence']}%',
                 _patientData['medicationAdherence'] >= 80
                     ? Colors.green
                     : Colors.orange,
               ),
               _buildStatItem(
-                'Appointments',
+                l10n?.caregiverPatientsStatAppointments ?? 'Appointments',
                 _patientData['upcomingAppointments'].toString(),
                 Colors.blue,
               ),
               _buildStatItem(
-                'Last Visit',
+                l10n?.caregiverPatientsStatLastVisit ?? 'Last Visit',
                 _formatLastVisit(_patientData['lastVisit']),
                 Colors.purple,
               ),
@@ -353,6 +368,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildVisitsTab() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -360,7 +376,10 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       return Center(child: Text(_error!));
     }
     if (_visits.isEmpty) {
-      return const Center(child: Text('No visits available'));
+      return Center(
+          child: Text(
+              l10n?.caregiverPatientOverviewNoVisits ??
+                  'No visits available'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -424,6 +443,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildRemindersTab() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -431,7 +451,10 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       return Center(child: Text(_error!));
     }
     if (_reminders.isEmpty) {
-      return const Center(child: Text('No reminders available'));
+      return Center(
+          child: Text(
+              l10n?.caregiverPatientOverviewNoReminders ??
+                  'No reminders available'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -505,6 +528,7 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   Widget _buildNotesTab() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -512,7 +536,10 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
       return Center(child: Text(_error!));
     }
     if (_notes.isEmpty) {
-      return const Center(child: Text('No notes available'));
+      return Center(
+          child: Text(
+              l10n?.caregiverPatientOverviewNoNotes ??
+                  'No notes available'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -632,8 +659,11 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _editPatient() {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit Patient - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.caregiverPatientOverviewEditComingSoon ??
+              'Edit Patient - Coming Soon!')),
     );
   }
 
@@ -645,28 +675,36 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
         children: [
           ListTile(
             leading: const Icon(Icons.phone),
-            title: const Text('Call Patient'),
+            title: Text(
+                AppLocalizations.of(context)?.caregiverPatientOverviewCallPatient ??
+                    'Call Patient'),
             onTap: () {
               Navigator.of(context).pop();
             },
           ),
           ListTile(
             leading: const Icon(Icons.message),
-            title: const Text('Send Message'),
+            title: Text(
+                AppLocalizations.of(context)?.caregiverPatientOverviewSendMessage ??
+                    'Send Message'),
             onTap: () {
               Navigator.of(context).pop();
             },
           ),
           ListTile(
             leading: const Icon(Icons.emergency),
-            title: const Text('Emergency Contact'),
+            title: Text(
+                AppLocalizations.of(context)?.caregiverPatientOverviewEmergencyContact ??
+                    'Emergency Contact'),
             onTap: () {
               Navigator.of(context).pop();
             },
           ),
           ListTile(
             leading: const Icon(Icons.share),
-            title: const Text('Share Patient Info'),
+            title: Text(
+                AppLocalizations.of(context)?.caregiverPatientOverviewSharePatientInfo ??
+                    'Share Patient Info'),
             onTap: () {
               Navigator.of(context).pop();
             },
@@ -677,42 +715,59 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _addNewItem() {
+    final l10n = AppLocalizations.of(context);
     switch (_tabController.index) {
       case 0: // Visits
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Schedule New Appointment - Coming Soon!')),
+          SnackBar(
+              content: Text(l10n?.caregiverPatientOverviewScheduleAppointment ??
+                  'Schedule New Appointment - Coming Soon!')),
         );
         break;
       case 1: // Reminders
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add New Reminder - Coming Soon!')),
+          SnackBar(
+              content: Text(l10n?.caregiverPatientOverviewAddReminder ??
+                  'Add New Reminder - Coming Soon!')),
         );
         break;
       case 2: // Notes
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add New Note - Coming Soon!')),
+          SnackBar(
+              content: Text(l10n?.caregiverPatientOverviewAddNote ??
+                  'Add New Note - Coming Soon!')),
         );
         break;
     }
   }
 
   void _viewVisitDetails(Map<String, dynamic> visit) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('View ${visit['type']} details - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.caregiverPatientOverviewViewVisitDetails(
+                  visit['type']) ??
+              'View ${visit['type']} details - Coming Soon!')),
     );
   }
 
   void _viewReminderDetails(Map<String, dynamic> reminder) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('View ${reminder['title']} details - Coming Soon!')),
+          content: Text(l10n?.caregiverPatientOverviewViewReminderDetails(
+                  reminder['title']) ??
+              'View ${reminder['title']} details - Coming Soon!')),
     );
   }
 
   void _viewNoteDetails(Map<String, dynamic> note) {
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('View ${note['title']} details - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.caregiverPatientOverviewViewNoteDetails(
+                  note['title']) ??
+              'View ${note['title']} details - Coming Soon!')),
     );
   }
 
@@ -808,59 +863,76 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   String _formatLastVisit(DateTime lastVisit) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(lastVisit).inDays;
 
     if (difference == 0) {
-      return 'Today';
+      return l10n?.caregiverPatientsLastVisitToday ?? 'Today';
     } else if (difference == 1) {
-      return 'Yesterday';
+      return l10n?.caregiverPatientsLastVisitYesterday ?? 'Yesterday';
     } else if (difference < 7) {
-      return '$difference days ago';
+      return l10n?.caregiverPatientsLastVisitDays(difference) ??
+          '$difference days ago';
     } else if (difference < 30) {
       final weeks = (difference / 7).floor();
-      return '$weeks week${weeks > 1 ? 's' : ''} ago';
+      return l10n?.caregiverPatientsLastVisitWeeks(weeks) ??
+          '$weeks week${weeks > 1 ? 's' : ''} ago';
     } else {
       final months = (difference / 30).floor();
-      return '$months month${months > 1 ? 's' : ''} ago';
+      return l10n?.caregiverPatientsLastVisitMonths(months) ??
+          '$months month${months > 1 ? 's' : ''} ago';
     }
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(date).inDays;
 
     if (difference == 0) {
-      return 'Today';
+      return l10n?.caregiverPatientsLastVisitToday ?? 'Today';
     } else if (difference == 1) {
-      return 'Yesterday';
+      return l10n?.caregiverPatientsLastVisitYesterday ?? 'Yesterday';
     } else if (difference < 7) {
-      return '$difference days ago';
+      return l10n?.caregiverPatientsLastVisitDays(difference) ??
+          '$difference days ago';
     } else {
-      return '${date.month}/${date.day}/${date.year}';
+      return MaterialLocalizations.of(context).formatMediumDate(date);
     }
   }
 
   String _formatDateTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = dateTime.difference(now);
 
     if (difference.isNegative) {
-      return 'Overdue';
+      return l10n?.caregiverPatientOverviewOverdue ?? 'Overdue';
     } else if (difference.inHours < 24) {
-      return 'In ${difference.inHours} hours';
+      return l10n?.caregiverPatientOverviewInHours(difference.inHours) ??
+          'In ${difference.inHours} hours';
     } else {
-      return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+      final dateText =
+          MaterialLocalizations.of(context).formatMediumDate(dateTime);
+      final timeText = MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(dateTime),
+        alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+      );
+      return '$dateText $timeText';
     }
   }
 
   Map<String, dynamic> _buildPatientData(List<Map<String, dynamic>> visits) {
+    final l10n = AppLocalizations.of(context);
     return {
       'id': _patientId ?? '',
       'name': _patientId ?? '',
       'age': 0,
-      'relationship': 'Care Team',
-      'condition': 'Authorized access',
+      'relationship': l10n?.caregiverPatientOverviewDefaultRelationship ??
+          'Care Team',
+      'condition': l10n?.caregiverPatientOverviewDefaultCondition ??
+          'Authorized access',
       'status': 'active',
       'phone': '',
       'emergencyContact': '',

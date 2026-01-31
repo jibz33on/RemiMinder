@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/config/environment.dart';
 import '../../../../core/services/auth_service.dart';
-import '../../../../shared/utilities/greeting_utils.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/models/patient_task.dart';
 import '../../data/services/patient_tasks_api_service.dart';
 import '../widgets/widgets.dart';
@@ -106,9 +106,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
-    final userName = authState.profile?.fullName ?? 'Patient';
-    final greeting =
-        GreetingUtils.getTimeBasedGreeting(); // Just the greeting part
+    final l10n = AppLocalizations.of(context);
+    final userName = authState.profile?.fullName ??
+        (l10n?.rolePatient ?? 'Patient');
+    final greeting = _getTimeBasedGreeting(l10n);
     final firstName = userName.split(' ').first; // Extract first name only
 
     return Column(
@@ -193,7 +194,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     ),
                     // Subtitle
                     Text(
-                      'How are you feeling today?',
+                      l10n?.patientHomeFeelingToday ??
+                          'How are you feeling today?',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.secondary,
                         fontSize: 13,
@@ -232,8 +234,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 const SizedBox(height: 32),
 
                 // Today's Schedule
-                const SectionHeader(
-                  title: 'Today\'s Schedule',
+                SectionHeader(
+                  title: l10n?.patientHomeTodaysSchedule ??
+                      'Today\'s Schedule',
                   icon: Icons.schedule,
                 ),
                 const SizedBox(height: 16),
@@ -242,8 +245,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 const SizedBox(height: 32),
 
                 // To-do List
-                const SectionHeader(
-                  title: 'To-do List',
+                SectionHeader(
+                  title: l10n?.patientHomeTodoList ?? 'To-do List',
                   icon: Icons.checklist,
                 ),
                 const SizedBox(height: 16),
@@ -260,6 +263,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Widget _buildUpNextCard() {
+    final l10n = AppLocalizations.of(context);
     final reminder = _upNextReminder;
     final title = reminder?['title'] as String?;
     final message = reminder?['message'] as String?;
@@ -303,7 +307,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Up Next',
+                l10n?.patientHomeUpNext ?? 'Up Next',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 16,
@@ -317,8 +321,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             const Center(child: CircularProgressIndicator())
           else if (reminder == null)
             Text(
-              'No upcoming reminders',
-            style: TextStyle(
+              l10n?.patientHomeNoUpcomingReminders ??
+                  'No upcoming reminders',
+              style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -352,7 +357,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       : () {
                     // TODO: Mark as taken
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Marked as taken!')),
+                      SnackBar(
+                          content: Text(l10n?.patientHomeMarkedAsTaken ??
+                              'Marked as taken!')),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -363,9 +370,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child: const Text(
-                    'Take Now',
-                    style: TextStyle(
+                  child: Text(
+                    l10n?.patientHomeTakeNow ?? 'Take Now',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -379,8 +386,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                     : () {
                   // TODO: Snooze reminder
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Reminder snoozed for 1 hour')),
+                    SnackBar(
+                        content: Text(l10n?.patientHomeReminderSnoozed ??
+                            'Reminder snoozed for 1 hour')),
                   );
                 },
                 icon: const Icon(Icons.snooze, color: Colors.white),
@@ -397,6 +405,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Widget _buildTodaysSchedule() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -416,7 +425,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             const Center(child: CircularProgressIndicator())
           else if (_remindersError)
               Text(
-              'Nothing scheduled for today',
+              l10n?.patientHomeNothingScheduled ??
+                  'Nothing scheduled for today',
                 style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.secondary,
@@ -424,7 +434,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             )
           else if (_todayReminders.isEmpty)
             Text(
-              'Nothing scheduled for today',
+              l10n?.patientHomeNothingScheduled ??
+                  'Nothing scheduled for today',
                   style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.secondary,
@@ -500,7 +511,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   onPressed: () {
                     context.go('/patient/reminders');
                   },
-                  child: const Text('View All'),
+                  child: Text(l10n?.patientHomeViewAll ?? 'View All'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -509,7 +520,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   onPressed: () {
                     // TODO: Add new item
                   },
-                  child: const Text('Add Item'),
+                  child: Text(l10n?.patientHomeAddItem ?? 'Add Item'),
                 ),
               ),
             ],
@@ -520,6 +531,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   Widget _buildTodoList() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -536,10 +548,10 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       child: _isLoadingTasks
           ? const Center(child: CircularProgressIndicator())
           : _tasks.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No tasks yet',
-                    style: TextStyle(fontSize: 14),
+                    l10n?.patientHomeNoTasksYet ?? 'No tasks yet',
+                    style: const TextStyle(fontSize: 14),
                   ),
                 )
               : Column(
@@ -564,7 +576,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 // TODO: Navigate to full todo list
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Task'),
+              label: Text(l10n?.patientHomeAddTask ?? 'Add Task'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -623,35 +635,44 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   }
 
   String _formatTaskCreatedAt(DateTime? createdAt) {
+    final l10n = AppLocalizations.of(context);
     if (createdAt == null) {
-      return 'Added recently';
+      return l10n?.patientHomeAddedRecently ?? 'Added recently';
     }
-    return 'Added ${createdAt.month}/${createdAt.day}/${createdAt.year}';
+    final dateText = MaterialLocalizations.of(context)
+        .formatMediumDate(createdAt);
+    return l10n?.patientHomeAddedDate(dateText) ?? 'Added $dateText';
   }
 
   String _formatDueText(String? scheduledTime) {
+    final l10n = AppLocalizations.of(context);
     if (scheduledTime == null || scheduledTime.trim().isEmpty) {
-      return 'Upcoming';
+      return l10n?.patientHomeUpcoming ?? 'Upcoming';
     }
     final scheduled = DateTime.tryParse(scheduledTime);
     if (scheduled == null) {
-      return 'Upcoming';
+      return l10n?.patientHomeUpcoming ?? 'Upcoming';
     }
     final now = DateTime.now();
     final diff = scheduled.difference(now);
     if (diff.inMinutes <= 0) {
-      return 'Due now';
+      return l10n?.patientHomeDueNow ?? 'Due now';
     }
     if (diff.inMinutes < 60) {
-      return 'Due in ${diff.inMinutes} min';
+      return l10n?.patientHomeDueInMinutes(diff.inMinutes) ??
+          'Due in ${diff.inMinutes} min';
     }
     if (diff.inHours < 24) {
-      return 'Due in ${diff.inHours} hours';
+      return l10n?.patientHomeDueInHours(diff.inHours) ??
+          'Due in ${diff.inHours} hours';
     }
     if (diff.inDays < 7) {
-      return 'Due in ${diff.inDays} days';
+      return l10n?.patientHomeDueInDays(diff.inDays) ??
+          'Due in ${diff.inDays} days';
     }
-    return 'Due ${scheduled.month}/${scheduled.day}';
+    final dateText = MaterialLocalizations.of(context)
+        .formatMediumDate(scheduled);
+    return l10n?.patientHomeDueOnDate(dateText) ?? 'Due $dateText';
   }
 
   String _formatScheduleTime(String? scheduledTime) {
@@ -662,11 +683,25 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     if (scheduled == null) {
       return scheduledTime;
     }
-    final hour = scheduled.hour;
-    final minute = scheduled.minute.toString().padLeft(2, '0');
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final hour12 = hour % 12 == 0 ? 12 : hour % 12;
-    return '$hour12:$minute $period';
+    final timeOfDay = TimeOfDay.fromDateTime(scheduled);
+    return MaterialLocalizations.of(context).formatTimeOfDay(
+      timeOfDay,
+      alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+  }
+
+  String _getTimeBasedGreeting(AppLocalizations? l10n) {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return l10n?.patientHomeGreetingMorning ?? 'Good morning';
+    }
+    if (hour >= 12 && hour < 17) {
+      return l10n?.patientHomeGreetingAfternoon ?? 'Good afternoon';
+    }
+    if (hour >= 17 && hour < 22) {
+      return l10n?.patientHomeGreetingEvening ?? 'Good evening';
+    }
+    return l10n?.patientHomeGreetingNight ?? 'Good night';
   }
 
 }

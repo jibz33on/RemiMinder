@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../core/services/secure_storage.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -22,38 +25,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _userRole;
 
   /// Convert technical errors to user-friendly messages
-  String _getUserFriendlyErrorMessage(dynamic error) {
+  String _getUserFriendlyErrorMessage(
+      dynamic error, AppLocalizations? l10n) {
     final errorString = error.toString().toLowerCase();
 
     // Authentication errors
     if (errorString.contains('invalid email or password') ||
         errorString.contains('invalid_credentials')) {
-      return 'Invalid email or password. Please check your credentials and try again.';
+      return l10n?.loginInvalidEmailOrPassword ??
+          'Invalid email or password. Please check your credentials and try again.';
     }
 
     if (errorString.contains('email not confirmed') ||
         errorString.contains('email_not_confirmed')) {
-      return 'Please check your email and confirm your account before signing in.';
+      return l10n?.loginEmailNotConfirmed ??
+          'Please check your email and confirm your account before signing in.';
     }
 
     if (errorString.contains('user not found') ||
         errorString.contains('user_not_found')) {
-      return 'No account found with this email address.';
+      return l10n?.loginUserNotFound ??
+          'No account found with this email address.';
     }
 
     // Network/API errors
     if (errorString.contains('connection refused') ||
         errorString.contains('network') ||
         errorString.contains('failed to get user profile')) {
-      return 'Connection error. Please check your internet connection and try again.';
+      return l10n?.loginConnectionError ??
+          'Connection error. Please check your internet connection and try again.';
     }
 
     if (errorString.contains('timeout')) {
-      return 'Request timed out. Please try again.';
+      return l10n?.loginRequestTimedOut ?? 'Request timed out. Please try again.';
     }
 
     // Generic fallback
-    return 'Sign in failed. Please try again or contact support if the problem persists.';
+    return l10n?.loginSignInFailedGeneric ??
+        'Sign in failed. Please try again or contact support if the problem persists.';
   }
 
   @override
@@ -83,12 +92,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signIn() async {
+    final l10n = AppLocalizations.of(context);
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        SnackBar(
+            content:
+                Text(l10n?.loginFillAllFields ?? 'Please fill in all fields')),
       );
       return;
     }
@@ -110,7 +122,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (authState.hasError) {
         if (mounted) {
           final errorMessage = _getUserFriendlyErrorMessage(
-              authState.errorMessage ?? 'Authentication failed');
+              authState.errorMessage ?? 'Authentication failed', l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
@@ -124,26 +136,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Save remember me preference
         await SecureStorage().saveRememberMe(_rememberMe);
 
-        if (user?.isPatient ?? false) {
-          if (mounted) {
-            context.go('/patient/home');
-          }
-        } else if (user?.isCaregiver ?? false) {
-          if (mounted) {
-            context.go('/caregiver/home');
-          }
+        if (user != null) {
+          await _navigateAfterLogin(user);
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Authentication failed. Please try again.')),
+            SnackBar(
+                content: Text(l10n?.loginAuthFailed ??
+                    'Authentication failed. Please try again.')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        final errorMessage = _getUserFriendlyErrorMessage(e);
+        final errorMessage = _getUserFriendlyErrorMessage(e, l10n);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
@@ -152,21 +159,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _navigateToEmailForm() {
+    final l10n = AppLocalizations.of(context);
     // For now, show a simple dialog with email form
     // In a real app, you might want to scroll to a form section
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Sign in with Email'),
+          title: Text(
+            l10n?.loginSignInWithEmailTitle ?? 'Sign in with Email',
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email',
+                decoration: InputDecoration(
+                  labelText: l10n?.loginEmailLabel ?? 'Email',
+                  hintText: l10n?.loginEmailHint ?? 'Enter your email',
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -174,8 +184,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
+                  labelText: l10n?.loginPasswordLabel ?? 'Password',
+                  hintText: l10n?.loginPasswordHint ?? 'Enter your password',
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isPasswordVisible
@@ -205,9 +215,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                   ),
                   Expanded(
-                    child: const Text(
-                      'Remember me',
-                      style: TextStyle(fontSize: 14),
+                    child: Text(
+                      l10n?.loginRememberMe ?? 'Remember me',
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ),
                 ],
@@ -217,14 +227,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n?.commonCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 _signIn();
               },
-              child: const Text('Sign In'),
+              child: Text(l10n?.loginSignIn ?? 'Sign In'),
             ),
           ],
         ),
@@ -234,6 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -271,8 +282,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 24),
 
               // Brand Name
-              const Text(
-                'RemiMinder.ai',
+              Text(
+                l10n?.loginBrandName ?? 'RemiMinder.ai',
                 style: TextStyle(
                   fontFamily: 'Merriweather', // Merriweather-Bold font
                   fontWeight: FontWeight.w700, // Bold weight
@@ -285,8 +296,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 8),
 
               // Tagline
-              const Text(
-                'Smart AI for Health & Care Coordination',
+              Text(
+                l10n?.welcomeSubtitle ??
+                    'Smart AI for Health & Care Coordination',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Poppins', // Poppins-Regular
@@ -299,8 +311,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 48),
 
               // Heading - "Login"
-              const Text(
-                'Login',
+              Text(
+                l10n?.login ?? 'Login',
                 style: TextStyle(
                   fontFamily:
                       'Merriweather', // Merriweather-Bold for consistency
@@ -344,12 +356,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Google logo (currently JPEG - replace with SVG for better quality)
-                      Image.asset(
-                        'assets/images/google_logo.svg', // Currently a JPEG file
+                      SvgPicture.asset(
+                        'assets/images/google_logo.svg',
                         width: 22,
                         height: 22,
-                        errorBuilder: (context, error, stackTrace) => Container(
+                        placeholderBuilder: (context) => Container(
                           width: 22,
                           height: 22,
                           decoration: const BoxDecoration(
@@ -364,8 +375,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Google',
+                      Text(
+                        l10n?.loginContinueWithGoogle ??
+                            'Continue with Google',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w500,
@@ -420,8 +432,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Apple',
+                      Text(
+                        l10n?.loginContinueWithApple ??
+                            'Continue with Apple',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w500,
@@ -475,8 +488,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Email',
+                      Text(
+                        l10n?.loginContinueWithEmail ??
+                            'Continue with Email',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.w500,
@@ -499,8 +513,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text(
-                    'Create an Account',
+                  child: Text(
+                    l10n?.loginCreateAccount ?? 'Create an Account',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w500,
@@ -524,8 +538,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text(
-                    'Forgot Password?',
+                  child: Text(
+                    l10n?.loginForgotPassword ?? 'Forgot Password?',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.w500,
@@ -539,6 +553,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
 
               const SizedBox(height: 40),
+
+              // Temporary bypass for UI testing (no backend auth)
+              Column(
+                children: [
+                  Text(
+                    l10n?.loginContinueWithoutSigningIn ??
+                        'Continue without signing in',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                      color: Color(0xFF5A5A5A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => context.go('/patient/home'),
+                          child:
+                              Text(l10n?.loginBypassPatient ?? 'Patient'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => context.go('/caregiver/home'),
+                          child: Text(
+                              l10n?.loginBypassCaregiver ?? 'Caregiver'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -547,6 +598,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    final l10n = AppLocalizations.of(context);
     try {
       // Convert string role to UserRole enum
       UserRole? selectedRole;
@@ -563,42 +615,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final authState = ref.read(authNotifierProvider);
 
       if (authState.isAuthenticated) {
-        // Navigate to appropriate home screen based on selected role (not backend role)
         final user = authState.user;
-
-        if (user?.isPatient ?? false) {
-          if (mounted) {
-            context.go('/patient/home');
-          }
-        } else if (user?.isCaregiver ?? false) {
-          if (mounted) {
-            context.go('/caregiver/home');
-          }
-        } else {
-          if (mounted) {
-            context.go('/welcome'); // Fallback
-          }
+        if (user != null) {
+          await _navigateAfterLogin(user);
+        } else if (mounted) {
+          context.go('/welcome');
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Sign In failed')),
+            SnackBar(
+                content: Text(
+                    l10n?.loginGoogleSignInFailed ?? 'Google Sign In failed')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Sign In failed: ${e.toString()}')),
+          SnackBar(
+            content: Text(
+              l10n?.loginGoogleSignInFailedWithError(e.toString()) ??
+                  'Google Sign In failed: ${e.toString()}',
+            ),
+          ),
         );
       }
     }
   }
 
   void _signInWithApple() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Implement Apple Sign In with Firebase
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Apple Sign In - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.loginAppleSignInComingSoon ??
+              'Apple Sign In - Coming Soon!')),
     );
+  }
+
+  Future<void> _navigateAfterLogin(User user) async {
+    final prefs = PreferencesService();
+    final isOnboardingComplete =
+        await prefs.isVisitLanguageOnboardingComplete();
+    if (!mounted) return;
+
+    if (!isOnboardingComplete) {
+      final nextRoute =
+          user.isCaregiver ? '/caregiver/home' : '/patient/home';
+      context.go('/onboarding/visit-language?next=$nextRoute');
+      return;
+    }
+
+    if (user.isPatient) {
+      context.go('/patient/home');
+    } else if (user.isCaregiver) {
+      context.go('/caregiver/home');
+    } else {
+      context.go('/welcome');
+    }
   }
 }

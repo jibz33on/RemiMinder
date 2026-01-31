@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/backend_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'upgrade_screen.dart';
 
 class AccountDetailsScreen extends ConsumerStatefulWidget {
@@ -19,6 +20,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final authState = ref.watch(authNotifierProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -50,7 +52,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'Account Details',
+                      l10n?.accountDetailsTitle ?? 'Account Details',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -73,34 +75,39 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                   children: [
                     _buildDetailItem(
                       theme,
-                      'Name',
-                      authState.profile?.fullName ?? 'Not set',
+                      l10n?.accountDetailsNameLabel ?? 'Name',
+                      authState.profile?.fullName ??
+                          (l10n?.accountDetailsNotSet ?? 'Not set'),
                       Icons.person,
                     ),
                     const SizedBox(height: 16),
                     _buildDetailItem(
                       theme,
-                      'Email',
-                      authState.profile?.email ?? 'Not set',
+                      l10n?.accountDetailsEmailLabel ?? 'Email',
+                      authState.profile?.email ??
+                          (l10n?.accountDetailsNotSet ?? 'Not set'),
                       Icons.email,
                     ),
                     const SizedBox(height: 16),
                     _buildDetailItem(
                       theme,
-                      'Account Type',
+                      l10n?.accountDetailsAccountTypeLabel ?? 'Account Type',
                       authState.profile?.role == 'patient'
-                          ? 'Patient'
-                          : 'Caregiver',
+                          ? (l10n?.accountDetailsAccountTypePatient ??
+                              'Patient')
+                          : (l10n?.accountDetailsAccountTypeCaregiver ??
+                              'Caregiver'),
                       Icons.account_circle,
                     ),
                     const SizedBox(height: 16),
-                    _buildPhoneDetailItem(theme, authState.profile?.phone),
+                    _buildPhoneDetailItem(
+                        theme, authState.profile?.phone, l10n),
                     const SizedBox(height: 16),
                     _buildPlanDetailItem(
-                        theme, authState.profile?.plan ?? "free"),
+                        theme, authState.profile?.plan ?? "free", l10n),
                     const SizedBox(height: 16),
                     _buildUsageDetailItem(
-                        theme, authState.profile?.plan ?? "free"),
+                        theme, authState.profile?.plan ?? "free", l10n),
                   ],
                 ),
               ),
@@ -161,10 +168,14 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     );
   }
 
-  Widget _buildPhoneDetailItem(ThemeData theme, String? phone) {
+  Widget _buildPhoneDetailItem(
+      ThemeData theme, String? phone, AppLocalizations? l10n) {
     final isPhoneSet = phone != null && phone.isNotEmpty;
-    final displayValue = isPhoneSet ? phone : 'Not set';
-    final actionText = isPhoneSet ? 'Edit' : 'Add';
+    final displayValue =
+        isPhoneSet ? phone : (l10n?.accountDetailsNotSet ?? 'Not set');
+    final actionText = isPhoneSet
+        ? (l10n?.accountDetailsPhoneEdit ?? 'Edit')
+        : (l10n?.accountDetailsPhoneAdd ?? 'Add');
 
     return InkWell(
       onTap: _showPhoneEditDialog,
@@ -198,7 +209,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                   Row(
                     children: [
                       Text(
-                        'Phone',
+                        l10n?.accountDetailsPhoneLabel ?? 'Phone',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                           fontWeight: FontWeight.w500,
@@ -235,10 +246,15 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     );
   }
 
-  Widget _buildPlanDetailItem(ThemeData theme, String plan) {
+  Widget _buildPlanDetailItem(
+      ThemeData theme, String plan, AppLocalizations? l10n) {
     final isFreePlan = plan == "free";
-    final displayValue = isFreePlan ? 'Free' : 'Premium';
-    final actionText = isFreePlan ? 'Upgrade' : 'Manage';
+    final displayValue = isFreePlan
+        ? (l10n?.accountDetailsPlanFree ?? 'Free')
+        : (l10n?.accountDetailsPlanPremium ?? 'Premium');
+    final actionText = isFreePlan
+        ? (l10n?.accountDetailsPlanUpgrade ?? 'Upgrade')
+        : (l10n?.accountDetailsPlanManage ?? 'Manage');
 
     return InkWell(
       onTap: isFreePlan ? () => _navigateToUpgrade() : null,
@@ -272,7 +288,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                   Row(
                     children: [
                       Text(
-                        'Plan',
+                        l10n?.accountDetailsPlanLabel ?? 'Plan',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                           fontWeight: FontWeight.w500,
@@ -311,15 +327,19 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     );
   }
 
-  Widget _buildUsageDetailItem(ThemeData theme, String plan) {
+  Widget _buildUsageDetailItem(
+      ThemeData theme, String plan, AppLocalizations? l10n) {
     // Hardcoded values for now
     const int used = 1;
     const int limit = 2;
 
     final isFreePlan = plan == "free";
-    final displayValue =
-        isFreePlan ? 'Free plan — $used / $limit summaries used' : 'Unlimited';
-    final actionText = isFreePlan ? 'Upgrade' : null;
+    final displayValue = isFreePlan
+        ? (l10n?.accountDetailsUsageFreePlan(used, limit) ??
+            'Free plan — $used / $limit summaries used')
+        : (l10n?.accountDetailsUsageUnlimited ?? 'Unlimited');
+    final actionText =
+        isFreePlan ? (l10n?.accountDetailsPlanUpgrade ?? 'Upgrade') : null;
 
     return InkWell(
       onTap: isFreePlan ? () => _navigateToUpgrade() : null,
@@ -353,7 +373,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                   Row(
                     children: [
                       Text(
-                        'Usage',
+                        l10n?.accountDetailsUsageLabel ?? 'Usage',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                           fontWeight: FontWeight.w500,
@@ -407,13 +427,18 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Phone Number'),
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+          title:
+              Text(l10n?.accountDetailsPhoneEditTitle ?? 'Edit Phone Number'),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(
-              labelText: 'Phone Number',
-              hintText: '+1 (555) 123-4567',
+            decoration: InputDecoration(
+              labelText:
+                  l10n?.accountDetailsPhoneLabel ?? 'Phone Number',
+              hintText:
+                  l10n?.accountDetailsPhoneHint ?? '+1 (555) 123-4567',
             ),
             keyboardType: TextInputType.phone,
             enabled: !_isUpdatingPhone,
@@ -422,7 +447,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
             TextButton(
               onPressed:
                   _isUpdatingPhone ? null : () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n?.commonCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: _isUpdatingPhone
@@ -434,10 +459,11 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save'),
+                  : Text(l10n?.commonSave ?? 'Save'),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
   }
@@ -445,9 +471,11 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
   Future<void> _savePhoneNumber(String phoneInput, StateSetter setState) async {
     // Validate input
     if (phoneInput.isNotEmpty && phoneInput.length < 8) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Phone number must be at least 8 characters long')),
+        SnackBar(
+            content: Text(l10n?.accountDetailsPhoneMinLengthError ??
+                'Phone number must be at least 8 characters long')),
       );
       return;
     }
@@ -468,14 +496,20 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
 
       if (mounted) {
         Navigator.of(context).pop(); // Close dialog
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone number updated successfully')),
+          SnackBar(
+              content: Text(l10n?.accountDetailsPhoneUpdated ??
+                  'Phone number updated successfully')),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update phone number: $e')),
+          SnackBar(
+              content: Text(l10n?.accountDetailsPhoneUpdateFailed(e.toString()) ??
+                  'Failed to update phone number: $e')),
         );
       }
     } finally {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AlertListScreen extends StatefulWidget {
   const AlertListScreen({super.key});
@@ -158,6 +159,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final unreadCount = _allAlerts.where((alert) => !alert['isRead']).length;
 
     return Scaffold(
@@ -172,9 +174,9 @@ class _AlertListScreenState extends State<AlertListScreen> {
           ),
           onPressed: () => context.go('/caregiver/home'),
         ),
-        title: const Text(
-          'Alerts',
-          style: TextStyle(
+        title: Text(
+          l10n?.caregiverAlertsTitle ?? 'Alerts',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -223,7 +225,8 @@ class _AlertListScreenState extends State<AlertListScreen> {
             child: Row(
               children: [
                 Text(
-                  '${_filteredAlerts.length} ${_filteredAlerts.length == 1 ? 'Alert' : 'Alerts'}',
+                  l10n?.caregiverAlertsCount(_filteredAlerts.length) ??
+                      '${_filteredAlerts.length} ${_filteredAlerts.length == 1 ? 'Alert' : 'Alerts'}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -240,7 +243,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      _selectedFilter,
+                      _filterLabel(_selectedFilter, l10n),
                       style: TextStyle(
                         fontSize: 12,
                         color: _getFilterColor(_selectedFilter),
@@ -257,7 +260,8 @@ class _AlertListScreenState extends State<AlertListScreen> {
                         _selectedFilter = 'All';
                       });
                     },
-                    child: const Text('Clear Filter'),
+                    child:
+                        Text(l10n?.caregiverAlertsClearFilter ?? 'Clear Filter'),
                   ),
               ],
             ),
@@ -281,13 +285,15 @@ class _AlertListScreenState extends State<AlertListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _markAllAsRead,
         backgroundColor: Theme.of(context).colorScheme.primary,
-        tooltip: 'Mark all as read',
+        tooltip:
+            l10n?.caregiverAlertsMarkAllReadTooltip ?? 'Mark all as read',
         child: const Icon(Icons.done_all),
       ),
     );
   }
 
   Widget _buildFilterChip(String filter) {
+    final l10n = AppLocalizations.of(context);
     final isSelected = _selectedFilter == filter;
     final count = _getFilterCount(filter);
 
@@ -311,7 +317,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                filter,
+                _filterLabel(filter, l10n),
                 style: TextStyle(
                   fontSize: 12,
                   color: isSelected
@@ -518,17 +524,19 @@ class _AlertListScreenState extends State<AlertListScreen> {
 
                     // Action Required Indicator
                     if (actionRequired)
-                      const Row(
+                      Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.warning,
                             size: 14,
                             color: Colors.orange,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Action Required',
-                            style: TextStyle(
+                            AppLocalizations.of(context)
+                                    ?.caregiverAlertsActionRequired ??
+                                'Action Required',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.orange,
                               fontWeight: FontWeight.w500,
@@ -552,8 +560,12 @@ class _AlertListScreenState extends State<AlertListScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 6),
                           ),
-                          child: const Text('Mark Read',
-                              style: TextStyle(fontSize: 12)),
+                          child: Text(
+                            AppLocalizations.of(context)
+                                    ?.caregiverAlertsMarkRead ??
+                                'Mark Read',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -563,8 +575,12 @@ class _AlertListScreenState extends State<AlertListScreen> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 6),
                           ),
-                          child: const Text('Take Action',
-                              style: TextStyle(fontSize: 12)),
+                          child: Text(
+                            AppLocalizations.of(context)
+                                    ?.caregiverAlertsTakeAction ??
+                                'Take Action',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
                       ),
                     ],
@@ -579,6 +595,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -591,8 +608,10 @@ class _AlertListScreenState extends State<AlertListScreen> {
           const SizedBox(height: 24),
           Text(
             _selectedFilter == 'All'
-                ? 'No alerts at this time'
-                : 'No alerts match this filter',
+                ? l10n?.caregiverAlertsEmptyAllTitle ??
+                    'No alerts at this time'
+                : l10n?.caregiverAlertsEmptyFilteredTitle ??
+                    'No alerts match this filter',
             style: TextStyle(
               fontSize: 20,
               color: Theme.of(context).colorScheme.secondary,
@@ -603,8 +622,10 @@ class _AlertListScreenState extends State<AlertListScreen> {
           const SizedBox(height: 8),
           Text(
             _selectedFilter == 'All'
-                ? 'All patient activities are running smoothly'
-                : 'Try adjusting your filter to see more alerts',
+                ? l10n?.caregiverAlertsEmptyAllSubtitle ??
+                    'All patient activities are running smoothly'
+                : l10n?.caregiverAlertsEmptyFilteredSubtitle ??
+                    'Try adjusting your filter to see more alerts',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -619,7 +640,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
                   _selectedFilter = 'All';
                 });
               },
-              child: const Text('View All Alerts'),
+              child: Text(l10n?.caregiverAlertsViewAll ?? 'View All Alerts'),
             ),
           ],
         ],
@@ -628,6 +649,7 @@ class _AlertListScreenState extends State<AlertListScreen> {
   }
 
   void _markAsRead(String alertId) {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       final index = _allAlerts.indexWhere((alert) => alert['id'] == alertId);
       if (index != -1) {
@@ -635,11 +657,14 @@ class _AlertListScreenState extends State<AlertListScreen> {
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Alert marked as read')),
+      SnackBar(
+          content: Text(l10n?.caregiverAlertsMarkedRead ??
+              'Alert marked as read')),
     );
   }
 
   void _toggleReadStatus(String alertId) {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       final index = _allAlerts.indexWhere((alert) => alert['id'] == alertId);
       if (index != -1) {
@@ -649,17 +674,24 @@ class _AlertListScreenState extends State<AlertListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                  'Alert marked as ${!currentStatus ? 'read' : 'unread'}')),
+                  !currentStatus
+                      ? (l10n?.caregiverAlertsMarkedRead ??
+                          'Alert marked as read')
+                      : (l10n?.caregiverAlertsMarkedUnread ??
+                          'Alert marked as unread'))),
         );
       }
     });
   }
 
   void _markAllAsRead() {
+    final l10n = AppLocalizations.of(context);
     final unreadAlerts = _allAlerts.where((alert) => !alert['isRead']).toList();
     if (unreadAlerts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All alerts are already read')),
+        SnackBar(
+            content: Text(l10n?.caregiverAlertsAllAlreadyRead ??
+                'All alerts are already read')),
       );
       return;
     }
@@ -671,14 +703,17 @@ class _AlertListScreenState extends State<AlertListScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Marked ${unreadAlerts.length} alerts as read')),
+      SnackBar(
+          content: Text(l10n?.caregiverAlertsMarkedAllRead(
+                  unreadAlerts.length) ??
+              'Marked ${unreadAlerts.length} alerts as read')),
     );
   }
 
   void _takeAction(Map<String, dynamic> alert) {
+    final l10n = AppLocalizations.of(context);
     // Navigate based on alert type and patient
     final type = alert['type'];
-    final patientId = alert['patientId'];
 
     switch (type) {
       case 'medication':
@@ -697,15 +732,37 @@ class _AlertListScreenState extends State<AlertListScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Taking action on ${alert['type']} alert')),
+      SnackBar(
+          content: Text(l10n?.caregiverAlertsTakingAction(alert['type']) ??
+              'Taking action on ${alert['type']} alert')),
     );
   }
 
   void _viewAlertDetails(Map<String, dynamic> alert) {
+    final l10n = AppLocalizations.of(context);
     // TODO: Navigate to detailed alert view
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('View details for ${alert['type']} alert')),
+      SnackBar(
+          content: Text(l10n?.caregiverAlertsViewDetails(alert['type']) ??
+              'View details for ${alert['type']} alert')),
     );
+  }
+
+  String _filterLabel(String filter, AppLocalizations? l10n) {
+    switch (filter.toLowerCase()) {
+      case 'all':
+        return l10n?.caregiverAlertsFilterAll ?? 'All';
+      case 'unread':
+        return l10n?.caregiverAlertsFilterUnread ?? 'Unread';
+      case 'read':
+        return l10n?.caregiverAlertsFilterRead ?? 'Read';
+      case 'high priority':
+        return l10n?.caregiverAlertsFilterHighPriority ?? 'High Priority';
+      case 'action required':
+        return l10n?.caregiverAlertsFilterActionRequired ?? 'Action Required';
+      default:
+        return filter;
+    }
   }
 
   int _getFilterCount(String filter) {

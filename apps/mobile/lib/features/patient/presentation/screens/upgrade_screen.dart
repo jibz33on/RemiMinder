@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class UpgradeScreen extends StatelessWidget {
   const UpgradeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -35,10 +37,10 @@ class UpgradeScreen extends StatelessWidget {
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Upgrade Benefits',
-                      style: TextStyle(
+                      l10n?.upgradeBenefitsTitle ?? 'Upgrade Benefits',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -60,7 +62,7 @@ class UpgradeScreen extends StatelessWidget {
                   children: [
                     // Main Title
                     Text(
-                      'Unlock Premium Care',
+                      l10n?.upgradeUnlockTitle ?? 'Unlock Premium Care',
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: theme.colorScheme.primary,
@@ -72,7 +74,7 @@ class UpgradeScreen extends StatelessWidget {
 
                     // Subtitle
                     Text(
-                      'Get more peace of mind.',
+                      l10n?.upgradeSubtitle ?? 'Get more peace of mind.',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurface.withOpacity(0.7),
                       ),
@@ -90,11 +92,20 @@ class UpgradeScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildBenefitItem('Unlimited Caregivers', theme),
+                          _buildBenefitItem(
+                              l10n?.upgradeBenefitUnlimitedCaregivers ??
+                                  'Unlimited Caregivers',
+                              theme),
                           const SizedBox(height: 16),
-                          _buildBenefitItem('Advanced Health Trends', theme),
+                          _buildBenefitItem(
+                              l10n?.upgradeBenefitHealthTrends ??
+                                  'Advanced Health Trends',
+                              theme),
                           const SizedBox(height: 16),
-                          _buildBenefitItem('Priority Support', theme),
+                          _buildBenefitItem(
+                              l10n?.upgradeBenefitPrioritySupport ??
+                                  'Priority Support',
+                              theme),
                         ],
                       ),
                     ),
@@ -127,7 +138,7 @@ class UpgradeScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 Text(
-                                  'Monthly Plan',
+                                  l10n?.upgradeMonthlyPlan ?? 'Monthly Plan',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.primary,
@@ -143,7 +154,7 @@ class UpgradeScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '/ month',
+                                  l10n?.upgradePerMonth ?? '/ month',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.6),
@@ -151,7 +162,7 @@ class UpgradeScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Cancel anytime',
+                                  l10n?.upgradeCancelAnytime ?? 'Cancel anytime',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.7),
@@ -189,7 +200,7 @@ class UpgradeScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 Text(
-                                  'Annual Plan',
+                                  l10n?.upgradeAnnualPlan ?? 'Annual Plan',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.primary,
@@ -205,7 +216,7 @@ class UpgradeScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '/ year',
+                                  l10n?.upgradePerYear ?? '/ year',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.6),
@@ -213,7 +224,7 @@ class UpgradeScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Cancel anytime',
+                                  l10n?.upgradeCancelAnytime ?? 'Cancel anytime',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.7),
@@ -234,8 +245,9 @@ class UpgradeScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Payment flow coming soon')),
+                            SnackBar(
+                                content: Text(l10n?.upgradePaymentComingSoon ??
+                                    'Payment flow coming soon')),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -246,9 +258,10 @@ class UpgradeScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Continue to Payment',
-                          style: TextStyle(
+                        child: Text(
+                          l10n?.upgradeContinuePayment ??
+                              'Continue to Payment',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),

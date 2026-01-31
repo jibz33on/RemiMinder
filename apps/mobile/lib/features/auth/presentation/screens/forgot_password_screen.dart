@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
+import '../../../../l10n/app_localizations.dart';
+
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -47,6 +49,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Widget _buildResetView() {
+    final l10n = AppLocalizations.of(context);
     return Form(
       key: _formKey,
       child: Column(
@@ -59,8 +62,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Title
-                const Text(
-                  'Forgot Password?',
+                Text(
+                  l10n?.forgotPasswordTitle ?? 'Forgot Password?',
                   style: TextStyle(
                     fontFamily:
                         'Merriweather', // Consistent with other auth screens
@@ -73,8 +76,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 const SizedBox(height: 12),
 
                 // Subtitle
-                const Text(
-                  'No worries! Enter your email and we\'ll send you reset instructions.',
+                Text(
+                  l10n?.forgotPasswordSubtitle ??
+                      'No worries! Enter your email and we\'ll send you reset instructions.',
                   style: TextStyle(
                     fontFamily:
                         'Poppins', // Consistent sans-serif for body text
@@ -93,8 +97,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_isLoading,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'Enter your email address',
+                    labelText: l10n?.loginEmailLabel ?? 'Email',
+                    hintText: l10n?.forgotPasswordEmailHint ??
+                        'Enter your email address',
                     prefixIcon: Icon(
                       Icons.email_outlined,
                       color: Theme.of(context).colorScheme.primary,
@@ -102,11 +107,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return l10n?.forgotPasswordEmailRequired ??
+                          'Please enter your email';
                     }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                         .hasMatch(value)) {
-                      return 'Please enter a valid email';
+                      return l10n?.forgotPasswordEmailInvalid ??
+                          'Please enter a valid email';
                     }
                     return null;
                   },
@@ -135,9 +142,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Text(
-                            'Send Reset Instructions',
-                            style: TextStyle(
+                        : Text(
+                            l10n?.forgotPasswordSendInstructions ??
+                                'Send Reset Instructions',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
@@ -149,8 +157,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ),
 
           // Centered "Remember your password?" text
-          const Text(
-            'Remember your password?',
+          Text(
+            l10n?.forgotPasswordRememberPassword ??
+                'Remember your password?',
             style: TextStyle(
               fontFamily: 'Poppins', // Consistent typography
               fontWeight: FontWeight.w400, // Regular weight
@@ -185,8 +194,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
-                    child: const Text(
-                      'Back to Login',
+                    child: Text(
+                      l10n?.forgotPasswordBackToLogin ?? 'Back to Login',
                       style: TextStyle(
                         fontFamily: 'Poppins', // Consistent typography
                         fontWeight: FontWeight.w600, // SemiBold for buttons
@@ -207,6 +216,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   void _sendResetInstructions() async {
+    final l10n = AppLocalizations.of(context);
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
@@ -221,9 +231,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         // Always show generic success message for security
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'If an account exists for this email, we\'ve sent you password reset instructions.',
+                l10n?.forgotPasswordSuccessMessage ??
+                    'If an account exists for this email, we\'ve sent you password reset instructions.',
               ),
               backgroundColor: Colors.green,
             ),
@@ -241,33 +252,39 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
         // Show error message to user
         String errorMessage =
-            'Failed to send reset email. Please check the email and try again.';
+            l10n?.forgotPasswordSendFailed ??
+                'Failed to send reset email. Please check the email and try again.';
 
         if (e is firebase_auth.FirebaseAuthException) {
           switch (e.code) {
             case 'invalid-email':
-              errorMessage = 'Please enter a valid email address.';
+              errorMessage = l10n?.forgotPasswordEmailInvalid ??
+                  'Please enter a valid email address.';
               break;
             case 'operation-not-allowed':
               errorMessage =
-                  'Password reset is not available for this account.';
+                  l10n?.forgotPasswordNotAvailable ??
+                      'Password reset is not available for this account.';
               break;
             case 'too-many-requests':
-              errorMessage = 'Too many requests. Please try again later.';
+              errorMessage = l10n?.forgotPasswordTooManyRequests ??
+                  'Too many requests. Please try again later.';
               break;
             case 'network-request-failed':
               errorMessage =
-                  'Network error. Please check your internet connection.';
+                  l10n?.forgotPasswordNetworkError ??
+                      'Network error. Please check your internet connection.';
               break;
             default:
               // For security, don't reveal if account exists or what auth provider it uses
-              errorMessage =
+              errorMessage = l10n?.forgotPasswordSendFailed ??
                   'Failed to send reset email. Please check the email and try again.';
           }
         } else if (e.toString().contains('network') ||
             e.toString().contains('connection')) {
           errorMessage =
-              'Network error. Please check your internet connection.';
+              l10n?.forgotPasswordNetworkError ??
+                  'Network error. Please check your internet connection.';
         }
 
         if (mounted) {

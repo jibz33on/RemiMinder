@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/auth_service.dart';
-import '../../../../core/config/environment.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/services/patient_api_service.dart';
 
 class LanguageSettingsScreen extends ConsumerStatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -21,20 +19,41 @@ class _LanguageSettingsScreenState
   bool _isLoading = true;
   bool _isSaving = false;
 
-  final List<Map<String, String>> _availableLanguages = [
-    {"name": "English", "code": "en"},
-    {"name": "Spanish", "code": "es"},
-    {"name": "Hindi", "code": "hi"},
-    {"name": "Mandarin", "code": "zh"},
-    {"name": "Arabic", "code": "ar"},
-    {"name": "French", "code": "fr"},
+  final List<String> _availableAppLanguageCodes = [
+    'en',
+    'es',
+    'hi',
+    'ar',
+    'de',
   ];
 
-  String _getLanguageName(String code) {
-    return _availableLanguages.firstWhere(
-      (lang) => lang['code'] == code,
-      orElse: () => {"name": "English", "code": "en"},
-    )['name']!;
+  final List<String> _availableVisitLanguageCodes = [
+    'en',
+    'es',
+    'hi',
+    'zh',
+    'ar',
+    'fr',
+    'de',
+  ];
+
+  String _getLanguageName(String code, AppLocalizations? l10n) {
+    switch (code) {
+      case 'en':
+        return l10n?.languageEnglish ?? 'English';
+      case 'es':
+        return l10n?.languageSpanish ?? 'Spanish';
+      case 'hi':
+        return l10n?.languageHindi ?? 'Hindi';
+      case 'zh':
+        return l10n?.languageMandarin ?? 'Mandarin';
+      case 'ar':
+        return l10n?.languageArabic ?? 'Arabic';
+      case 'fr':
+        return l10n?.languageFrench ?? 'French';
+      default:
+        return l10n?.languageEnglish ?? 'English';
+    }
   }
 
   @override
@@ -44,22 +63,14 @@ class _LanguageSettingsScreenState
   }
 
   Future<void> _loadLanguagePreferences() async {
+    final l10n = AppLocalizations.of(context);
     try {
-      final authToken = await AuthService().getAccessToken();
-      if (authToken == null) {
-        throw Exception('Authentication required');
-      }
-
-      final apiService = PatientApiService(
-        baseUrl: Environment.apiBaseUrl,
-        authToken: authToken,
-      );
-
-      final preferences = await apiService.getLanguagePreferences();
-
+      final prefs = PreferencesService();
+      final appLanguage = await prefs.getAppLanguage();
+      final visitLanguage = await prefs.getDefaultVisitLanguage();
       setState(() {
-        _selectedAppLanguage = preferences['app_language'] ?? 'en';
-        _selectedVisitLanguage = preferences['visit_language'] ?? 'en';
+        _selectedAppLanguage = appLanguage ?? 'en';
+        _selectedVisitLanguage = visitLanguage ?? 'en';
         _isLoading = false;
       });
     } catch (e) {
@@ -71,32 +82,24 @@ class _LanguageSettingsScreenState
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load language preferences')),
+          SnackBar(
+              content: Text(l10n?.languageSettingsLoadFailed ??
+                  'Failed to load language preferences')),
         );
       }
     }
   }
 
   Future<void> _saveLanguagePreferences() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _isSaving = true;
     });
 
     try {
-      final authToken = await AuthService().getAccessToken();
-      if (authToken == null) {
-        throw Exception('Authentication required');
-      }
-
-      final apiService = PatientApiService(
-        baseUrl: Environment.apiBaseUrl,
-        authToken: authToken,
-      );
-
-      await apiService.updateLanguagePreferences(
-        appLanguage: _selectedAppLanguage,
-        visitLanguage: _selectedVisitLanguage,
-      );
+      final prefs = PreferencesService();
+      await prefs.setAppLanguage(_selectedAppLanguage);
+      await prefs.setDefaultVisitLanguage(_selectedVisitLanguage);
 
       // Update local locale state to trigger UI refresh
       ref
@@ -105,13 +108,17 @@ class _LanguageSettingsScreenState
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Language settings saved')),
+          SnackBar(
+              content: Text(l10n?.languageSettingsSaveSuccess ??
+                  'Language settings saved')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save language settings')),
+          SnackBar(
+              content: Text(l10n?.languageSettingsSaveFailed ??
+                  'Failed to save language settings')),
         );
       }
     } finally {
@@ -124,7 +131,9 @@ class _LanguageSettingsScreenState
   }
 
   void _showLanguagePicker(BuildContext context, String title,
-      String currentLanguage, Function(String) onLanguageSelected) {
+      String currentLanguage,
+      List<String> languageOptions,
+      Function(String) onLanguageSelected) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -171,11 +180,12 @@ class _LanguageSettingsScreenState
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
-                  itemCount: _availableLanguages.length,
+                  itemCount: languageOptions.length,
                   itemBuilder: (context, index) {
-                    final language = _availableLanguages[index];
-                    final languageCode = language['code']!;
-                    final languageName = language['name']!;
+                    final l10n = AppLocalizations.of(context);
+                    final languageCode = languageOptions[index];
+                    final languageName =
+                        _getLanguageName(languageCode, l10n);
                     final isSelected = languageCode == currentLanguage;
 
                     return InkWell(
@@ -250,6 +260,7 @@ class _LanguageSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -282,7 +293,8 @@ class _LanguageSettingsScreenState
                   ),
                   Expanded(
                     child: Text(
-                      AppLocalizations.of(context)?.language ?? 'Language',
+                              AppLocalizations.of(context)?.language ??
+                                  'Language',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -308,8 +320,11 @@ class _LanguageSettingsScreenState
                           InkWell(
                             onTap: () => _showLanguagePicker(
                               context,
-                              'Choose App Language',
+                              AppLocalizations.of(context)
+                                      ?.languageSettingsChooseApp ??
+                                  'Choose App Language',
                               _selectedAppLanguage,
+                              _availableAppLanguageCodes,
                               (language) => setState(
                                   () => _selectedAppLanguage = language),
                             ),
@@ -344,7 +359,9 @@ class _LanguageSettingsScreenState
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'App Language',
+                                          AppLocalizations.of(context)
+                                                  ?.languageSettingsAppLabel ??
+                                              'App Language',
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                             fontWeight: FontWeight.w600,
@@ -353,7 +370,7 @@ class _LanguageSettingsScreenState
                                         const SizedBox(height: 2),
                                         Text(
                                           _getLanguageName(
-                                              _selectedAppLanguage),
+                                              _selectedAppLanguage, l10n),
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                             color: theme.colorScheme.onSurface
@@ -380,8 +397,11 @@ class _LanguageSettingsScreenState
                           InkWell(
                             onTap: () => _showLanguagePicker(
                               context,
-                              'Choose Visit Language',
+                              AppLocalizations.of(context)
+                                      ?.languageSettingsChooseVisit ??
+                                  'Choose Visit Language',
                               _selectedVisitLanguage,
+                              _availableVisitLanguageCodes,
                               (language) => setState(
                                   () => _selectedVisitLanguage = language),
                             ),
@@ -416,7 +436,9 @@ class _LanguageSettingsScreenState
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Visit Language',
+                                          AppLocalizations.of(context)
+                                                  ?.languageSettingsVisitLabel ??
+                                              'Visit Language',
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                             fontWeight: FontWeight.w600,
@@ -425,7 +447,7 @@ class _LanguageSettingsScreenState
                                         const SizedBox(height: 2),
                                         Text(
                                           _getLanguageName(
-                                              _selectedVisitLanguage),
+                                              _selectedVisitLanguage, l10n),
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                             color: theme.colorScheme.onSurface
@@ -474,9 +496,11 @@ class _LanguageSettingsScreenState
                                                 Colors.white),
                                       ),
                                     )
-                                  : const Text(
-                                      'Save Settings',
-                                      style: TextStyle(
+                                  : Text(
+                                      AppLocalizations.of(context)
+                                              ?.languageSettingsSave ??
+                                          'Save Settings',
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.w600),
                                     ),
                             ),
@@ -508,7 +532,9 @@ class _LanguageSettingsScreenState
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Changing visit language affects speech recognition and AI summaries.',
+                                    AppLocalizations.of(context)
+                                            ?.languageSettingsInfo ??
+                                        'Changing visit language affects speech recognition and AI summaries.',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurface
                                           .withOpacity(0.8),

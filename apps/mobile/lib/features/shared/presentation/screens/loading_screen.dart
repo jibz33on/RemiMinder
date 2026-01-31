@@ -5,9 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../auth/data/models/auth_state.dart';
 import '../../../../core/providers/locale_provider.dart';
-import '../../../patient/data/services/patient_api_service.dart';
-import '../../../../core/services/auth_service.dart';
-import '../../../../core/config/environment.dart';
+import '../../../../core/services/preferences_service.dart';
 
 class LoadingScreen extends ConsumerStatefulWidget {
   const LoadingScreen({super.key});
@@ -17,10 +15,14 @@ class LoadingScreen extends ConsumerStatefulWidget {
 }
 
 class _LoadingScreenState extends ConsumerState<LoadingScreen> {
+  bool _hasLoadedLocale = false;
+
   @override
   void initState() {
     super.initState();
     print('🔄 LoadingScreen: Initializing app...');
+
+    Future.microtask(_ensureLocaleLoaded);
 
     // Explicitly trigger auth initialization
     Future.microtask(() {
@@ -29,11 +31,30 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
     });
   }
 
+  Future<void> _ensureLocaleLoaded() async {
+    if (_hasLoadedLocale) return;
+    _hasLoadedLocale = true;
+    try {
+      final prefs = PreferencesService();
+      final appLanguage = await prefs.getAppLanguage();
+      if (!mounted) return;
+      final languageCode =
+          appLanguage?.isNotEmpty == true ? appLanguage! : 'en';
+      ref.read(localeProvider.notifier).setLocaleFromString(languageCode);
+    } catch (e) {
+      print('🔄 LoadingScreen: Failed to load local language: $e');
+      if (!mounted) return;
+      ref.read(localeProvider.notifier).setLocaleFromString('en');
+    }
+  }
+
   Future<void> _handleAuthState(AuthState authState) async {
     print(
         '🔄 LoadingScreen: _handleAuthState called - Status: ${authState.status}');
     print(
         '🔄 LoadingScreen: Auth state - User: ${authState.user?.email ?? 'null'}, Role: ${authState.user?.role ?? 'null'}');
+
+    await _ensureLocaleLoaded();
 
     if (!mounted) {
       print('🔄 LoadingScreen: Widget not mounted, cannot navigate');
@@ -41,45 +62,24 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
     }
 
     if (authState.status == AuthStatus.authenticated) {
-      print(
-          '🔄 LoadingScreen: User authenticated, fetching language preferences...');
+      final user = authState.user;
+      final isOnboardingComplete =
+          await PreferencesService().isVisitLanguageOnboardingComplete();
+      if (!mounted) return;
 
-      // Fetch and apply user's language preferences
-      // Note: Using PatientApiService but this endpoint works for both patients and caregivers
-      try {
-        final authToken = await AuthService().getAccessToken();
-        if (!mounted) return;
-        if (authToken != null) {
-          final apiService = PatientApiService(
-            baseUrl: Environment.apiBaseUrl,
-            authToken: authToken,
-          );
-
-          final languagePrefs = await apiService
-              .getLanguagePreferences()
-              .timeout(const Duration(seconds: 3));
-          if (!mounted) return;
-          final appLanguage = languagePrefs['app_language'] ?? 'en';
-
-          print('🔄 LoadingScreen: Setting app language to: $appLanguage');
-          if (!mounted) return;
-          ref.read(localeProvider.notifier).setLocaleFromString(appLanguage);
-        } else {
-          print(
-              '🔄 LoadingScreen: No auth token available, using default language');
-          if (!mounted) return;
-          ref.read(localeProvider.notifier).setLocaleFromString('en');
-        }
-      } catch (e) {
-        print('🔄 LoadingScreen: Failed to fetch language preferences: $e');
-        print('🔄 LoadingScreen: Using default language (English)');
-        if (!mounted) return;
-        ref.read(localeProvider.notifier).setLocaleFromString('en');
+      if (!isOnboardingComplete && user != null) {
+        final nextRoute = user.isCaregiver ? '/caregiver/home' : '/patient/home';
+        context.go('/onboarding/visit-language?next=$nextRoute');
+        return;
       }
 
-      print('🔄 LoadingScreen: Navigating to role selection...');
-      if (!mounted) return;
-      context.go('/role-selection');
+      if (user?.isPatient ?? false) {
+        context.go('/patient/home');
+      } else if (user?.isCaregiver ?? false) {
+        context.go('/caregiver/home');
+      } else {
+        context.go('/welcome');
+      }
     } else if (authState.status == AuthStatus.unauthenticated) {
       print(
           '🔄 LoadingScreen: User not authenticated, going to welcome screen...');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class EmergencyContactsScreen extends StatefulWidget {
   const EmergencyContactsScreen({super.key});
@@ -50,8 +51,22 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
 
   final List<String> _contactTypes = ['family', 'medical', 'friend', 'other'];
 
+  String _contactTypeLabel(String type, AppLocalizations? l10n) {
+    switch (type) {
+      case 'family':
+        return l10n?.emergencyContactTypeFamily ?? 'Family';
+      case 'medical':
+        return l10n?.emergencyContactTypeMedical ?? 'Medical';
+      case 'friend':
+        return l10n?.emergencyContactTypeFriend ?? 'Friend';
+      default:
+        return l10n?.emergencyContactTypeOther ?? 'Other';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -64,9 +79,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           ),
           onPressed: () => context.go('/patient/home'),
         ),
-        title: const Text(
-          'Emergency Contacts',
-          style: TextStyle(
+        title: Text(
+          l10n?.emergencyContactsTitle ?? 'Emergency Contacts',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -109,16 +124,17 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                     const SizedBox(width: 12),
                     Column(
                       children: [
-                        const Text(
-                          'EMERGENCY SOS',
-                          style: TextStyle(
+                        Text(
+                          l10n?.emergencySosLabel ?? 'EMERGENCY SOS',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
                           ),
                         ),
                         Text(
-                          'Call all emergency contacts',
+                          l10n?.emergencySosSubtitle ??
+                              'Call all emergency contacts',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.white.withOpacity(0.9),
@@ -155,9 +171,10 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Medical Alert Information',
-                          style: TextStyle(
+                        Text(
+                          l10n?.emergencyMedicalAlertTitle ??
+                              'Medical Alert Information',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.red,
@@ -165,7 +182,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Cardiac patient, allergic to penicillin, takes daily medications',
+                          l10n?.emergencyMedicalAlertBody ??
+                              'Cardiac patient, allergic to penicillin, takes daily medications',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.red[700],
@@ -207,6 +225,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   }
 
   Widget _buildContactCard(Map<String, dynamic> contact) {
+    final l10n = AppLocalizations.of(context);
     final type = contact['type'] as String;
     final isSystem = contact['isSystem'] as bool;
     final priority = contact['priority'] as int;
@@ -304,13 +323,13 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   PopupMenuButton<String>(
                     onSelected: (value) => _handleContactAction(contact, value),
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
-                        child: Text('Edit'),
+                        child: Text(l10n?.commonEdit ?? 'Edit'),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
-                        child: Text('Delete'),
+                        child: Text(l10n?.commonDelete ?? 'Delete'),
                       ),
                     ],
                   ),
@@ -368,23 +387,26 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
   void _triggerEmergencySOS() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+        title: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.emergency,
               color: Colors.red,
               size: 28,
             ),
-            SizedBox(width: 8),
-            Text('Emergency SOS'),
+            const SizedBox(width: 8),
+            Text(l10n?.emergencySosDialogTitle ?? 'Emergency SOS'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'This will call ALL emergency contacts simultaneously. Are you sure?',
+            Text(
+              l10n?.emergencySosDialogBody ??
+                  'This will call ALL emergency contacts simultaneously. Are you sure?',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -394,9 +416,10 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 color: Colors.red.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'Emergency contacts will be called in priority order',
-                style: TextStyle(
+              child: Text(
+                l10n?.emergencySosDialogNote ??
+                    'Emergency contacts will be called in priority order',
+                style: const TextStyle(
                   fontSize: 12,
                   color: Colors.red,
                 ),
@@ -408,7 +431,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.commonCancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -419,28 +442,35 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Call Emergency Contacts'),
+            child: Text(l10n?.emergencySosDialogAction ??
+                'Call Emergency Contacts'),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
   void _executeEmergencySOS() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Implement actual emergency calling logic
     // This would call contacts in priority order
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Emergency SOS activated! Calling all contacts...'),
+      SnackBar(
+        content: Text(l10n?.emergencySosActivated ??
+            'Emergency SOS activated! Calling all contacts...'),
         backgroundColor: Colors.red,
       ),
     );
   }
 
   void _callContact(Map<String, dynamic> contact) {
+    final l10n = AppLocalizations.of(context);
     // TODO: Implement actual calling functionality
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Calling ${contact['name']}...')),
+      SnackBar(
+          content: Text(l10n?.emergencyCallingContact(contact['name']) ??
+              'Calling ${contact['name']}...')),
     );
   }
 
@@ -464,7 +494,9 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
           title: Row(
             children: [
               Icon(
@@ -472,7 +504,8 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              const Text('Add Emergency Contact'),
+              Text(l10n?.emergencyAddContactTitle ??
+                  'Add Emergency Contact'),
             ],
           ),
           content: SingleChildScrollView(
@@ -481,30 +514,35 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    hintText: 'Enter contact name',
+                  decoration: InputDecoration(
+                    labelText: l10n?.emergencyContactFullNameLabel ??
+                        'Full Name',
+                    hintText: l10n?.emergencyContactFullNameHint ??
+                        'Enter contact name',
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    hintText: '(555) 123-4567',
+                  decoration: InputDecoration(
+                    labelText:
+                        l10n?.emergencyContactPhoneLabel ?? 'Phone Number',
+                    hintText:
+                        l10n?.emergencyContactPhoneHint ?? '(555) 123-4567',
                   ),
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: 'Contact Type',
+                  decoration: InputDecoration(
+                    labelText:
+                        l10n?.emergencyContactTypeLabel ?? 'Contact Type',
                   ),
                   items: _contactTypes.map((type) {
                     return DropdownMenuItem(
                       value: type,
-                      child: Text(type[0].toUpperCase() + type.substring(1)),
+                      child: Text(_contactTypeLabel(type, l10n)),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -515,9 +553,13 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     onChanged: (value) => relationship = value,
-                    decoration: const InputDecoration(
-                      labelText: 'Relationship',
-                      hintText: 'Spouse, Child, Parent, etc.',
+                    decoration: InputDecoration(
+                      labelText:
+                          l10n?.emergencyContactRelationshipLabel ??
+                              'Relationship',
+                      hintText:
+                          l10n?.emergencyContactRelationshipHint ??
+                              'Spouse, Child, Parent, etc.',
                     ),
                   ),
                 ],
@@ -527,7 +569,7 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n?.commonCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -541,31 +583,39 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('Add Contact'),
+              child: Text(l10n?.emergencyAddContactAction ?? 'Add Contact'),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
   }
 
   void _showEditContactDialog(Map<String, dynamic> contact) {
+    final l10n = AppLocalizations.of(context);
     // TODO: Implement edit contact dialog
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit ${contact['name']} - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.emergencyEditContactComingSoon(
+                  contact['name']) ??
+              'Edit ${contact['name']} - Coming Soon!')),
     );
   }
 
   void _showDeleteContactDialog(Map<String, dynamic> contact) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Contact'),
-        content: Text('Are you sure you want to remove ${contact['name']} from emergency contacts?'),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+        title: Text(l10n?.emergencyDeleteContactTitle ?? 'Delete Contact'),
+        content: Text(l10n?.emergencyDeleteContactBody(contact['name']) ??
+            'Are you sure you want to remove ${contact['name']} from emergency contacts?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n?.commonCancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -574,18 +624,22 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
               });
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Contact removed')),
+                SnackBar(
+                    content: Text(l10n?.emergencyContactRemoved ??
+                        'Contact removed')),
               );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(l10n?.commonDelete ?? 'Delete'),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
   void _addContact(String name, String phone, String type, String relationship) {
+    final l10n = AppLocalizations.of(context);
     final newContact = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'name': name,
@@ -601,14 +655,19 @@ class _EmergencyContactsScreenState extends State<EmergencyContactsScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$name added to emergency contacts')),
+      SnackBar(
+          content: Text(l10n?.emergencyContactAdded(name) ??
+              '$name added to emergency contacts')),
     );
   }
 
   void _editMedicalInfo() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Implement medical info editing
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit medical information - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.emergencyEditMedicalInfoComingSoon ??
+              'Edit medical information - Coming Soon!')),
     );
   }
 }

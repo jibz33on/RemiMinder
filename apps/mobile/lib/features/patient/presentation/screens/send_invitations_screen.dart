@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SendInvitationsScreen extends StatefulWidget {
   const SendInvitationsScreen({super.key});
@@ -19,16 +20,50 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   String? _error;
   List<Map<String, dynamic>> _caregivers = [];
 
-  final List<String> _relationshipOptions = [
-    'Family Member',
-    'Friend',
-    'Spouse/Partner',
-    'Parent',
-    'Child',
-    'Healthcare Professional',
-    'Caregiver',
-    'Other',
-  ];
+  List<Map<String, String>> _relationshipOptions(AppLocalizations? l10n) => [
+        {
+          'value': 'Family Member',
+          'label': l10n?.caregiversRelationshipFamily ?? 'Family Member'
+        },
+        {'value': 'Friend', 'label': l10n?.caregiversRelationshipFriend ?? 'Friend'},
+        {
+          'value': 'Spouse/Partner',
+          'label': l10n?.caregiversRelationshipSpouse ?? 'Spouse/Partner'
+        },
+        {'value': 'Parent', 'label': l10n?.caregiversRelationshipParent ?? 'Parent'},
+        {'value': 'Child', 'label': l10n?.caregiversRelationshipChild ?? 'Child'},
+        {
+          'value': 'Healthcare Professional',
+          'label': l10n?.caregiversRelationshipHealthcare ??
+              'Healthcare Professional'
+        },
+        {'value': 'Caregiver', 'label': l10n?.caregiversRelationshipCaregiver ?? 'Caregiver'},
+        {'value': 'Other', 'label': l10n?.caregiversRelationshipOther ?? 'Other'},
+      ];
+
+  String _relationshipLabel(String value, AppLocalizations? l10n) {
+    switch (value) {
+      case 'Family Member':
+        return l10n?.caregiversRelationshipFamily ?? 'Family Member';
+      case 'Friend':
+        return l10n?.caregiversRelationshipFriend ?? 'Friend';
+      case 'Spouse/Partner':
+        return l10n?.caregiversRelationshipSpouse ?? 'Spouse/Partner';
+      case 'Parent':
+        return l10n?.caregiversRelationshipParent ?? 'Parent';
+      case 'Child':
+        return l10n?.caregiversRelationshipChild ?? 'Child';
+      case 'Healthcare Professional':
+        return l10n?.caregiversRelationshipHealthcare ??
+            'Healthcare Professional';
+      case 'Caregiver':
+        return l10n?.caregiversRelationshipCaregiver ?? 'Caregiver';
+      case 'Other':
+        return l10n?.caregiversRelationshipOther ?? 'Other';
+      default:
+        return value;
+    }
+  }
 
   @override
   void dispose() {
@@ -66,6 +101,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -78,9 +114,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ),
           onPressed: () => context.go('/patient/home'),
         ),
-        title: const Text(
-          'Caregivers',
-          style: TextStyle(
+        title: Text(
+          l10n?.caregiversTitle ?? 'Caregivers',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -108,7 +144,10 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                           : ListView(
                               padding: const EdgeInsets.all(20),
                               children: [
-                                _buildSectionHeader('My Caregivers'),
+                                _buildSectionHeader(
+                                  l10n?.caregiversMyCaregivers ??
+                                      'My Caregivers',
+                                ),
                                 const SizedBox(height: 16),
                                 ..._caregivers.map(
                                   (caregiver) => _buildCaregiverCard(caregiver),
@@ -128,6 +167,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -139,7 +179,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'No caregivers yet',
+            l10n?.caregiversEmptyTitle ?? 'No caregivers yet',
             style: TextStyle(
               fontSize: 20,
               color: Theme.of(context).colorScheme.secondary,
@@ -148,7 +188,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Invite family members or friends\nto help manage your healthcare',
+            l10n?.caregiversEmptySubtitle ??
+                'Invite family members or friends\nto help manage your healthcare',
             style: TextStyle(
               fontSize: 16,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -159,7 +200,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           ElevatedButton.icon(
             onPressed: _showAddCaregiverDialog,
             icon: const Icon(Icons.person_add),
-            label: const Text('Invite First Caregiver'),
+            label: Text(
+                l10n?.caregiversInviteFirst ?? 'Invite First Caregiver'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -170,6 +212,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Widget _buildErrorState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -182,8 +225,10 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
               color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: 16),
-            Text(
-              _error ?? 'Failed to load caregivers',
+          Text(
+            _error ??
+                (l10n?.caregiversLoadFailed ??
+                    'Failed to load caregivers'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -193,7 +238,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadCareTeam,
-              child: const Text('Retry'),
+              child: Text(l10n?.commonRetry ?? 'Retry'),
             ),
           ],
         ),
@@ -223,6 +268,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Widget _buildCaregiverCard(Map<String, dynamic> caregiver) {
+    final l10n = AppLocalizations.of(context);
     final status = caregiver['status'] as String;
     final relationship = caregiver['relationship'] as String;
 
@@ -275,7 +321,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                         ),
                       ),
                       Text(
-                        relationship,
+                        _relationshipLabel(relationship, l10n),
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context)
@@ -301,7 +347,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                      child: const Text('Resend Invite'),
+                      child: Text(
+                          l10n?.caregiversResendInvite ?? 'Resend Invite'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -313,7 +360,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                         foregroundColor: Colors.red,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                      child: const Text('Cancel'),
+                      child:
+                          Text(l10n?.caregiversCancel ?? 'Cancel'),
                     ),
                   ),
                 ],
@@ -327,18 +375,18 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle,
                       color: Colors.green,
                       size: 16,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
-                      'Active Caregiver',
-                      style: TextStyle(
+                      l10n?.caregiversActiveLabel ?? 'Active Caregiver',
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.green,
                         fontWeight: FontWeight.w600,
@@ -372,7 +420,10 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${(caregiver['permissions'] as List).length} perms',
+                              l10n?.caregiversPermissionsCount(
+                                      (caregiver['permissions'] as List)
+                                          .length) ??
+                                  '${(caregiver['permissions'] as List).length} perms',
                               style: const TextStyle(
                                 fontSize: 9,
                                 color: Colors.blue,
@@ -404,7 +455,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${caregiver['activityCount']} acts',
+                            l10n?.caregiversActivityCount(
+                                    caregiver['activityCount']) ??
+                                '${caregiver['activityCount']} acts',
                             style: const TextStyle(
                               fontSize: 9,
                               color: Colors.purple,
@@ -420,7 +473,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
               if (caregiver['lastActivity'] != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Last active: ${_formatLastActivity(caregiver['lastActivity'])}',
+                  l10n?.caregiversLastActive(
+                          _formatLastActivity(caregiver['lastActivity'])) ??
+                      'Last active: ${_formatLastActivity(caregiver['lastActivity'])}',
                   style: TextStyle(
                     fontSize: 10,
                     color: Theme.of(context)
@@ -438,6 +493,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
+    final l10n = AppLocalizations.of(context);
     Color color;
     String text;
     IconData icon;
@@ -445,22 +501,22 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
     switch (status) {
       case 'accepted':
         color = Colors.green;
-        text = 'Active';
+        text = l10n?.caregiversStatusActive ?? 'Active';
         icon = Icons.check_circle;
         break;
       case 'pending':
         color = Colors.orange;
-        text = 'Pending';
+        text = l10n?.caregiversStatusPending ?? 'Pending';
         icon = Icons.schedule;
         break;
       case 'declined':
         color = Colors.red;
-        text = 'Declined';
+        text = l10n?.caregiversStatusDeclined ?? 'Declined';
         icon = Icons.cancel;
         break;
       default:
         color = Colors.grey;
-        text = 'Unknown';
+        text = l10n?.caregiversStatusUnknown ?? 'Unknown';
         icon = Icons.help;
     }
 
@@ -493,7 +549,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setState) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
           title: Row(
             children: [
               Icon(
@@ -501,7 +559,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              const Text('Invite Caregiver'),
+              Text(l10n?.caregiversInviteTitle ?? 'Invite Caregiver'),
             ],
           ),
           content: SingleChildScrollView(
@@ -512,13 +570,15 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                 children: [
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      hintText: 'Enter caregiver\'s full name',
+                    decoration: InputDecoration(
+                      labelText: l10n?.caregiversFullNameLabel ?? 'Full Name',
+                      hintText: l10n?.caregiversFullNameHint ??
+                          'Enter caregiver\'s full name',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a name';
+                        return l10n?.caregiversFullNameRequired ??
+                            'Please enter a name';
                       }
                       return null;
                     },
@@ -527,17 +587,21 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      hintText: 'caregiver@example.com',
+                    decoration: InputDecoration(
+                      labelText:
+                          l10n?.caregiversEmailLabel ?? 'Email Address',
+                      hintText:
+                          l10n?.caregiversEmailHint ?? 'caregiver@example.com',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter an email';
+                        return l10n?.caregiversEmailRequired ??
+                            'Please enter an email';
                       }
                       if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
-                        return 'Please enter a valid email';
+                        return l10n?.caregiversEmailInvalid ??
+                            'Please enter a valid email';
                       }
                       return null;
                     },
@@ -545,13 +609,14 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedRelationship,
-                    decoration: const InputDecoration(
-                      labelText: 'Relationship',
+                    decoration: InputDecoration(
+                      labelText:
+                          l10n?.caregiversRelationshipLabel ?? 'Relationship',
                     ),
-                    items: _relationshipOptions.map((relationship) {
+                    items: _relationshipOptions(l10n).map((relationship) {
                       return DropdownMenuItem(
-                        value: relationship,
-                        child: Text(relationship),
+                        value: relationship['value'],
+                        child: Text(relationship['label'] ?? ''),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -567,7 +632,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n?.caregiversCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: isSending
@@ -591,15 +656,18 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Send Invitation'),
+                  : Text(l10n?.caregiversSendInvitation ??
+                      'Send Invitation'),
             ),
           ],
-        ),
+        );
+        },
       ),
     );
   }
 
   Future<void> _sendInvitation() async {
+    final l10n = AppLocalizations.of(context);
     try {
       final email = _emailController.text.trim();
       final role = _selectedRelationship;
@@ -617,7 +685,9 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitation sent to $email')),
+        SnackBar(
+            content: Text(l10n?.caregiversInvitationSent(email) ??
+                'Invitation sent to $email')),
       );
 
       await _loadCareTeam();
@@ -630,6 +700,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Future<void> _resendInvitation(Map<String, dynamic> caregiver) async {
+    final l10n = AppLocalizations.of(context);
     try {
       await CareTeamApiService().inviteCaregiver(
         email: caregiver['email'] as String,
@@ -638,7 +709,10 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invitation resent to ${caregiver['email']}')),
+        SnackBar(
+            content: Text(l10n?.caregiversInvitationResent(
+                    caregiver['email']) ??
+                'Invitation resent to ${caregiver['email']}')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -651,28 +725,35 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   void _cancelInvitation(Map<String, dynamic> caregiver) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Invitation'),
-        content: const Text('Are you sure you want to cancel this invitation?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Keep'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _removeMember(caregiver['id'] as String);
-            },
-            child: const Text('Cancel Invitation',
-                style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n?.caregiversCancelInvitationTitle ??
+              'Cancel Invitation'),
+          content: Text(l10n?.caregiversCancelInvitationConfirm ??
+              'Are you sure you want to cancel this invitation?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n?.caregiversKeep ?? 'Keep'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeMember(caregiver['id'] as String);
+              },
+              child: Text(l10n?.caregiversCancelInvitationAction ??
+                  'Cancel Invitation',
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void _showPermissionsDialog(Map<String, dynamic> caregiver) {
+    final l10n = AppLocalizations.of(context);
     final currentPermissions = caregiver['permissions'] as List<String>;
 
     showDialog(
@@ -688,7 +769,8 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Permissions for ${caregiver['name']}',
+                  l10n?.caregiversPermissionTitle(caregiver['name']) ??
+                      'Permissions for ${caregiver['name']}',
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -699,48 +781,60 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildPermissionItem(
-                  'View Medications',
-                  'Can see medication schedules and history',
+                  l10n?.caregiversPermissionViewMedications ??
+                      'View Medications',
+                  l10n?.caregiversPermissionViewMedicationsDesc ??
+                      'Can see medication schedules and history',
                   'view_medications',
                   currentPermissions,
                   (updated) =>
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'View Visit Records',
-                  'Can access visit summaries and transcripts',
+                  l10n?.caregiversPermissionViewVisits ??
+                      'View Visit Records',
+                  l10n?.caregiversPermissionViewVisitsDesc ??
+                      'Can access visit summaries and transcripts',
                   'view_visits',
                   currentPermissions,
                   (updated) =>
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'View Health Data',
-                  'Can see health metrics and trends',
+                  l10n?.caregiversPermissionViewHealthData ??
+                      'View Health Data',
+                  l10n?.caregiversPermissionViewHealthDataDesc ??
+                      'Can see health metrics and trends',
                   'view_health_data',
                   currentPermissions,
                   (updated) =>
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'Edit Medications',
-                  'Can modify medication schedules',
+                  l10n?.caregiversPermissionEditMedications ??
+                      'Edit Medications',
+                  l10n?.caregiversPermissionEditMedicationsDesc ??
+                      'Can modify medication schedules',
                   'edit_medications',
                   currentPermissions,
                   (updated) =>
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'Manage Emergency Contacts',
-                  'Can modify emergency contact settings',
+                  l10n?.caregiversPermissionManageEmergency ??
+                      'Manage Emergency Contacts',
+                  l10n?.caregiversPermissionManageEmergencyDesc ??
+                      'Can modify emergency contact settings',
                   'manage_emergency',
                   currentPermissions,
                   (updated) =>
                       setState(() => _updatePermissions(caregiver, updated)),
                 ),
                 _buildPermissionItem(
-                  'Receive Alerts',
-                  'Gets notified of important health events',
+                  l10n?.caregiversPermissionReceiveAlerts ??
+                      'Receive Alerts',
+                  l10n?.caregiversPermissionReceiveAlertsDesc ??
+                      'Gets notified of important health events',
                   'receive_alerts',
                   currentPermissions,
                   (updated) =>
@@ -752,7 +846,7 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n?.caregiversDone ?? 'Done'),
             ),
           ],
         ),
@@ -822,12 +916,15 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   Future<void> _removeMember(String memberId) async {
+    final l10n = AppLocalizations.of(context);
     try {
       await CareTeamApiService().removeMember(memberId: memberId);
       await _loadCareTeam();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Access removed')),
+        SnackBar(
+            content: Text(l10n?.caregiversAccessRemoved ??
+                'Access removed')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -887,17 +984,21 @@ class _SendInvitationsScreenState extends State<SendInvitationsScreen> {
   }
 
   String _formatLastActivity(DateTime lastActivity) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = now.difference(lastActivity);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return l10n?.caregiversLastActiveDays(difference.inDays) ??
+          '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return l10n?.caregiversLastActiveHours(difference.inHours) ??
+          '${difference.inHours}h ago';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return l10n?.caregiversLastActiveMinutes(difference.inMinutes) ??
+          '${difference.inMinutes}m ago';
     } else {
-      return 'Just now';
+      return l10n?.caregiversLastActiveJustNow ?? 'Just now';
     }
   }
 }

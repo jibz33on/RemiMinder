@@ -7,6 +7,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/consent_service.dart';
 import '../../../../core/services/visit_context.dart';
 import '../../../../core/config/environment.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class VisitRecordingScreen extends StatefulWidget {
   final String visitId;
@@ -47,6 +48,7 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -59,9 +61,9 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
           ),
           onPressed: _handleClose,
         ),
-        title: const Text(
-          'Record Visit',
-          style: TextStyle(
+        title: Text(
+          l10n?.visitRecordingTitle ?? 'Record Visit',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -70,7 +72,7 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
             TextButton(
               onPressed: _saveRecording,
               child: Text(
-                'Save',
+                l10n?.visitRecordingSave ?? 'Save',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w600,
@@ -301,7 +303,9 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         ElevatedButton.icon(
           onPressed: _saveRecording,
           icon: const Icon(Icons.save, size: 20),
-          label: const Text('Generate Summary'),
+          label: Text(
+              AppLocalizations.of(context)?.visitRecordingGenerateSummary ??
+                  'Generate Summary'),
           style: ElevatedButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.primary,
             foregroundColor: Colors.white,
@@ -320,7 +324,9 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         OutlinedButton.icon(
           onPressed: _discardRecording,
           icon: const Icon(Icons.delete_outline, size: 20),
-          label: const Text('Discard Recording'),
+          label: Text(
+              AppLocalizations.of(context)?.visitRecordingDiscardRecording ??
+                  'Discard Recording'),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Colors.red),
             foregroundColor: Colors.red,
@@ -400,10 +406,11 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       print('🎬 Recording failed - permission denied or initialization error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingMicPermission ??
                 'Microphone permission is required. Please enable it in Settings > RemiMinder > Microphone.'),
-            duration: Duration(seconds: 5),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -423,11 +430,17 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
     if (recordingPath != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Recording completed!')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingCompleted ??
+                'Recording completed!')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save recording')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingSaveFailed ??
+                'Failed to save recording')),
       );
     }
   }
@@ -463,7 +476,10 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
     // Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recording discarded')),
+      SnackBar(
+          content: Text(AppLocalizations.of(context)
+                  ?.visitRecordingDiscarded ??
+              'Recording discarded')),
     );
   }
 
@@ -472,13 +488,19 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
     if (_audioFilePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No recording available')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingNoRecording ??
+                'No recording available')),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Uploading audio...')),
+      SnackBar(
+          content: Text(AppLocalizations.of(context)
+                  ?.visitRecordingUploadingAudio ??
+              'Uploading audio...')),
     );
 
     try {
@@ -499,28 +521,36 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
 
       await showDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('✅ Your visit is being processed'),
-          content: const Text(
-            'This may take ~30–60 seconds.\n'
-            "You can continue using the app. We’ll notify you when it’s ready.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.go('/patient/home');
-              },
-              child: const Text('Go to Home'),
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n?.visitRecordingProcessingTitle ??
+                '✅ Your visit is being processed'),
+            content: Text(
+              l10n?.visitRecordingProcessingBody ??
+                  'This may take ~30–60 seconds.\nYou can continue using the app. We\'ll notify you when it\'s ready.',
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/patient/home');
+                },
+                child: Text(
+                    l10n?.visitRecordingGoToHome ?? 'Go to Home'),
+              ),
+            ],
+          );
+        },
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload audio: $e')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingUploadFailed(e.toString()) ??
+                'Failed to upload audio: $e')),
       );
     }
   }
@@ -591,26 +621,32 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       // Show confirmation dialog
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Stop Recording?'),
-          content: const Text(
-              'Are you sure you want to stop recording? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Continue Recording'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _stopRecording();
-                if (!mounted) return;
-                context.go('/patient/home');
-              },
-              child: const Text('Stop & Discard'),
-            ),
-          ],
-        ),
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n?.visitRecordingStopTitle ??
+                'Stop Recording?'),
+            content: Text(l10n?.visitRecordingStopConfirm ??
+                'Are you sure you want to stop recording? This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n?.visitRecordingContinue ??
+                    'Continue Recording'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await _stopRecording();
+                  if (!mounted) return;
+                  context.go('/patient/home');
+                },
+                child: Text(l10n?.visitRecordingStopAndDiscard ??
+                    'Stop & Discard'),
+              ),
+            ],
+          );
+        },
       );
     } else {
       context.go('/patient/home');
@@ -635,24 +671,29 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   String _getStatusText() {
+    final l10n = AppLocalizations.of(context);
     switch (_recordingState) {
       case RecordingState.idle:
-        return 'Ready to Record';
+        return l10n?.visitRecordingStatusReady ?? 'Ready to Record';
       case RecordingState.recording:
-        return 'Recording...';
+        return l10n?.visitRecordingStatusRecording ?? 'Recording...';
       case RecordingState.completed:
-        return 'Recording complete';
+        return l10n?.visitRecordingStatusComplete ?? 'Recording complete';
     }
   }
 
   String _getRecordingInstructions() {
+    final l10n = AppLocalizations.of(context);
     switch (_recordingState) {
       case RecordingState.idle:
-        return 'Tap to start recording your visit\nYour recording stays private and secure';
+        return l10n?.visitRecordingInstructionIdle ??
+            'Tap to start recording your visit\nYour recording stays private and secure';
       case RecordingState.recording:
-        return 'Recording in progress...';
+        return l10n?.visitRecordingInstructionRecording ??
+            'Recording in progress...';
       case RecordingState.completed:
-        return 'Recording complete!\nTap Generate to process your visit summary';
+        return l10n?.visitRecordingInstructionComplete ??
+            'Recording complete!\nTap Generate to process your visit summary';
     }
   }
 
@@ -661,26 +702,29 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
+            final l10n = AppLocalizations.of(context);
             return AlertDialog(
-              title: const Text('Audio Recording'),
-              content: const Text(
-                'Recording helps create visit notes, summaries, and reminders.\n\n'
-                '• Audio is recorded only when you tap Record\n'
-                '• Recordings are processed securely and deleted from your phone\n'
-                '• You can stop recording at any time\n\n'
-                'Would you like to proceed?',
-              ),
+              title: Text(l10n?.visitRecordingAudioPermissionTitle ??
+                  'Audio Recording'),
+              content: Text(l10n?.visitRecordingAudioConsentBody ??
+                  'Recording helps create visit notes, summaries, and reminders.\n\n'
+                      '• Audio is recorded only when you tap Record\n'
+                      '• Recordings are processed securely and deleted from your phone\n'
+                      '• You can stop recording at any time\n\n'
+                      'Would you like to proceed?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Not Now'),
+                  child:
+                      Text(l10n?.visitRecordingNotNow ?? 'Not Now'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     await _consentService.acceptAudioConsent();
                     Navigator.of(context).pop(true);
                   },
-                  child: const Text('Yes, Record'),
+                  child: Text(
+                      l10n?.visitRecordingYesRecord ?? 'Yes, Record'),
                 ),
               ],
             );

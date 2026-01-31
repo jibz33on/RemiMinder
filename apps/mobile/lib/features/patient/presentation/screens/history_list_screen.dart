@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/widgets.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HistoryListScreen extends StatefulWidget {
   const HistoryListScreen({super.key});
@@ -78,14 +79,15 @@ class _HistoryListScreenState extends State<HistoryListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          'History',
-          style: TextStyle(
+        title: Text(
+          l10n?.historyTitle ?? 'History',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -124,7 +126,8 @@ class _HistoryListScreenState extends State<HistoryListScreen>
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'Search events, documents, visits...',
+                        hintText: l10n?.historySearchHint ??
+                            'Search events, documents, visits...',
                         prefixIcon: const Icon(Icons.search),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
@@ -152,10 +155,14 @@ class _HistoryListScreenState extends State<HistoryListScreen>
                   unselectedLabelColor: Theme.of(context).colorScheme.secondary,
                   indicatorColor: Theme.of(context).colorScheme.primary,
                   indicatorWeight: 3,
-                  tabs: const [
-                    Tab(text: 'ALL'),
-                    Tab(text: 'SCANNED DOCS'),
-                    Tab(text: 'LAB RESULTS'),
+                  tabs: [
+                    Tab(text: l10n?.historyTabAll ?? 'ALL'),
+                    Tab(
+                        text: l10n?.historyTabScannedDocs ??
+                            'SCANNED DOCS'),
+                    Tab(
+                        text: l10n?.historyTabLabResults ??
+                            'LAB RESULTS'),
                   ],
                 ),
 
@@ -182,6 +189,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildAllEvents() {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -200,7 +208,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'Failed to load history',
+              l10n?.historyLoadFailed ?? 'Failed to load history',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -218,7 +226,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _fetchVisitSummaries,
-              child: const Text('Retry'),
+              child: Text(l10n?.historyRetry ?? 'Retry'),
             ),
           ],
         ),
@@ -228,10 +236,12 @@ class _HistoryListScreenState extends State<HistoryListScreen>
     // Convert visit summaries to HistoryEvent objects
     final events = _visitSummaries.map((summary) {
       return HistoryEvent(
-        title: summary['title'] ?? 'Visit Summary',
-        description: summary['summary'] ?? 'No summary available',
+        title: summary['title'] ??
+            (l10n?.historyVisitSummaryFallback ?? 'Visit Summary'),
+        description: summary['summary'] ??
+            (l10n?.historyNoSummary ?? 'No summary available'),
         date:
-            '${summary['date'] ?? 'Unknown date'} at ${summary['time'] ?? 'Unknown time'}',
+            '${summary['date'] ?? (l10n?.historyUnknownDate ?? 'Unknown date')} at ${summary['time'] ?? (l10n?.historyUnknownTime ?? 'Unknown time')}',
         type: 'visit_recording',
         category: 'visit',
         icon: Icons.mic,
@@ -254,6 +264,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildScannedDocuments() {
+    final l10n = AppLocalizations.of(context);
     // For now, show empty state since we only have visit recordings
     return Center(
       child: Column(
@@ -266,7 +277,8 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'No scanned documents yet',
+            l10n?.historyNoScannedDocs ??
+                'No scanned documents yet',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -274,7 +286,8 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Scanned prescriptions and documents will appear here',
+            l10n?.historyNoScannedDocsSubtitle ??
+                'Scanned prescriptions and documents will appear here',
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,
@@ -287,6 +300,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildLabResults() {
+    final l10n = AppLocalizations.of(context);
     // For now, show empty state since we only have visit recordings
     return Center(
       child: Column(
@@ -299,7 +313,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'No lab results yet',
+            l10n?.historyNoLabResults ?? 'No lab results yet',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -307,7 +321,8 @@ class _HistoryListScreenState extends State<HistoryListScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Lab results and test reports will appear here',
+            l10n?.historyNoLabResultsSubtitle ??
+                'Lab results and test reports will appear here',
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 12,
@@ -320,6 +335,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   Widget _buildEventList(List<HistoryEvent> events) {
+    final l10n = AppLocalizations.of(context);
     if (events.isEmpty) {
       return Center(
         child: Column(
@@ -333,8 +349,9 @@ class _HistoryListScreenState extends State<HistoryListScreen>
             const SizedBox(height: 16),
             Text(
               _searchQuery.isNotEmpty
-                  ? 'No events found for "$_searchQuery"'
-                  : 'No events yet',
+                  ? (l10n?.historyNoEventsSearch(_searchQuery) ??
+                      'No events found for "$_searchQuery"')
+                  : (l10n?.historyNoEvents ?? 'No events yet'),
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -452,6 +469,7 @@ class _HistoryListScreenState extends State<HistoryListScreen>
   }
 
   void _onEventTap(HistoryEvent event) {
+    final l10n = AppLocalizations.of(context);
     // Navigate based on event type
     switch (event.type) {
       case 'visit_recording':
@@ -464,7 +482,9 @@ class _HistoryListScreenState extends State<HistoryListScreen>
       case 'document_scan':
       case 'lab_report':
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Document viewer coming soon')),
+          SnackBar(
+              content: Text(l10n?.historyDocumentViewerSoon ??
+                  'Document viewer coming soon')),
         );
         break;
       case 'medication_taken':
@@ -472,7 +492,9 @@ class _HistoryListScreenState extends State<HistoryListScreen>
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Feature coming soon')),
+          SnackBar(
+              content:
+                  Text(l10n?.historyFeatureSoon ?? 'Feature coming soon')),
         );
     }
   }

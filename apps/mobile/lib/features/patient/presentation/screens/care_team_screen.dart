@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../care_team/data/models/care_team_invitation.dart';
 import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CareTeamScreen extends StatefulWidget {
   const CareTeamScreen({super.key});
@@ -98,6 +99,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -118,9 +120,9 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                   end: Alignment.centerRight,
                 ),
               ),
-              child: const Text(
-                'Care Team',
-                style: TextStyle(
+              child: Text(
+                l10n?.careTeamTitle ?? 'Care Team',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
@@ -138,7 +140,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                   children: [
                     // Subtitle
                     Text(
-                      'You are in control. Review your sharing permissions below.',
+                      l10n?.careTeamSubtitle ??
+                          'You are in control. Review your sharing permissions below.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withOpacity(0.7),
                         height: 1.5,
@@ -168,7 +171,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: Text(
-                          'No caregivers added yet',
+                          l10n?.careTeamEmptyCaregivers ??
+                              'No caregivers added yet',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.7),
                           ),
@@ -179,7 +183,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Active Caregivers',
+                            l10n?.careTeamActiveCaregivers ??
+                                'Active Caregivers',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -194,6 +199,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                                   role: member.role,
                                   accessLevel:
                                       _formatAccessLabel(member.permission),
+                                  isFullAccess:
+                                      member.permission == 'full',
                                   onManagePermissions: () {
                                     _showManageDialog(context, member);
                                   },
@@ -207,7 +214,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'Pending Invitations',
+                            l10n?.careTeamPendingInvitations ??
+                                'Pending Invitations',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -248,33 +256,38 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
+        final l10n = AppLocalizations.of(context);
         return AlertDialog(
-          title: const Text('Invite Caregiver'),
+          title: Text(l10n?.careTeamInviteTitle ?? 'Invite Caregiver'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'Enter caregiver\'s full name',
+                decoration: InputDecoration(
+                  labelText: l10n?.careTeamInviteNameLabel ?? 'Name',
+                  hintText: l10n?.careTeamInviteNameHint ??
+                      'Enter caregiver\'s full name',
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter caregiver\'s email address',
+                decoration: InputDecoration(
+                  labelText: l10n?.careTeamInviteEmailLabel ?? 'Email',
+                  hintText: l10n?.careTeamInviteEmailHint ??
+                      'Enter caregiver\'s email address',
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: relationshipController,
-                decoration: const InputDecoration(
-                  labelText: 'Relationship',
-                  hintText: 'e.g., Son, Daughter, Friend, Nurse',
+                decoration: InputDecoration(
+                  labelText:
+                      l10n?.careTeamInviteRelationshipLabel ?? 'Relationship',
+                  hintText: l10n?.careTeamInviteRelationshipHint ??
+                      'e.g., Son, Daughter, Friend, Nurse',
                 ),
               ),
             ],
@@ -284,7 +297,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Cancel'),
+              child: Text(l10n?.commonCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -292,15 +305,16 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                 final role = relationshipController.text.trim();
                 if (email.isEmpty || role.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Email and role are required')),
+                    SnackBar(
+                        content: Text(l10n?.careTeamInviteRequiredFields ??
+                            'Email and role are required')),
                   );
                   return;
                 }
                 Navigator.of(dialogContext).pop();
                 _inviteCaregiver(email: email, role: role);
               },
-              child: const Text('Send Invite'),
+              child: Text(l10n?.careTeamInviteSend ?? 'Send Invite'),
             ),
           ],
         );
@@ -333,6 +347,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final l10n = AppLocalizations.of(context);
             bool isLoading = false;
             String? errorMessage;
             String? successMessage;
@@ -350,7 +365,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               if (!mounted) return;
               if (success) {
                 setDialogState(() {
-                  successMessage = 'Access updated successfully';
+                  successMessage = l10n?.careTeamAccessUpdated ??
+                      'Access updated successfully';
                 });
                 await Future.delayed(const Duration(milliseconds: 800));
                 if (!mounted) return;
@@ -359,7 +375,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                 setDialogState(() {
                   isLoading = false;
                   successMessage = null;
-                  errorMessage = 'Failed to update access. Please try again.';
+                  errorMessage = l10n?.careTeamAccessUpdateFailed ??
+                      'Failed to update access. Please try again.';
                 });
               }
             }
@@ -368,19 +385,19 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               final confirmed = await showDialog<bool>(
                 context: dialogContext,
                 builder: (context) => AlertDialog(
-                  title: const Text('Remove caregiver?'),
-                  content: const Text(
-                    'Are you sure you want to remove this caregiver? They will lose access immediately.',
-                  ),
+                  title: Text(
+                      l10n?.careTeamRemoveTitle ?? 'Remove caregiver?'),
+                  content: Text(l10n?.careTeamRemoveBody ??
+                      'Are you sure you want to remove this caregiver? They will lose access immediately.'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
+                      child: Text(l10n?.commonCancel ?? 'Cancel'),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Remove'),
+                      child: Text(l10n?.careTeamRemoveConfirm ?? 'Remove'),
                     ),
                   ],
                 ),
@@ -391,7 +408,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               setDialogState(() {
                 isLoading = true;
                 errorMessage = null;
-                successMessage = 'Removing caregiver...';
+                successMessage = l10n?.careTeamRemoving ??
+                    'Removing caregiver...';
               });
 
               final success = await _applyRemoveMember(member.id);
@@ -402,19 +420,21 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                 setDialogState(() {
                   isLoading = false;
                   successMessage = null;
-                  errorMessage =
+                  errorMessage = l10n?.careTeamRemoveFailed ??
                       'Failed to remove caregiver. Please try again.';
                 });
               }
             }
 
             return AlertDialog(
-              title: const Text('Manage Access'),
+              title:
+                  Text(l10n?.careTeamManageAccessTitle ?? 'Manage Access'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Update caregiver permission or remove access.'),
+                  Text(l10n?.careTeamManageAccessSubtitle ??
+                      'Update caregiver permission or remove access.'),
                   if (successMessage != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -443,18 +463,22 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                       ? null
                       : () => handleAction(
                             () => _applyPermissionChange(member.id, 'view'),
-                            'Updating access...',
+                            l10n?.careTeamUpdatingAccess ??
+                                'Updating access...',
                           ),
-                  child: const Text('View Access'),
+                  child: Text(
+                      l10n?.careTeamAccessView ?? 'View Access'),
                 ),
                 TextButton(
                   onPressed: isLoading
                       ? null
                       : () => handleAction(
                             () => _applyPermissionChange(member.id, 'full'),
-                            'Updating access...',
+                            l10n?.careTeamUpdatingAccess ??
+                                'Updating access...',
                           ),
-                  child: const Text('Full Access'),
+                  child: Text(
+                      l10n?.careTeamAccessFull ?? 'Full Access'),
                 ),
                 TextButton(
                   onPressed: isLoading ? null : handleRemove,
@@ -467,7 +491,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Remove'),
+                      : Text(l10n?.careTeamRemoveConfirm ?? 'Remove'),
                 ),
               ],
             );
@@ -506,14 +530,18 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
   }
 
   String _formatAccessLabel(String permission) {
-    return permission == "full" ? "Full Access" : "View Only";
+    final l10n = AppLocalizations.of(context);
+    return permission == "full"
+        ? (l10n?.careTeamAccessFull ?? "Full Access")
+        : (l10n?.careTeamAccessViewOnly ?? "View Only");
   }
 
   Future<void> _resendInvitation(CareTeamInvitation invitation) async {
+    final l10n = AppLocalizations.of(context);
     _setPendingActionState(
       invitation.id,
       isLoading: true,
-      message: 'Resending invitation...',
+      message: l10n?.careTeamResendingInvite ?? 'Resending invitation...',
       isError: false,
     );
     try {
@@ -521,7 +549,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       _setPendingActionState(
         invitation.id,
         isLoading: false,
-        message: 'Invitation resent',
+        message: l10n?.careTeamInviteResent ?? 'Invitation resent',
         isError: false,
       );
       await Future.delayed(const Duration(milliseconds: 800));
@@ -531,17 +559,19 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       _setPendingActionState(
         invitation.id,
         isLoading: false,
-        message: 'Failed to resend invitation',
+        message:
+            l10n?.careTeamInviteResendFailed ?? 'Failed to resend invitation',
         isError: true,
       );
     }
   }
 
   Future<void> _cancelInvitation(CareTeamInvitation invitation) async {
+    final l10n = AppLocalizations.of(context);
     _setPendingActionState(
       invitation.id,
       isLoading: true,
-      message: 'Canceling invitation...',
+      message: l10n?.careTeamCancelingInvite ?? 'Canceling invitation...',
       isError: false,
     );
     try {
@@ -550,7 +580,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       _setPendingActionState(
         invitation.id,
         isLoading: false,
-        message: 'Invitation canceled',
+        message: l10n?.careTeamInviteCanceled ?? 'Invitation canceled',
         isError: false,
       );
       await Future.delayed(const Duration(milliseconds: 800));
@@ -560,7 +590,8 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
       _setPendingActionState(
         invitation.id,
         isLoading: false,
-        message: 'Failed to cancel invitation',
+        message:
+            l10n?.careTeamInviteCancelFailed ?? 'Failed to cancel invitation',
         isError: true,
       );
     }
@@ -582,6 +613,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
 
   Widget _buildPendingInvitationCard(CareTeamInvitation invitation) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isLoading = _pendingActionLoading[invitation.id] == true;
     final message = _pendingActionMessage[invitation.id];
     final isError = _pendingActionIsError[invitation.id] == true;
@@ -614,9 +646,9 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               color: Colors.orange.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text(
-              'Invitation Pending',
-              style: TextStyle(
+            child: Text(
+              l10n?.careTeamInvitationPending ?? 'Invitation Pending',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.orange,
@@ -642,7 +674,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
               TextButton(
                 onPressed:
                     isLoading ? null : () => _resendInvitation(invitation),
-                child: const Text('Resend'),
+                child: Text(l10n?.careTeamResend ?? 'Resend'),
               ),
               const SizedBox(width: 8),
               TextButton(
@@ -657,7 +689,7 @@ class _CareTeamScreenState extends State<CareTeamScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Cancel'),
+                    : Text(l10n?.commonCancel ?? 'Cancel'),
               ),
             ],
           ),
@@ -674,6 +706,7 @@ class CaregiverTile extends StatelessWidget {
   final String name;
   final String role;
   final String accessLevel;
+  final bool isFullAccess;
   final VoidCallback onManagePermissions;
 
   const CaregiverTile({
@@ -681,13 +714,14 @@ class CaregiverTile extends StatelessWidget {
     required this.name,
     required this.role,
     required this.accessLevel,
+    required this.isFullAccess,
     required this.onManagePermissions,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isFullAccess = accessLevel == 'Full Access';
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -764,7 +798,7 @@ class CaregiverTile extends StatelessWidget {
           // Action
           TextButton(
             onPressed: onManagePermissions,
-            child: const Text('Manage'),
+            child: Text(l10n?.careTeamManageButton ?? 'Manage'),
           ),
         ],
       ),
@@ -786,6 +820,7 @@ class InviteCaregiverTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return InkWell(
       onTap: onInvite,
@@ -816,14 +851,15 @@ class InviteCaregiverTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Invite Caregiver',
+                    l10n?.careTeamInviteTileTitle ?? 'Invite Caregiver',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Share access to your health information',
+                    l10n?.careTeamInviteTileSubtitle ??
+                        'Share access to your health information',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),

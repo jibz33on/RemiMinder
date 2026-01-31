@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -19,7 +21,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: TextButton(
                   onPressed: () => context.go('/role-selection'),
                   child: Text(
-                    'Skip',
+                    l10n?.commonSkip ?? 'Skip',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontSize: 16,
@@ -46,7 +48,7 @@ class WelcomeScreen extends StatelessWidget {
 
                     // Welcome Title
                     Text(
-                      'Welcome to RemiMinder',
+                      l10n?.welcomeTitle ?? 'Welcome to RemiMinder',
                       style:
                           Theme.of(context).textTheme.headlineLarge?.copyWith(
                                 fontSize: 28,
@@ -59,7 +61,8 @@ class WelcomeScreen extends StatelessWidget {
 
                     // Subtitle
                     Text(
-                      'Smart AI for Health & Care Coordination',
+                      l10n?.welcomeSubtitle ??
+                          'Smart AI for Health & Care Coordination',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(context).colorScheme.secondary,
                             fontSize: 18,
@@ -71,7 +74,8 @@ class WelcomeScreen extends StatelessWidget {
 
                     // Description
                     Text(
-                      'Your intelligent companion for medication reminders, appointment tracking, and care coordination. Never miss an important health moment again.',
+                      l10n?.welcomeDescription ??
+                          'Your intelligent companion for medication reminders, appointment tracking, and care coordination. Never miss an important health moment again.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             height: 1.5,
                           ),
@@ -84,16 +88,17 @@ class WelcomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => context.go('/role-selection'),
+                        onPressed: () =>
+                            context.go('/onboarding/app-language'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Get Started',
-                          style: TextStyle(
+                        child: Text(
+                          l10n?.welcomeGetStarted ?? 'Get Started',
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),

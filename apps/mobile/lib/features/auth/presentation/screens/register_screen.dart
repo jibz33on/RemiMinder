@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -26,36 +27,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _acceptTerms = false;
 
   /// Convert technical errors to user-friendly messages
-  String _getUserFriendlyErrorMessage(dynamic error) {
+  String _getUserFriendlyErrorMessage(
+      dynamic error, AppLocalizations? l10n) {
     final errorString = error.toString().toLowerCase();
 
     // Authentication errors
     if (errorString.contains('user already registered') ||
         errorString.contains('account with this email already exists')) {
-      return 'An account with this email already exists. Please sign in instead.';
+      return l10n?.registerAccountExists ??
+          'An account with this email already exists. Please sign in instead.';
     }
 
     if (errorString.contains('weak password') ||
         errorString.contains('password')) {
-      return 'Password is too weak. Please use at least 8 characters with letters and numbers.';
+      return l10n?.registerWeakPassword ??
+          'Password is too weak. Please use at least 8 characters with letters and numbers.';
     }
 
     if (errorString.contains('invalid email')) {
-      return 'Please enter a valid email address.';
+      return l10n?.registerEmailInvalid ?? 'Please enter a valid email address.';
     }
 
     // Network/API errors
     if (errorString.contains('connection refused') ||
         errorString.contains('network')) {
-      return 'Connection error. Please check your internet connection and try again.';
+      return l10n?.registerConnectionError ??
+          'Connection error. Please check your internet connection and try again.';
     }
 
     if (errorString.contains('timeout')) {
-      return 'Request timed out. Please try again.';
+      return l10n?.registerRequestTimedOut ??
+          'Request timed out. Please try again.';
     }
 
     // Generic fallback
-    return 'Registration failed. Please try again or contact support if the problem persists.';
+    return l10n?.registerFailedGeneric ??
+        'Registration failed. Please try again or contact support if the problem persists.';
   }
 
   @override
@@ -70,6 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -95,7 +103,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 // Title
                 Text(
-                  'Create Account',
+                  l10n?.registerTitle ?? 'Create Account',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -106,7 +114,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 // Subtitle
                 Text(
-                  'Join RemiMinder to get started',
+                  l10n?.registerSubtitle ?? 'Join RemiMinder to get started',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Theme.of(context).colorScheme.secondary,
                         fontSize: 18,
@@ -121,13 +129,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _firstNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'First Name',
-                          hintText: 'John',
+                        decoration: InputDecoration(
+                          labelText:
+                              l10n?.registerFirstNameLabel ?? 'First Name',
+                          hintText: l10n?.registerFirstNameHint ?? 'John',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your first name';
+                            return l10n?.registerFirstNameRequired ??
+                                'Please enter your first name';
                           }
                           return null;
                         },
@@ -137,13 +147,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _lastNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Last Name',
-                          hintText: 'Doe',
+                        decoration: InputDecoration(
+                          labelText: l10n?.registerLastNameLabel ?? 'Last Name',
+                          hintText: l10n?.registerLastNameHint ?? 'Doe',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your last name';
+                            return l10n?.registerLastNameRequired ??
+                                'Please enter your last name';
                           }
                           return null;
                         },
@@ -159,8 +170,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'john.doe@example.com',
+                    labelText: l10n?.registerEmailLabel ?? 'Email',
+                    hintText:
+                        l10n?.registerEmailHint ?? 'john.doe@example.com',
                     prefixIcon: Icon(
                       Icons.email_outlined,
                       color: Theme.of(context).colorScheme.primary,
@@ -168,11 +180,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return l10n?.registerEmailRequired ??
+                          'Please enter your email';
                     }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                         .hasMatch(value)) {
-                      return 'Please enter a valid email';
+                      return l10n?.registerEmailInvalid ??
+                          'Please enter a valid email';
                     }
                     return null;
                   },
@@ -185,8 +199,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Password',
-                    hintText: 'Create a strong password',
+                    labelText: l10n?.registerPasswordLabel ?? 'Password',
+                    hintText:
+                        l10n?.registerPasswordHint ?? 'Create a strong password',
                     prefixIcon: Icon(
                       Icons.lock_outline,
                       color: Theme.of(context).colorScheme.primary,
@@ -207,10 +222,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return l10n?.registerPasswordRequired ??
+                          'Please enter a password';
                     }
                     if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
+                      return l10n?.registerPasswordTooShort ??
+                          'Password must be at least 8 characters';
                     }
                     return null;
                   },
@@ -223,8 +240,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
-                    labelText: 'Confirm Password',
-                    hintText: 'Re-enter your password',
+                    labelText:
+                        l10n?.registerConfirmPasswordLabel ?? 'Confirm Password',
+                    hintText: l10n?.registerConfirmPasswordHint ??
+                        'Re-enter your password',
                     prefixIcon: Icon(
                       Icons.lock_outline,
                       color: Theme.of(context).colorScheme.primary,
@@ -245,10 +264,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
+                      return l10n?.registerConfirmPasswordRequired ??
+                          'Please confirm your password';
                     }
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return l10n?.registerPasswordMismatch ??
+                          'Passwords do not match';
                     }
                     return null;
                   },
@@ -276,9 +297,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             fontSize: 14,
                           ),
                           children: [
-                            const TextSpan(text: 'By creating an account, you agree to our '),
                             TextSpan(
-                              text: 'Terms of Service',
+                                text: l10n?.registerTermsIntro ??
+                                    'By creating an account, you agree to our '),
+                            TextSpan(
+                              text: l10n?.registerTermsOfService ??
+                                  'Terms of Service',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
@@ -287,9 +311,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               recognizer: TapGestureRecognizer()
                                 ..onTap = _showTermsOfService,
                             ),
-                            const TextSpan(text: ' and '),
                             TextSpan(
-                              text: 'Privacy Policy',
+                                text: l10n?.registerAnd ?? ' and '),
+                            TextSpan(
+                              text: l10n?.registerPrivacyPolicy ??
+                                  'Privacy Policy',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
@@ -321,9 +347,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).disabledColor,
                     ),
-                    child: const Text(
-                      'Create Account',
-                      style: TextStyle(
+                    child: Text(
+                      l10n?.registerCreateAccountButton ?? 'Create Account',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -338,7 +364,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      l10n?.registerAlreadyHaveAccount ??
+                          'Already have an account? ',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.secondary,
                       ),
@@ -346,7 +373,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     TextButton(
                       onPressed: () => context.go('/login'),
                       child: Text(
-                        'Sign In',
+                        l10n?.registerSignIn ?? 'Sign In',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -383,31 +410,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
 
   void _showTermsOfService() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Terms of Service'),
-          content: const SingleChildScrollView(
+          title: Text(l10n?.registerTermsTitle ?? 'Terms of Service'),
+          content: SingleChildScrollView(
             child: Text(
-              'Terms of Service for RemiMinder\n\n'
-              '1. Acceptance of Terms\n'
-              'By using RemiMinder, you agree to these terms.\n\n'
-              '2. Use of Service\n'
-              'RemiMinder is designed to help manage healthcare and medication reminders.\n\n'
-              '3. Privacy\n'
-              'Your privacy is important to us. All health data is handled securely.\n\n'
-              '4. Account Responsibility\n'
-              'You are responsible for maintaining the confidentiality of your account.\n\n'
-              '5. Limitation of Liability\n'
-              'RemiMinder is not a substitute for professional medical advice.\n\n'
-              'For the complete Terms of Service, please visit our website.',
+              l10n?.registerTermsBody ??
+                  'Terms of Service for RemiMinder\n\n'
+                      '1. Acceptance of Terms\n'
+                      'By using RemiMinder, you agree to these terms.\n\n'
+                      '2. Use of Service\n'
+                      'RemiMinder is designed to help manage healthcare and medication reminders.\n\n'
+                      '3. Privacy\n'
+                      'Your privacy is important to us. All health data is handled securely.\n\n'
+                      '4. Account Responsibility\n'
+                      'You are responsible for maintaining the confidentiality of your account.\n\n'
+                      '5. Limitation of Liability\n'
+                      'RemiMinder is not a substitute for professional medical advice.\n\n'
+                      'For the complete Terms of Service, please visit our website.',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(l10n?.commonClose ?? 'Close'),
             ),
           ],
         );
@@ -416,31 +445,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _showPrivacyPolicy() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Privacy Policy'),
-          content: const SingleChildScrollView(
+          title: Text(l10n?.registerPrivacyTitle ?? 'Privacy Policy'),
+          content: SingleChildScrollView(
             child: Text(
-              'Privacy Policy for RemiMinder\n\n'
-              '1. Information We Collect\n'
-              'We collect information you provide and usage data to improve our service.\n\n'
-              '2. How We Use Information\n'
-              'Information is used to provide healthcare management services and improve user experience.\n\n'
-              '3. Information Sharing\n'
-              'We do not sell your personal information. Data is only shared with healthcare providers you authorize.\n\n'
-              '4. Data Security\n'
-              'We implement industry-standard security measures to protect your health data.\n\n'
-              '5. Your Rights\n'
-              'You have the right to access, correct, or delete your personal information.\n\n'
-              'For the complete Privacy Policy, please visit our website.',
+              l10n?.registerPrivacyBody ??
+                  'Privacy Policy for RemiMinder\n\n'
+                      '1. Information We Collect\n'
+                      'We collect information you provide and usage data to improve our service.\n\n'
+                      '2. How We Use Information\n'
+                      'Information is used to provide healthcare management services and improve user experience.\n\n'
+                      '3. Information Sharing\n'
+                      'We do not sell your personal information. Data is only shared with healthcare providers you authorize.\n\n'
+                      '4. Data Security\n'
+                      'We implement industry-standard security measures to protect your health data.\n\n'
+                      '5. Your Rights\n'
+                      'You have the right to access, correct, or delete your personal information.\n\n'
+                      'For the complete Privacy Policy, please visit our website.',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
+              child: Text(l10n?.commonClose ?? 'Close'),
             ),
           ],
         );
@@ -449,11 +480,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _registerWithEmail() async {
+    final l10n = AppLocalizations.of(context);
     if (_formKey.currentState?.validate() ?? false) {
       if (!_acceptTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please accept the Terms and Conditions')),
+          SnackBar(
+              content: Text(l10n?.registerAcceptTermsError ??
+                  'Please accept the Terms and Conditions')),
         );
         return;
       }
@@ -468,7 +501,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final selectedRole = ref.read(selectedRoleProvider);
       if (selectedRole == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a role first')),
+          SnackBar(
+              content: Text(l10n?.registerSelectRoleFirst ??
+                  'Please select a role first')),
         );
         return;
       }
@@ -488,10 +523,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             barrierDismissible: false,
             builder: (BuildContext context) {
               return AlertDialog(
-                title: const Text('Account Created!'),
-                content:
-                    const Text('Your account has been created successfully. '
-                        'You can now sign in with your email and password.'),
+                title: Text(
+                    l10n?.registerAccountCreatedTitle ?? 'Account Created!'),
+                content: Text(l10n?.registerAccountCreatedMessage ??
+                    'Your account has been created successfully. You can now sign in with your email and password.'),
                 actions: [
                   TextButton(
                     onPressed: () {
@@ -503,7 +538,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           : 'caregiver';
                       context.go('/login?role=$roleParam');
                     },
-                    child: const Text('Go to Sign In'),
+                    child: Text(
+                        l10n?.registerGoToSignIn ?? 'Go to Sign In'),
                   ),
                 ],
               );
@@ -512,7 +548,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         }
       } catch (e) {
         if (mounted) {
-          final errorMessage = _getUserFriendlyErrorMessage(e);
+          final errorMessage = _getUserFriendlyErrorMessage(e, l10n);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );

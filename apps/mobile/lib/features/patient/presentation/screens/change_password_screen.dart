@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import '../../../../l10n/app_localizations.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -29,6 +30,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -59,10 +61,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Change Password',
-                      style: TextStyle(
+                      l10n?.changePasswordTitle ?? 'Change Password',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -84,9 +86,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Update your password to keep your account secure.',
-                        style: TextStyle(
+                      Text(
+                        l10n?.changePasswordSubtitle ??
+                            'Update your password to keep your account secure.',
+                        style: const TextStyle(
                           fontSize: 16,
                           color: Color(0xFF5A5A5A),
                           height: 1.4,
@@ -101,8 +104,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         obscureText: _obscureCurrentPassword,
                         enabled: !_isLoading,
                         decoration: InputDecoration(
-                          labelText: 'Current Password',
-                          hintText: 'Enter your current password',
+                          labelText: l10n?.changePasswordCurrentLabel ??
+                              'Current Password',
+                          hintText: l10n?.changePasswordCurrentHint ??
+                              'Enter your current password',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: theme.colorScheme.primary,
@@ -124,7 +129,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your current password';
+                            return l10n?.changePasswordCurrentRequired ??
+                                'Please enter your current password';
                           }
                           return null;
                         },
@@ -138,8 +144,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         obscureText: _obscureNewPassword,
                         enabled: !_isLoading,
                         decoration: InputDecoration(
-                          labelText: 'New Password',
-                          hintText: 'Enter your new password',
+                          labelText:
+                              l10n?.changePasswordNewLabel ?? 'New Password',
+                          hintText:
+                              l10n?.changePasswordNewHint ??
+                                  'Enter your new password',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: theme.colorScheme.primary,
@@ -160,10 +169,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a new password';
+                            return l10n?.changePasswordNewRequired ??
+                                'Please enter a new password';
                           }
                           if (value.length < 8) {
-                            return 'Password must be at least 8 characters';
+                            return l10n?.changePasswordTooShort ??
+                                'Password must be at least 8 characters';
                           }
                           return null;
                         },
@@ -177,8 +188,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         obscureText: _obscureConfirmPassword,
                         enabled: !_isLoading,
                         decoration: InputDecoration(
-                          labelText: 'Confirm New Password',
-                          hintText: 'Re-enter your new password',
+                          labelText: l10n?.changePasswordConfirmLabel ??
+                              'Confirm New Password',
+                          hintText: l10n?.changePasswordConfirmHint ??
+                              'Re-enter your new password',
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: theme.colorScheme.primary,
@@ -200,10 +213,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please confirm your new password';
+                            return l10n?.changePasswordConfirmRequired ??
+                                'Please confirm your new password';
                           }
                           if (value != _newPasswordController.text) {
-                            return 'Passwords do not match';
+                            return l10n?.changePasswordMismatch ??
+                                'Passwords do not match';
                           }
                           return null;
                         },
@@ -233,9 +248,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                     ),
                                   ),
                                 )
-                              : const Text(
-                                  'Update Password',
-                                  style: TextStyle(
+                              : Text(
+                                  l10n?.changePasswordUpdateButton ??
+                                      'Update Password',
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -256,6 +272,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   Future<void> _updatePassword() async {
+    final l10n = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -263,7 +280,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     try {
       final user = firebase_auth.FirebaseAuth.instance.currentUser;
       if (user == null || user.email == null) {
-        throw Exception('User not authenticated');
+        throw Exception(l10n?.changePasswordNotAuthenticated ??
+            'User not authenticated');
       }
 
       // Re-authenticate user with current password
@@ -279,8 +297,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password updated successfully'),
+          SnackBar(
+            content: Text(l10n?.changePasswordSuccess ??
+                'Password updated successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -289,25 +308,31 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
 
-      String errorMessage = 'Failed to update password';
+      String errorMessage =
+          l10n?.changePasswordFailed ?? 'Failed to update password';
 
       if (e is firebase_auth.FirebaseAuthException) {
         switch (e.code) {
           case 'wrong-password':
-            errorMessage = 'Current password is incorrect';
+            errorMessage = l10n?.changePasswordWrongPassword ??
+                'Current password is incorrect';
             break;
           case 'weak-password':
-            errorMessage = 'Password is too weak';
+            errorMessage =
+                l10n?.changePasswordWeakPassword ?? 'Password is too weak';
             break;
           case 'requires-recent-login':
-            errorMessage = 'Please log in again and try';
+            errorMessage = l10n?.changePasswordRecentLogin ??
+                'Please log in again and try';
             break;
           default:
-            errorMessage = 'Failed to update password';
+            errorMessage =
+                l10n?.changePasswordFailed ?? 'Failed to update password';
         }
       } else if (e.toString().contains('network') ||
           e.toString().contains('connection')) {
-        errorMessage = 'Check your internet connection';
+        errorMessage = l10n?.changePasswordCheckConnection ??
+            'Check your internet connection';
       }
 
       if (mounted) {

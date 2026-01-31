@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
@@ -45,6 +46,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -57,19 +59,28 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           onPressed: () => context.go('/patient/home'),
         ),
-        title: const Text(
-          'Health Dashboard',
-          style: TextStyle(
+        title: Text(
+          l10n?.healthDashboardTitle ?? 'Health Dashboard',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) => setState(() => _selectedTimeRange = value),
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: '7d', child: Text('Last 7 days')),
-              PopupMenuItem(value: '30d', child: Text('Last 30 days')),
-              PopupMenuItem(value: '90d', child: Text('Last 90 days')),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                  value: '7d',
+                  child:
+                      Text(l10n?.healthDashboardLast7Days ?? 'Last 7 days')),
+              PopupMenuItem(
+                  value: '30d',
+                  child:
+                      Text(l10n?.healthDashboardLast30Days ?? 'Last 30 days')),
+              PopupMenuItem(
+                  value: '90d',
+                  child:
+                      Text(l10n?.healthDashboardLast90Days ?? 'Last 90 days')),
             ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -104,7 +115,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
               // Blood Pressure Chart
               _buildMetricChart(
-                'Blood Pressure',
+                l10n?.healthDashboardBloodPressure ?? 'Blood Pressure',
                 Icons.favorite,
                 Colors.red,
                 _buildBloodPressureChart(),
@@ -114,7 +125,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
               // Weight Trend Chart
               _buildMetricChart(
-                'Weight Trend',
+                l10n?.healthDashboardWeightTrend ?? 'Weight Trend',
                 Icons.monitor_weight,
                 Colors.blue,
                 _buildWeightChart(),
@@ -124,7 +135,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
               // Medication Adherence
               _buildMetricChart(
-                'Medication Adherence',
+                l10n?.healthDashboardMedicationAdherence ??
+                    'Medication Adherence',
                 Icons.medication,
                 Colors.green,
                 _buildAdherenceChart(),
@@ -149,6 +161,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
 
   Widget _buildKeyMetrics() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -166,7 +179,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Key Metrics',
+            l10n?.healthDashboardKeyMetrics ?? 'Key Metrics',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -178,24 +191,25 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: [
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Blood Pressure',
+                  l10n?.healthDashboardBloodPressure ?? 'Blood Pressure',
                   '126/81',
-                  'mmHg',
+                  l10n?.healthDashboardUnitMmhg ?? 'mmHg',
                   Icons.favorite,
                   Colors.red,
-                  '+2 pts this week',
+                  l10n?.healthDashboardBpTrend ?? '+2 pts this week',
                   true,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Weight',
+                  l10n?.healthDashboardWeight ?? 'Weight',
                   '163.8',
-                  'lbs',
+                  l10n?.healthDashboardUnitLbs ?? 'lbs',
                   Icons.monitor_weight,
                   Colors.blue,
-                  '-1.4 lbs this week',
+                  l10n?.healthDashboardWeightTrendText ??
+                      '-1.4 lbs this week',
                   true,
                 ),
               ),
@@ -206,24 +220,24 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: [
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Med Adherence',
+                  l10n?.healthDashboardMedAdherence ?? 'Med Adherence',
                   '86%',
-                  'this week',
+                  l10n?.healthDashboardThisWeek ?? 'this week',
                   Icons.check_circle,
                   Colors.green,
-                  'Good progress',
+                  l10n?.healthDashboardGoodProgress ?? 'Good progress',
                   false,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildKeyMetricItem(
-                  'Heart Rate',
+                  l10n?.healthDashboardHeartRate ?? 'Heart Rate',
                   '72',
-                  'bpm',
+                  l10n?.healthDashboardUnitBpm ?? 'bpm',
                   Icons.monitor_heart,
                   Colors.purple,
-                  'Resting average',
+                  l10n?.healthDashboardRestingAverage ?? 'Resting average',
                   false,
                 ),
               ),
@@ -516,6 +530,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
 
   Widget _buildHealthInsights() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -541,7 +556,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Health Insights',
+                l10n?.healthDashboardInsightsTitle ?? 'Health Insights',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -552,29 +567,34 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           const SizedBox(height: 16),
           _buildInsightItem(
-            'Blood Pressure Trend',
-            'Your systolic pressure has been stable with a slight downward trend. Keep up the good work!',
+            l10n?.healthDashboardInsightBpTitle ?? 'Blood Pressure Trend',
+            l10n?.healthDashboardInsightBpBody ??
+                'Your systolic pressure has been stable with a slight downward trend. Keep up the good work!',
             Icons.trending_down,
             Colors.green,
           ),
           const SizedBox(height: 12),
           _buildInsightItem(
-            'Weight Management',
-            'Consistent weight loss of 1.4 lbs this week. You\'re on track for your goal!',
+            l10n?.healthDashboardInsightWeightTitle ?? 'Weight Management',
+            l10n?.healthDashboardInsightWeightBody ??
+                'Consistent weight loss of 1.4 lbs this week. You\'re on track for your goal!',
             Icons.trending_down,
             Colors.blue,
           ),
           const SizedBox(height: 12),
           _buildInsightItem(
-            'Medication Adherence',
-            '86% adherence this week. Consider setting medication reminders to reach 100%.',
+            l10n?.healthDashboardInsightAdherenceTitle ??
+                'Medication Adherence',
+            l10n?.healthDashboardInsightAdherenceBody ??
+                '86% adherence this week. Consider setting medication reminders to reach 100%.',
             Icons.warning,
             Colors.orange,
           ),
           const SizedBox(height: 12),
           _buildInsightItem(
-            'Next Checkup',
-            'Your next cardiology appointment is due in 3 months. Schedule it soon.',
+            l10n?.healthDashboardInsightCheckupTitle ?? 'Next Checkup',
+            l10n?.healthDashboardInsightCheckupBody ??
+                'Your next cardiology appointment is due in 3 months. Schedule it soon.',
             Icons.calendar_today,
             Colors.purple,
           ),
@@ -629,6 +649,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
 
   Widget _buildRecentMeasurements() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -646,7 +667,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recent Measurements',
+            l10n?.healthDashboardRecentMeasurements ?? 'Recent Measurements',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -655,25 +676,25 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
           ),
           const SizedBox(height: 16),
           _buildMeasurementItem(
-            'Blood Pressure',
-            '126/81 mmHg',
-            'Today, 8:30 AM',
+            l10n?.healthDashboardBloodPressure ?? 'Blood Pressure',
+            l10n?.healthDashboardRecentBpValue ?? '126/81 mmHg',
+            l10n?.healthDashboardRecentBpTime ?? 'Today, 8:30 AM',
             Icons.favorite,
             Colors.red,
           ),
           const Divider(height: 16),
           _buildMeasurementItem(
-            'Weight',
-            '163.8 lbs',
-            'Today, 7:45 AM',
+            l10n?.healthDashboardWeight ?? 'Weight',
+            l10n?.healthDashboardRecentWeightValue ?? '163.8 lbs',
+            l10n?.healthDashboardRecentWeightTime ?? 'Today, 7:45 AM',
             Icons.monitor_weight,
             Colors.blue,
           ),
           const Divider(height: 16),
           _buildMeasurementItem(
-            'Heart Rate',
-            '72 bpm',
-            'Yesterday, 8:15 AM',
+            l10n?.healthDashboardHeartRate ?? 'Heart Rate',
+            l10n?.healthDashboardRecentHeartRateValue ?? '72 bpm',
+            l10n?.healthDashboardRecentHeartRateTime ?? 'Yesterday, 8:15 AM',
             Icons.monitor_heart,
             Colors.purple,
           ),
@@ -684,11 +705,14 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               onPressed: () {
                 // TODO: Navigate to add measurement screen
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Add new measurement - Coming Soon!')),
+                  SnackBar(
+                      content: Text(l10n?.healthDashboardAddMeasurementSoon ??
+                          'Add new measurement - Coming Soon!')),
                 );
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Measurement'),
+              label: Text(
+                  l10n?.healthDashboardAddMeasurement ?? 'Add Measurement'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),

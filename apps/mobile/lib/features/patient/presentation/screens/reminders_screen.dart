@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -139,6 +140,7 @@ class _RemindersScreenState extends State<RemindersScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -151,9 +153,9 @@ class _RemindersScreenState extends State<RemindersScreen>
           ),
           onPressed: () => context.go('/patient/home'),
         ),
-        title: const Text(
-          'Reminders',
-          style: TextStyle(
+        title: Text(
+          l10n?.remindersTitle ?? 'Reminders',
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -177,11 +179,11 @@ class _RemindersScreenState extends State<RemindersScreen>
             ? TabBar(
                 controller: _tabController,
                 isScrollable: false,
-                tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Today'),
-                  Tab(text: 'Pending'),
-                  Tab(text: 'Completed'),
+                tabs: [
+                  Tab(text: l10n?.remindersTabAll ?? 'All'),
+                  Tab(text: l10n?.remindersTabToday ?? 'Today'),
+                  Tab(text: l10n?.remindersTabPending ?? 'Pending'),
+                  Tab(text: l10n?.remindersTabCompleted ?? 'Completed'),
                 ],
               )
             : null,
@@ -196,7 +198,7 @@ class _RemindersScreenState extends State<RemindersScreen>
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Search reminders...',
+                  hintText: l10n?.remindersSearchHint ?? 'Search reminders...',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear),
@@ -238,6 +240,7 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 
   Widget _buildReminderCard(Map<String, dynamic> reminder) {
+    final l10n = AppLocalizations.of(context);
     final scheduledTime = reminder['scheduledTime'] as DateTime;
     final status = reminder['status'] as String;
     final type = reminder['type'] as String;
@@ -261,18 +264,19 @@ class _RemindersScreenState extends State<RemindersScreen>
         return await showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete Reminder'),
+            title: Text(l10n?.remindersDeleteTitle ?? 'Delete Reminder'),
             content:
-                const Text('Are you sure you want to delete this reminder?'),
+                Text(l10n?.remindersDeleteConfirm ??
+                    'Are you sure you want to delete this reminder?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(l10n?.commonCancel ?? 'Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Delete'),
+                child: Text(l10n?.commonDelete ?? 'Delete'),
               ),
             ],
           ),
@@ -386,7 +390,9 @@ class _RemindersScreenState extends State<RemindersScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Snoozed until ${_formatTime(reminder['snoozeUntil'])}',
+                      l10n?.remindersSnoozedUntil(
+                              _formatTime(reminder['snoozeUntil'])) ??
+                          'Snoozed until ${_formatTime(reminder['snoozeUntil'])}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.orange,
@@ -408,14 +414,14 @@ class _RemindersScreenState extends State<RemindersScreen>
                               color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
-                          child: const Text('Mark Done'),
+                          child: Text(l10n?.remindersMarkDone ?? 'Mark Done'),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _snoozeReminder(reminder['id']),
-                          child: const Text('Snooze'),
+                          child: Text(l10n?.remindersSnooze ?? 'Snooze'),
                         ),
                       ),
                     ],
@@ -430,6 +436,7 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 
   Widget _buildStatusBadge(String status) {
+    final l10n = AppLocalizations.of(context);
     Color color;
     String text;
     IconData icon;
@@ -437,22 +444,22 @@ class _RemindersScreenState extends State<RemindersScreen>
     switch (status) {
       case 'completed':
         color = Colors.green;
-        text = 'Done';
+        text = l10n?.remindersStatusDone ?? 'Done';
         icon = Icons.check_circle;
         break;
       case 'pending':
         color = Colors.blue;
-        text = 'Pending';
+        text = l10n?.remindersStatusPending ?? 'Pending';
         icon = Icons.schedule;
         break;
       case 'snoozed':
         color = Colors.orange;
-        text = 'Snoozed';
+        text = l10n?.remindersStatusSnoozed ?? 'Snoozed';
         icon = Icons.snooze;
         break;
       default:
         color = Colors.grey;
-        text = 'Unknown';
+        text = l10n?.remindersStatusUnknown ?? 'Unknown';
         icon = Icons.help;
     }
 
@@ -481,6 +488,7 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -493,8 +501,9 @@ class _RemindersScreenState extends State<RemindersScreen>
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
-                ? 'No reminders found'
-                : 'No reminders match your search',
+                ? (l10n?.remindersEmptyTitle ?? 'No reminders found')
+                : (l10n?.remindersEmptySearchTitle ??
+                    'No reminders match your search'),
             style: TextStyle(
               fontSize: 18,
               color: Theme.of(context).colorScheme.secondary,
@@ -504,8 +513,10 @@ class _RemindersScreenState extends State<RemindersScreen>
           const SizedBox(height: 8),
           Text(
             _searchQuery.isEmpty
-                ? 'Create your first reminder to get started'
-                : 'Try adjusting your search terms',
+                ? (l10n?.remindersEmptySubtitle ??
+                    'Create your first reminder to get started')
+                : (l10n?.remindersEmptySearchSubtitle ??
+                    'Try adjusting your search terms'),
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.secondary.withOpacity(0.7),
@@ -517,7 +528,8 @@ class _RemindersScreenState extends State<RemindersScreen>
             ElevatedButton.icon(
               onPressed: _addNewReminder,
               icon: const Icon(Icons.add),
-              label: const Text('Create Reminder'),
+              label: Text(
+                  l10n?.remindersCreateButton ?? 'Create Reminder'),
               style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -556,6 +568,7 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 
   String _formatTime(DateTime dateTime) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final difference = dateTime.difference(now);
 
@@ -565,11 +578,13 @@ class _RemindersScreenState extends State<RemindersScreen>
       final minutes = difference.inMinutes.abs() % 60;
 
       if (hours > 24) {
-        return '${dateTime.day}/${dateTime.month} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+        return _formatDateTime(dateTime);
       } else if (hours > 0) {
-        return '$hours hours ago';
+        return l10n?.remindersTimeHoursAgo(hours) ??
+            '$hours hours ago';
       } else {
-        return '$minutes minutes ago';
+        return l10n?.remindersTimeMinutesAgo(minutes) ??
+            '$minutes minutes ago';
       }
     } else {
       // Future
@@ -577,15 +592,27 @@ class _RemindersScreenState extends State<RemindersScreen>
       final minutes = difference.inMinutes % 60;
 
       if (hours > 24) {
-        return '${dateTime.day}/${dateTime.month} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+        return _formatDateTime(dateTime);
       } else if (hours > 0) {
-        return 'In $hours hours';
+        return l10n?.remindersTimeInHours(hours) ??
+            'In $hours hours';
       } else if (minutes > 0) {
-        return 'In $minutes minutes';
+        return l10n?.remindersTimeInMinutes(minutes) ??
+            'In $minutes minutes';
       } else {
-        return 'Now';
+        return l10n?.remindersTimeNow ?? 'Now';
       }
     }
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final dateText =
+        MaterialLocalizations.of(context).formatShortDate(dateTime);
+    final timeText = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(dateTime),
+      alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+    );
+    return '$dateText $timeText';
   }
 
   void _toggleSearch() {
@@ -606,20 +633,27 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 
   void _addNewReminder() {
+    final l10n = AppLocalizations.of(context);
     // TODO: Navigate to create reminder screen
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create New Reminder - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.remindersCreateComingSoon ??
+              'Create New Reminder - Coming Soon!')),
     );
   }
 
   void _editReminder(Map<String, dynamic> reminder) {
+    final l10n = AppLocalizations.of(context);
     // TODO: Navigate to edit reminder screen
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit ${reminder['title']} - Coming Soon!')),
+      SnackBar(
+          content: Text(l10n?.remindersEditComingSoon(reminder['title']) ??
+              'Edit ${reminder['title']} - Coming Soon!')),
     );
   }
 
   void _markAsCompleted(String id) {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       final index = _allReminders.indexWhere((r) => r['id'] == id);
       if (index != -1) {
@@ -627,11 +661,14 @@ class _RemindersScreenState extends State<RemindersScreen>
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reminder marked as completed!')),
+      SnackBar(
+          content: Text(l10n?.remindersMarkedCompleted ??
+              'Reminder marked as completed!')),
     );
   }
 
   void _snoozeReminder(String id) {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       final index = _allReminders.indexWhere((r) => r['id'] == id);
       if (index != -1) {
@@ -643,20 +680,26 @@ class _RemindersScreenState extends State<RemindersScreen>
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reminder snoozed for 1 hour')),
+      SnackBar(
+          content: Text(l10n?.remindersSnoozedForHour ??
+              'Reminder snoozed for 1 hour')),
     );
   }
 
   void _deleteReminder(String id) {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _allReminders.removeWhere((r) => r['id'] == id);
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reminder deleted')),
+      SnackBar(
+          content:
+              Text(l10n?.remindersDeleted ?? 'Reminder deleted')),
     );
   }
 
   void _showAdherenceStats() {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -685,9 +728,10 @@ class _RemindersScreenState extends State<RemindersScreen>
                     size: 28,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Medication Adherence',
-                    style: TextStyle(
+                  Text(
+                    l10n?.remindersAdherenceTitle ??
+                        'Medication Adherence',
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                     ),
@@ -704,17 +748,26 @@ class _RemindersScreenState extends State<RemindersScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Overall adherence
-                    _buildAdherenceStat('This Week', 0.85, '6/7 days'),
+                    _buildAdherenceStat(
+                        l10n?.remindersAdherenceThisWeek ?? 'This Week',
+                        0.85,
+                        '6/7 days'),
                     const SizedBox(height: 16),
-                    _buildAdherenceStat('This Month', 0.92, '28/30 days'),
+                    _buildAdherenceStat(
+                        l10n?.remindersAdherenceThisMonth ?? 'This Month',
+                        0.92,
+                        '28/30 days'),
                     const SizedBox(height: 16),
-                    _buildAdherenceStat('Overall', 0.88, '89/101 doses'),
+                    _buildAdherenceStat(
+                        l10n?.remindersAdherenceOverall ?? 'Overall',
+                        0.88,
+                        '89/101 doses'),
 
                     const SizedBox(height: 32),
 
                     // Medication breakdown
                     Text(
-                      'By Medication',
+                      l10n?.remindersAdherenceByMedication ?? 'By Medication',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -744,17 +797,18 @@ class _RemindersScreenState extends State<RemindersScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.lightbulb,
                                 color: Colors.blue,
                                 size: 20,
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'Adherence Tips',
-                                style: TextStyle(
+                                l10n?.remindersAdherenceTipsTitle ??
+                                    'Adherence Tips',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.blue,
@@ -764,7 +818,8 @@ class _RemindersScreenState extends State<RemindersScreen>
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            '• Set phone reminders for medication times\n• Keep medications in a visible location\n• Use a pill organizer for daily doses\n• Track your progress to stay motivated',
+                            l10n?.remindersAdherenceTipsBody ??
+                                '• Set phone reminders for medication times\n• Keep medications in a visible location\n• Use a pill organizer for daily doses\n• Track your progress to stay motivated',
                             style: TextStyle(
                               fontSize: 14,
                               height: 1.5,

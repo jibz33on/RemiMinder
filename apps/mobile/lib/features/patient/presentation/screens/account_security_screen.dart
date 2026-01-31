@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'change_password_screen.dart';
 import 'privacy_settings_screen.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AccountSecurityScreen extends StatelessWidget {
   const AccountSecurityScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -38,10 +40,10 @@ class AccountSecurityScreen extends StatelessWidget {
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Account Security',
-                      style: TextStyle(
+                      l10n?.accountSecurityTitle ?? 'Account Security',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -100,7 +102,8 @@ class AccountSecurityScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Change Password',
+                                      l10n?.accountSecurityChangePasswordTitle ??
+                                          'Change Password',
                                       style:
                                           theme.textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.w600,
@@ -108,7 +111,8 @@ class AccountSecurityScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Update your account password for security',
+                                      l10n?.accountSecurityChangePasswordSubtitle ??
+                                          'Update your account password for security',
                                       style:
                                           theme.textTheme.bodyMedium?.copyWith(
                                         color: theme.colorScheme.onSurface
@@ -134,9 +138,11 @@ class AccountSecurityScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Change Password',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                              child: Text(
+                                l10n?.accountSecurityChangePasswordButton ??
+                                    'Change Password',
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -185,7 +191,8 @@ class AccountSecurityScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Privacy Settings',
+                                      l10n?.accountSecurityPrivacyTitle ??
+                                          'Privacy Settings',
                                       style:
                                           theme.textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.w600,
@@ -193,7 +200,8 @@ class AccountSecurityScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Manage your data sharing preferences',
+                                      l10n?.accountSecurityPrivacySubtitle ??
+                                          'Manage your data sharing preferences',
                                       style:
                                           theme.textTheme.bodyMedium?.copyWith(
                                         color: theme.colorScheme.onSurface
@@ -226,9 +234,11 @@ class AccountSecurityScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Manage Privacy',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                              child: Text(
+                                l10n?.accountSecurityPrivacyButton ??
+                                    'Manage Privacy',
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -280,18 +290,24 @@ class AccountSecurityScreen extends StatelessWidget {
 
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Change Password'),
-          content: Text(
-            'You signed in using $providerName. Please change your password in your $providerName account.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n?.accountSecurityDialogTitle ??
+                'Change Password'),
+            content: Text(
+              l10n?.accountSecurityDialogBody(providerName) ??
+                  'You signed in using $providerName. Please change your password in your $providerName account.',
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child:
+                    Text(l10n?.accountSecurityDialogOk ?? 'OK'),
+              ),
+            ],
+          );
+        },
       );
     }
   }
