@@ -87,6 +87,7 @@ test-git-learning.txt
 **/GeneratedPluginRegistrant.*
 **/generated_plugin_registrant.*
 **/generated_plugins.cmake
+lib/l10n/app_localizations*.dart
 
 # Android
 android/local.properties
