@@ -70,10 +70,10 @@ class _AcceptInvitationsScreenState extends State<AcceptInvitationsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                _error!,
+                l10n?.caregiverInvitationsEmpty ?? 'No pending invitations',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(height: 16),

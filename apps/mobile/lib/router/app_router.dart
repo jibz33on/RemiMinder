@@ -18,8 +18,8 @@ import '../features/patient/presentation/screens/patient_home_screen.dart';
 import '../features/caregiver/presentation/screens/caregiver_home_screen.dart';
 import '../features/caregiver/presentation/screens/patient_list_screen.dart';
 import '../features/caregiver/presentation/screens/patient_overview_screen.dart';
-import '../features/caregiver/presentation/screens/alert_list_screen.dart';
 import '../features/caregiver/presentation/screens/accept_invitations_screen.dart';
+import '../features/caregiver/presentation/screens/caregiver_profile_screen.dart';
 import '../features/patient/presentation/screens/visit_recording_screen.dart';
 import '../features/patient/presentation/screens/visit_details_screen.dart';
 import '../features/patient/presentation/screens/overview_screen.dart';
@@ -148,9 +148,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ? {
                   NavigationItem.home: '/caregiver/home',
                   NavigationItem.visits: '/caregiver/patients',
-                  NavigationItem.overview: '/caregiver/alerts',
                   NavigationItem.careTeam: '/caregiver/accept-invitations',
-                  NavigationItem.profile: '/profile',
+                  NavigationItem.profile: '/caregiver/profile',
                 }
               : null;
           return PatientAppShell(
@@ -193,12 +192,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const PatientOverviewScreen(),
           ),
           GoRoute(
-            path: '/caregiver/alerts',
-            builder: (context, state) => const AlertListScreen(),
-          ),
-          GoRoute(
             path: '/caregiver/accept-invitations',
             builder: (context, state) => const AcceptInvitationsScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/profile',
+            builder: (context, state) => const CaregiverProfileScreen(),
           ),
         ],
       ),

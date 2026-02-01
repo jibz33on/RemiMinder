@@ -301,12 +301,11 @@ class _PatientListScreenState extends State<PatientListScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-            _error ??
-                (l10n?.caregiverPatientsLoadFailed ?? 'Failed to load patients'),
+              l10n?.caregiverPatientsEmptyNone ?? 'No patients found',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Theme.of(context).colorScheme.error,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             const SizedBox(height: 16),

@@ -9,7 +9,14 @@ import 'account_security_screen.dart';
 import 'upgrade_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  final bool? forceCaregiver;
+  final String? headerTitle;
+
+  const ProfileScreen({
+    super.key,
+    this.forceCaregiver,
+    this.headerTitle,
+  });
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -98,7 +105,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
-    final isCaregiver = user?.isCaregiver ?? false;
+    final isCaregiver = widget.forceCaregiver ?? user?.isCaregiver ?? false;
+    final headerTitle = widget.headerTitle ??
+        (isCaregiver
+            ? 'Caregiver Settings'
+            : (AppLocalizations.of(context)?.profileSettings ??
+                'Profile Settings'));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -120,8 +132,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
               child: Text(
-                AppLocalizations.of(context)?.profileSettings ??
-                    'Profile Settings',
+                headerTitle,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,

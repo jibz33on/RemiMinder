@@ -233,6 +233,7 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isCaregiver = widget.routes != null;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       height: 70,
@@ -271,21 +272,22 @@ class _RoundedNavigationBarState extends State<RoundedNavigationBar> {
           ),
           _buildNavItem(
             NavigationItem.visits,
-            Icons.grid_view,
-            Icons.grid_view,
-            'Visits',
+            isCaregiver ? Icons.people_outline : Icons.grid_view,
+            isCaregiver ? Icons.people : Icons.grid_view,
+            isCaregiver ? 'Patients' : 'Visits',
           ),
-          _buildNavItem(
-            NavigationItem.overview,
-            Icons.assignment,
-            Icons.assignment,
-            'Overview',
-          ),
+          if (!isCaregiver)
+            _buildNavItem(
+              NavigationItem.overview,
+              Icons.assignment,
+              Icons.assignment,
+              'Overview',
+            ),
           _buildNavItem(
             NavigationItem.careTeam,
-            Icons.group,
-            Icons.group,
-            'Care Team',
+            isCaregiver ? Icons.mail_outline : Icons.group,
+            isCaregiver ? Icons.mail : Icons.group,
+            isCaregiver ? 'Invitations' : 'Care Team',
           ),
           _buildNavItem(
             NavigationItem.profile,

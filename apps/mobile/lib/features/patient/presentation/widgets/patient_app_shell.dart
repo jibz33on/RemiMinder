@@ -31,27 +31,6 @@ class _PatientAppShellState extends ConsumerState<PatientAppShell> {
         children: [
           // Screen content
           widget.child,
-          if (authState.status == AuthStatus.authenticatedWithoutProfile)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color:
-                      Theme.of(context).colorScheme.surface.withOpacity(0.95),
-                  child: Text(
-                    'Finishing setup…',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
-
           // Floating navigation bar
           Positioned(
             left: 0,
@@ -84,10 +63,10 @@ NavigationItem getCurrentNavigationItem(String location) {
     return NavigationItem.home;
   } else if (location.startsWith('/caregiver/patients')) {
     return NavigationItem.visits;
-  } else if (location.startsWith('/caregiver/alerts')) {
-    return NavigationItem.overview;
   } else if (location.startsWith('/caregiver/accept-invitations')) {
     return NavigationItem.careTeam;
+  } else if (location.startsWith('/caregiver/profile')) {
+    return NavigationItem.profile;
   } else {
     // Default to home for unknown routes
     return NavigationItem.home;
