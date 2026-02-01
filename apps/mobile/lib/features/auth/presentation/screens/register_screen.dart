@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
-import '../../../../core/services/preferences_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
@@ -498,16 +497,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final lastName = _lastNameController.text.trim();
       final fullName = '$firstName $lastName'.trim();
 
-      // Get selected role from provider
-      final selectedRole = ref.read(selectedRoleProvider);
-      if (selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(l10n?.registerSelectRoleFirst ??
-                  'Please select a role first')),
-        );
-        return;
-      }
+      // Role is chosen after login; default to patient for signup.
+      final selectedRole = ref.read(selectedRoleProvider) ?? UserRole.patient;
 
       try {
         await ref.read(authNotifierProvider.notifier).signUp(
@@ -537,7 +528,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       'Account created')),
             );
           }
-          await _navigateAfterRegister(authState.user!);
+          await _navigateAfterRegister();
           return;
         }
 
@@ -559,25 +550,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  Future<void> _navigateAfterRegister(User user) async {
-    final prefs = PreferencesService();
-    final isOnboardingComplete =
-        await prefs.isVisitLanguageOnboardingComplete();
+  Future<void> _navigateAfterRegister() async {
     if (!mounted) return;
-
-    if (!isOnboardingComplete) {
-      final nextRoute = user.isCaregiver ? '/caregiver/home' : '/patient/home';
-      context.go('/onboarding/visit-language?next=$nextRoute');
-      return;
-    }
-
-    if (user.isPatient) {
-      context.go('/patient/home');
-    } else if (user.isCaregiver) {
-      context.go('/caregiver/home');
-    } else {
-      context.go('/welcome');
-    }
+    context.go('/login');
   }
 }
 

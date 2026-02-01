@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,16 +64,6 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
 
     if (!authState.isAuthenticated) {
       context.go('/welcome');
-      return;
-    }
-
-    final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-    final isEmailVerified = firebaseUser?.emailVerified ?? true;
-    final isPasswordProvider = firebaseUser?.providerData
-            .any((provider) => provider.providerId == 'password') ??
-        false;
-    if (isPasswordProvider && !isEmailVerified) {
-      context.go('/verify-email');
       return;
     }
 

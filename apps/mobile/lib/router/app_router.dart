@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
@@ -70,19 +69,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final authState = ref.read(authNotifierProvider);
       final location = state.uri.path;
       final isPublicRoute = publicRoutes.contains(location);
-      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-      final isEmailVerified = firebaseUser?.emailVerified ?? true;
-      final isPasswordProvider = firebaseUser?.providerData
-              .any((provider) => provider.providerId == 'password') ??
-          false;
-
-      if (authState.isAuthenticated &&
-          isPasswordProvider &&
-          !isEmailVerified &&
-          location != '/verify-email') {
-        return '/verify-email';
-      }
-
       if (!authState.isAuthenticated && !isPublicRoute) {
         return '/welcome';
       }
