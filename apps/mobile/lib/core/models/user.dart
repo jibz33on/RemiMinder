@@ -39,6 +39,23 @@ enum UserRole {
   }
 }
 
+/// Active context for users who can act in multiple modes.
+enum ActiveContext {
+  patient,
+  caregiver;
+
+  static ActiveContext? fromString(String value) {
+    switch (value.toLowerCase()) {
+      case 'patient':
+        return ActiveContext.patient;
+      case 'caregiver':
+        return ActiveContext.caregiver;
+      default:
+        return null;
+    }
+  }
+}
+
 /// User model representing authenticated users
 class User extends Equatable {
   final String id;

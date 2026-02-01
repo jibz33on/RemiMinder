@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/data/models/auth_state.dart';
 import 'rounded_navigation_bar.dart';
 
 /// App shell that wraps all patient screens with a floating bottom navigation bar
-class PatientAppShell extends StatefulWidget {
+class PatientAppShell extends ConsumerStatefulWidget {
   final Widget child;
   final NavigationItem currentItem;
   final Map<NavigationItem, String>? routes;
@@ -15,18 +18,39 @@ class PatientAppShell extends StatefulWidget {
   });
 
   @override
-  State<PatientAppShell> createState() => _PatientAppShellState();
+  ConsumerState<PatientAppShell> createState() => _PatientAppShellState();
 }
 
-class _PatientAppShellState extends State<PatientAppShell> {
+class _PatientAppShellState extends ConsumerState<PatientAppShell> {
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Screen content
           widget.child,
+          if (authState.status == AuthStatus.authenticatedWithoutProfile)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color:
+                      Theme.of(context).colorScheme.surface.withOpacity(0.95),
+                  child: Text(
+                    'Finishing setup…',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
 
           // Floating navigation bar
           Positioned(

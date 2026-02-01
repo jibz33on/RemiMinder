@@ -53,7 +53,7 @@ class _OnboardingTimezoneScreenState extends State<OnboardingTimezoneScreen> {
               Align(
                 alignment: AlignmentDirectional.topEnd,
                 child: TextButton(
-                  onPressed: () => context.go('/role-selection'),
+                  onPressed: () => context.go('/login'),
                   child: Text(
                     l10n?.commonSkip ?? 'Skip',
                     style: TextStyle(
@@ -105,7 +105,7 @@ class _OnboardingTimezoneScreenState extends State<OnboardingTimezoneScreen> {
                   onPressed: () async {
                     await prefs.setTimezone(_selectedTimezone);
                     if (!context.mounted) return;
-                    context.go('/role-selection');
+                    context.go('/login');
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),

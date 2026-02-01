@@ -7,6 +7,8 @@ import '../../../../shared/utilities/greeting_utils.dart';
 import '../../../patient/presentation/widgets/widgets.dart';
 import '../../../care_team/data/models/care_team_invitation.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../../../core/services/preferences_service.dart';
+import '../../../../core/models/user.dart';
 
 class CaregiverHomeScreen extends ConsumerStatefulWidget {
   const CaregiverHomeScreen({super.key});
@@ -44,6 +46,12 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
         _isLoadingInvitations = false;
       });
     }
+  }
+
+  Future<void> _switchContext(ActiveContext targetContext) async {
+    await PreferencesService().setLastActiveContext(targetContext);
+    if (!mounted) return;
+    context.go('/loading');
   }
 
   @override
@@ -142,6 +150,23 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
                       ),
                     ],
                   ),
+                ),
+                PopupMenuButton<ActiveContext>(
+                  icon: Icon(
+                    Icons.swap_horiz,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  onSelected: _switchContext,
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: ActiveContext.patient,
+                      child: Text('Patient'),
+                    ),
+                    PopupMenuItem(
+                      value: ActiveContext.caregiver,
+                      child: Text('Caregiver'),
+                    ),
+                  ],
                 ),
                 IconButton(
                   icon: Icon(

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -61,39 +63,23 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
       return;
     }
 
-    if (authState.status == AuthStatus.authenticated) {
-      final user = authState.user;
-      final isOnboardingComplete =
-          await PreferencesService().isVisitLanguageOnboardingComplete();
-      if (!mounted) return;
-
-      if (!isOnboardingComplete && user != null) {
-        final nextRoute = user.isCaregiver ? '/caregiver/home' : '/patient/home';
-        context.go('/onboarding/visit-language?next=$nextRoute');
-        return;
-      }
-
-      if (user?.isPatient ?? false) {
-        context.go('/patient/home');
-      } else if (user?.isCaregiver ?? false) {
-        context.go('/caregiver/home');
-      } else {
-        context.go('/welcome');
-      }
-    } else if (authState.status == AuthStatus.unauthenticated) {
-      print(
-          '🔄 LoadingScreen: User not authenticated, going to welcome screen...');
-      // Go to welcome/onboarding flow
-      if (!mounted) return;
+    if (!authState.isAuthenticated) {
       context.go('/welcome');
-    } else if (authState.status == AuthStatus.error) {
-      print(
-          '🔄 LoadingScreen: Auth error occurred, going to welcome screen...');
-      // Go to welcome/onboarding flow
-      if (!mounted) return;
-      context.go('/welcome');
+      return;
     }
-    // If still loading, continue showing loading screen
+
+    final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+    final isEmailVerified = firebaseUser?.emailVerified ?? true;
+    final isPasswordProvider = firebaseUser?.providerData
+            .any((provider) => provider.providerId == 'password') ??
+        false;
+    if (isPasswordProvider && !isEmailVerified) {
+      context.go('/verify-email');
+      return;
+    }
+
+    // Authenticated users proceed to role selection before entering homes.
+    context.go('/role-selection');
   }
 
   @override
@@ -175,6 +161,7 @@ class _LoadingDotState extends State<_LoadingDot>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  Timer? _animationTimer;
 
   @override
   void initState() {
@@ -189,7 +176,8 @@ class _LoadingDotState extends State<_LoadingDot>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    Future.delayed(Duration(milliseconds: widget.delay), () {
+    _animationTimer = Timer(Duration(milliseconds: widget.delay), () {
+      if (!mounted) return;
       _controller.repeat(reverse: true);
     });
   }
@@ -212,6 +200,7 @@ class _LoadingDotState extends State<_LoadingDot>
 
   @override
   void dispose() {
+    _animationTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

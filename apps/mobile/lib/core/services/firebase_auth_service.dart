@@ -5,6 +5,15 @@ import '../models/user.dart';
 import 'token_manager.dart';
 import 'secure_storage.dart';
 
+class GoogleSignInCancelledException implements Exception {
+  final String message;
+  GoogleSignInCancelledException(
+      [this.message = 'Google sign-in cancelled']);
+
+  @override
+  String toString() => message;
+}
+
 /// Firebase Authentication service for Email/Password and Google authentication
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _firebaseAuth;
@@ -122,7 +131,7 @@ class FirebaseAuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        throw Exception('Google sign-in cancelled');
+        throw GoogleSignInCancelledException();
       }
 
       // Get authentication tokens
@@ -216,15 +225,7 @@ class FirebaseAuthService {
           if (firebaseUserRetry != null) {
             print(
                 '🔥 FirebaseAuthService: Firebase user found after retry: ${firebaseUserRetry.email ?? firebaseUserRetry.uid}');
-            return User(
-              id: firebaseUserRetry.uid,
-              email: firebaseUserRetry.email ?? '',
-              role: UserRole.patient, // Default role
-              fullName: firebaseUserRetry.displayName,
-              displayName: firebaseUserRetry.displayName ??
-                  "User", // Temporary, will be replaced by backend
-              authUid: firebaseUserRetry.uid,
-            );
+            return await _buildUserFromFirebaseUser(firebaseUserRetry);
           }
         }
 
@@ -235,25 +236,36 @@ class FirebaseAuthService {
       print(
           '🔥 FirebaseAuthService: Firebase user found: ${firebaseUser.email ?? firebaseUser.uid}');
 
-      // Check if we have stored tokens
-      final hasToken = await _tokenManager.isTokenValid();
-      if (!hasToken) {
-        print('🔥 FirebaseAuthService: Token is not valid');
+      return await _buildUserFromFirebaseUser(firebaseUser);
+    } catch (e) {
+      print('🔥 FirebaseAuthService: Error getting current user: $e');
+      return null;
+    }
+  }
+
+  Future<User?> _buildUserFromFirebaseUser(
+      firebase_auth.User firebaseUser) async {
+    try {
+      final idToken = await firebaseUser.getIdToken();
+      if (idToken == null) {
+        print('🔥 FirebaseAuthService: Failed to refresh ID token');
         return null;
       }
-      print('🔥 FirebaseAuthService: Token is valid, creating User object');
+
+      await _tokenManager.saveTokens(
+          idToken, ''); // Firebase doesn't provide refresh tokens
 
       return User(
         id: firebaseUser.uid,
         email: firebaseUser.email ?? '',
         role: UserRole.patient, // Default role
         fullName: firebaseUser.displayName,
-        displayName: firebaseUser.displayName ??
-            "User", // Temporary, will be replaced by backend
+        displayName:
+            firebaseUser.displayName ?? "User", // Temporary, backend resolves
         authUid: firebaseUser.uid,
       );
     } catch (e) {
-      print('🔥 FirebaseAuthService: Error getting current user: $e');
+      print('🔥 FirebaseAuthService: Error building user: $e');
       return null;
     }
   }

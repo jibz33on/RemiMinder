@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
 import '../features/auth/presentation/screens/welcome_screen.dart';
 import '../features/auth/presentation/screens/role_selection_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../features/auth/presentation/screens/forgot_password_confirmation_screen.dart';
+import '../features/auth/presentation/screens/verify_email_screen.dart';
+import '../features/auth/presentation/screens/context_setup_screen.dart';
 import '../features/auth/presentation/screens/onboarding_app_language_screen.dart';
 import '../features/auth/presentation/screens/onboarding_country_screen.dart';
 import '../features/auth/presentation/screens/onboarding_timezone_screen.dart';
@@ -47,8 +52,49 @@ class PlaceholderScreen extends StatelessWidget {
 
 /// App router configuration using go_router
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final publicRoutes = <String>{
+    '/loading',
+    '/welcome',
+    '/onboarding/app-language',
+    '/onboarding/country',
+    '/onboarding/timezone',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/forgot-password/confirmation',
+  };
+  bool didRerouteForRoleChange = false;
+  final router = GoRouter(
     initialLocation: '/loading', // ✅ Changed from '/splash'
+    redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
+      final location = state.uri.path;
+      final isPublicRoute = publicRoutes.contains(location);
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      final isEmailVerified = firebaseUser?.emailVerified ?? true;
+      final isPasswordProvider = firebaseUser?.providerData
+              .any((provider) => provider.providerId == 'password') ??
+          false;
+
+      if (authState.isAuthenticated &&
+          isPasswordProvider &&
+          !isEmailVerified &&
+          location != '/verify-email') {
+        return '/verify-email';
+      }
+
+      if (!authState.isAuthenticated && !isPublicRoute) {
+        return '/welcome';
+      }
+
+      if (authState.isAuthenticated &&
+          isPublicRoute &&
+          location != '/loading') {
+        return '/loading';
+      }
+
+      return null;
+    },
     routes: [
       // Loading screen - first screen users see
       GoRoute(
@@ -92,6 +138,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password/confirmation',
+        builder: (context, state) => const ForgotPasswordConfirmationScreen(),
+      ),
+      GoRoute(
+        path: '/context-setup',
+        builder: (context, state) => const ContextSetupScreen(),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
 
       // Patient/Caregiver shell route with navigation
@@ -199,4 +257,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.listen(authNotifierProvider, (previous, next) {
+    router.refresh();
+    final roleChanged =
+        previous?.user?.role != next.user?.role && next.isAuthenticated;
+    if (roleChanged && !didRerouteForRoleChange) {
+      didRerouteForRoleChange = true;
+      router.go('/loading');
+      return;
+    }
+    if (!next.isAuthenticated) {
+      didRerouteForRoleChange = false;
+    }
+  });
+  return router;
 });

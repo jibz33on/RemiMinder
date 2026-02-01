@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/auth_state.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../../../core/models/user.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/firebase_auth_service.dart';
 import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/services/token_manager.dart';
 import '../../../../core/services/secure_storage.dart';
+import '../../../../core/services/preferences_service.dart';
 
 // =============================================================================
 // PROVIDERS
@@ -54,6 +57,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
   late final AuthRepository _authRepository;
   late final BackendApiService _backendApiService;
+  bool _hasReconciledRole = false;
+  Timer? _profileSyncTimer;
+  int _profileSyncAttempts = 0;
 
   /// Check authentication status on app start
   Future<void> _checkAuthStatus() async {
@@ -66,7 +72,9 @@ class AuthNotifier extends Notifier<AuthState> {
           .getCurrentUser()
           .timeout(const Duration(seconds: 10));
       if (user != null) {
-        state = AuthState.authenticated(user);
+        final resolvedUser = await _applyCachedRoleIfNeeded(user);
+        state = AuthState.authenticatedWithoutProfile(resolvedUser);
+        _syncProfileAndReconcile(resolvedUser);
       } else {
         state = AuthState.unauthenticated();
       }
@@ -90,6 +98,8 @@ class AuthNotifier extends Notifier<AuthState> {
     required UserRole role,
     String? fullName,
   }) async {
+    _resetProfileSync();
+    _hasReconciledRole = false;
     state = AuthState.loading();
 
     try {
@@ -100,14 +110,33 @@ class AuthNotifier extends Notifier<AuthState> {
         fullName: fullName,
       );
 
-      // Bootstrap user in backend with full name
-      await _backendApiService.bootstrapUser(fullName: fullName);
+      User resolvedUser = user;
+      AuthProfile? profile;
 
-      // Fetch user profile from backend
-      final profile = await _backendApiService.getMyProfile();
+      try {
+        // Bootstrap user in backend with full name
+        await _backendApiService.bootstrapUser(fullName: fullName);
+      } catch (e) {
+        print('🔥 AuthNotifier: Bootstrap failed during sign up: $e');
+      }
 
-      state = AuthState.authenticated(user,
-          profile: AuthProfile.fromUserProfile(profile));
+      try {
+        final userProfile = await _backendApiService.getMyProfile();
+        profile = AuthProfile.fromUserProfile(userProfile);
+        resolvedUser = _applyProfileToUser(user, userProfile);
+        await _cacheRoleFromProfile(userProfile);
+      } catch (e) {
+        print('🔥 AuthNotifier: Failed to load profile after sign up: $e');
+        resolvedUser =
+            await _applyCachedRoleIfNeeded(resolvedUser, fallback: role);
+      }
+
+      if (profile == null) {
+        state = AuthState.authenticatedWithoutProfile(resolvedUser);
+        _scheduleProfileSyncRetry(resolvedUser);
+      } else {
+        state = AuthState.authenticated(resolvedUser, profile: profile);
+      }
     } catch (e) {
       state = AuthState.error(e.toString());
     }
@@ -116,20 +145,41 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Sign in with email and password
   Future<void> signIn(String email, String password,
       {UserRole? selectedRole}) async {
+    _resetProfileSync();
+    _hasReconciledRole = false;
     state = AuthState.loading();
 
     try {
       final user = await _authRepository.signIn(email, password,
           selectedRole: selectedRole);
 
-      // Bootstrap user in backend
-      await _backendApiService.bootstrapUser();
+      User resolvedUser = user;
+      AuthProfile? profile;
 
-      // Fetch user profile from backend
-      final profile = await _backendApiService.getMyProfile();
+      try {
+        // Bootstrap user in backend
+        await _backendApiService.bootstrapUser();
+      } catch (e) {
+        print('🔥 AuthNotifier: Bootstrap failed during sign in: $e');
+      }
 
-      state = AuthState.authenticated(user,
-          profile: AuthProfile.fromUserProfile(profile));
+      try {
+        final userProfile = await _backendApiService.getMyProfile();
+        profile = AuthProfile.fromUserProfile(userProfile);
+        resolvedUser = _applyProfileToUser(user, userProfile);
+        await _cacheRoleFromProfile(userProfile);
+      } catch (e) {
+        print('🔥 AuthNotifier: Failed to load profile after sign in: $e');
+        resolvedUser = await _applyCachedRoleIfNeeded(resolvedUser,
+            fallback: selectedRole);
+      }
+
+      if (profile == null) {
+        state = AuthState.authenticatedWithoutProfile(resolvedUser);
+        _scheduleProfileSyncRetry(resolvedUser);
+      } else {
+        state = AuthState.authenticated(resolvedUser, profile: profile);
+      }
     } catch (e) {
       state = AuthState.error(e.toString());
     }
@@ -137,21 +187,47 @@ class AuthNotifier extends Notifier<AuthState> {
 
   /// Sign in with Google OAuth
   Future<void> signInWithGoogle({UserRole? selectedRole}) async {
+    _resetProfileSync();
+    _hasReconciledRole = false;
+    final previousState = state;
     state = AuthState.loading();
 
     try {
       final user =
           await _authRepository.signInWithGoogle(selectedRole: selectedRole);
 
-      // Bootstrap user in backend
-      await _backendApiService.bootstrapUser();
+      User resolvedUser = user;
+      AuthProfile? profile;
 
-      // Fetch user profile from backend
-      final profile = await _backendApiService.getMyProfile();
+      try {
+        // Bootstrap user in backend
+        await _backendApiService.bootstrapUser();
+      } catch (e) {
+        print('🔥 AuthNotifier: Bootstrap failed during Google sign in: $e');
+      }
 
-      state = AuthState.authenticated(user,
-          profile: AuthProfile.fromUserProfile(profile));
+      try {
+        final userProfile = await _backendApiService.getMyProfile();
+        profile = AuthProfile.fromUserProfile(userProfile);
+        resolvedUser = _applyProfileToUser(user, userProfile);
+        await _cacheRoleFromProfile(userProfile);
+      } catch (e) {
+        print('🔥 AuthNotifier: Failed to load profile after Google sign in: $e');
+        resolvedUser = await _applyCachedRoleIfNeeded(resolvedUser,
+            fallback: selectedRole);
+      }
+
+      if (profile == null) {
+        state = AuthState.authenticatedWithoutProfile(resolvedUser);
+        _scheduleProfileSyncRetry(resolvedUser);
+      } else {
+        state = AuthState.authenticated(resolvedUser, profile: profile);
+      }
     } catch (e) {
+      if (e is GoogleSignInCancelledException) {
+        state = previousState;
+        rethrow;
+      }
       state = AuthState.error(e.toString());
     }
   }
@@ -166,6 +242,8 @@ class AuthNotifier extends Notifier<AuthState> {
       await _authRepository.signOut();
       print(
           '🔐 AuthNotifier: Firebase signOut completed, setting unauthenticated');
+      _resetProfileSync();
+      _hasReconciledRole = false;
       state = AuthState.unauthenticated();
       print('🔐 AuthNotifier: AuthState set to unauthenticated');
     } catch (e) {
@@ -218,6 +296,80 @@ class AuthNotifier extends Notifier<AuthState> {
     if (state.user != null) {
       state = AuthState.authenticated(state.user!, profile: profile);
     }
+  }
+
+  User _applyProfileToUser(User user, UserProfile profile) {
+    return user.copyWith(
+      role: UserRole.fromString(profile.role),
+      fullName: profile.fullName ?? user.fullName,
+      displayName: profile.fullName ?? user.displayName,
+    );
+  }
+
+  Future<void> _cacheRoleFromProfile(UserProfile profile) async {
+    final role = UserRole.fromString(profile.role);
+    await PreferencesService().setCachedUserRole(role);
+  }
+
+  Future<User> _applyCachedRoleIfNeeded(User user,
+      {UserRole? fallback}) async {
+    final cachedRole = await PreferencesService().getCachedUserRole();
+    final resolvedRole = cachedRole ?? fallback ?? user.role;
+    if (resolvedRole == user.role) {
+      return user;
+    }
+    return user.copyWith(role: resolvedRole);
+  }
+
+  Future<void> _syncProfileAndReconcile(User currentUser) async {
+    try {
+      final userProfile = await _backendApiService
+          .getMyProfile()
+          .timeout(const Duration(seconds: 10));
+      await _cacheRoleFromProfile(userProfile);
+      _profileSyncAttempts = 0;
+      _profileSyncTimer?.cancel();
+
+      final profile = AuthProfile.fromUserProfile(userProfile);
+      final resolvedUser = _applyProfileToUser(currentUser, userProfile);
+      final roleChanged = resolvedUser.role != currentUser.role;
+
+      if (roleChanged && !_hasReconciledRole) {
+        _hasReconciledRole = true;
+        state = AuthState.authenticated(resolvedUser, profile: profile);
+        return;
+      }
+
+      if (state.user != null && state.profile != profile) {
+        state = AuthState.authenticated(state.user!, profile: profile);
+      }
+    } catch (e) {
+      print('🔥 AuthNotifier: Failed to sync profile for reconciliation: $e');
+      _scheduleProfileSyncRetry(currentUser);
+    }
+  }
+
+  void _scheduleProfileSyncRetry(User currentUser) {
+    if (!state.isAuthenticated) return;
+    if (_profileSyncTimer?.isActive ?? false) return;
+    if (_profileSyncAttempts >= 3) return;
+
+    final delays = [5, 15, 30];
+    final delaySeconds =
+        delays[_profileSyncAttempts.clamp(0, delays.length - 1)];
+    _profileSyncAttempts += 1;
+
+    _profileSyncTimer = Timer(Duration(seconds: delaySeconds), () {
+      if (!state.isAuthenticated) return;
+      final user = state.user ?? currentUser;
+      _syncProfileAndReconcile(user);
+    });
+  }
+
+  void _resetProfileSync() {
+    _profileSyncAttempts = 0;
+    _profileSyncTimer?.cancel();
+    _profileSyncTimer = null;
   }
 }
 

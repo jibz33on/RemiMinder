@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
@@ -516,34 +517,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               fullName: fullName,
             );
 
-        // Show success dialog and navigate to login
+        final authState = ref.read(authNotifierProvider);
+        if (authState.hasError) {
+          final errorMessage = _getUserFriendlyErrorMessage(
+              authState.errorMessage ?? 'Registration failed', l10n);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(errorMessage)),
+            );
+          }
+          return;
+        }
+
+        if (authState.isAuthenticated && authState.user != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(l10n?.registerAccountCreatedTitle ??
+                      'Account created')),
+            );
+          }
+          await _navigateAfterRegister(authState.user!);
+          return;
+        }
+
         if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text(
-                    l10n?.registerAccountCreatedTitle ?? 'Account Created!'),
-                content: Text(l10n?.registerAccountCreatedMessage ??
-                    'Your account has been created successfully. You can now sign in with your email and password.'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
-                      // Navigate back to login screen
-                      final selectedRole = ref.read(selectedRoleProvider);
-                      final roleParam = selectedRole == UserRole.patient
-                          ? 'patient'
-                          : 'caregiver';
-                      context.go('/login?role=$roleParam');
-                    },
-                    child: Text(
-                        l10n?.registerGoToSignIn ?? 'Go to Sign In'),
-                  ),
-                ],
-              );
-            },
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(l10n?.registerFailedGeneric ??
+                    'Registration failed. Please try again.')),
           );
         }
       } catch (e) {
@@ -554,6 +556,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
         }
       }
+    }
+  }
+
+  Future<void> _navigateAfterRegister(User user) async {
+    final prefs = PreferencesService();
+    final isOnboardingComplete =
+        await prefs.isVisitLanguageOnboardingComplete();
+    if (!mounted) return;
+
+    if (!isOnboardingComplete) {
+      final nextRoute = user.isCaregiver ? '/caregiver/home' : '/patient/home';
+      context.go('/onboarding/visit-language?next=$nextRoute');
+      return;
+    }
+
+    if (user.isPatient) {
+      context.go('/patient/home');
+    } else if (user.isCaregiver) {
+      context.go('/caregiver/home');
+    } else {
+      context.go('/welcome');
     }
   }
 }

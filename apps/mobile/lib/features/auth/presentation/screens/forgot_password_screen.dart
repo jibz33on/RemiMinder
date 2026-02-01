@@ -228,23 +228,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           email: _emailController.text.trim(),
         );
 
-        // Always show generic success message for security
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                l10n?.forgotPasswordSuccessMessage ??
-                    'If an account exists for this email, we\'ve sent you password reset instructions.',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-
-        // Keep user on screen after showing success message
+        if (!mounted) return;
         setState(() {
           _isLoading = false;
         });
+        context.go('/forgot-password/confirmation');
       } catch (e) {
         setState(() {
           _isLoading = false;

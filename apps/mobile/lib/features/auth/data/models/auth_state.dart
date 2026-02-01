@@ -49,6 +49,7 @@ enum AuthStatus {
   initial, // App starting up
   loading, // Authentication operation in progress
   authenticated, // User is logged in
+  authenticatedWithoutProfile, // User is logged in but profile not loaded
   unauthenticated, // User is not logged in
   error, // Authentication error occurred
 }
@@ -81,6 +82,12 @@ class AuthState extends Equatable {
         profile: profile,
       );
 
+  /// Create authenticated state without backend profile
+  factory AuthState.authenticatedWithoutProfile(User user) => AuthState(
+        status: AuthStatus.authenticatedWithoutProfile,
+        user: user,
+      );
+
   /// Create unauthenticated state
   factory AuthState.unauthenticated() => const AuthState(
         status: AuthStatus.unauthenticated,
@@ -94,7 +101,9 @@ class AuthState extends Equatable {
 
   /// Check if user is authenticated
   bool get isAuthenticated =>
-      status == AuthStatus.authenticated && user != null;
+      (status == AuthStatus.authenticated ||
+          status == AuthStatus.authenticatedWithoutProfile) &&
+      user != null;
 
   /// Check if operation is loading
   bool get isLoading => status == AuthStatus.loading;

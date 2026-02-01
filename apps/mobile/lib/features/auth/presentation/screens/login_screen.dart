@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/models/user.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../../core/services/secure_storage.dart';
+import '../../../../core/services/firebase_auth_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
@@ -22,7 +21,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isPasswordVisible =
       false; // false = password hidden, true = password visible
   bool _rememberMe = false; // Remember me checkbox state
-  String? _userRole;
 
   /// Convert technical errors to user-friendly messages
   String _getUserFriendlyErrorMessage(
@@ -68,9 +66,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Get role from navigation parameters
-    final uri = Uri.parse(GoRouterState.of(context).uri.toString());
-    _userRole = uri.queryParameters['role'];
     // Load remember me preference
     _loadRememberMePreference();
   }
@@ -106,15 +101,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     try {
-      // Convert string role to UserRole enum
-      UserRole? selectedRole;
-      if (_userRole != null) {
-        selectedRole =
-            _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
-      }
       await ref
           .read(authNotifierProvider.notifier)
-          .signIn(email, password, selectedRole: selectedRole);
+          .signIn(email, password);
 
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
@@ -137,7 +126,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await SecureStorage().saveRememberMe(_rememberMe);
 
         if (user != null) {
-          await _navigateAfterLogin(user);
+          await _navigateAfterLogin();
         }
       } else {
         if (mounted) {
@@ -255,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Icons.arrow_back,
             color: Theme.of(context).colorScheme.primary,
           ),
-          onPressed: () => context.go('/role-selection'),
+          onPressed: () => context.go('/welcome'),
         ),
       ),
       body: SafeArea(
@@ -356,11 +345,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SvgPicture.asset(
-                        'assets/images/google_logo.svg',
+                      Image.asset(
+                        'assets/images/google_logo.jpg',
                         width: 22,
                         height: 22,
-                        placeholderBuilder: (context) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           width: 22,
                           height: 22,
                           decoration: const BoxDecoration(
@@ -554,42 +543,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               const SizedBox(height: 40),
 
-              // Temporary bypass for UI testing (no backend auth)
-              Column(
-                children: [
-                  Text(
-                    l10n?.loginContinueWithoutSigningIn ??
-                        'Continue without signing in',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      color: Color(0xFF5A5A5A),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => context.go('/patient/home'),
-                          child:
-                              Text(l10n?.loginBypassPatient ?? 'Patient'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => context.go('/caregiver/home'),
-                          child: Text(
-                              l10n?.loginBypassCaregiver ?? 'Caregiver'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -600,16 +553,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     final l10n = AppLocalizations.of(context);
     try {
-      // Convert string role to UserRole enum
-      UserRole? selectedRole;
-      if (_userRole != null) {
-        selectedRole =
-            _userRole == 'caregiver' ? UserRole.caregiver : UserRole.patient;
-      }
-
-      await ref.read(authNotifierProvider.notifier).signInWithGoogle(
-            selectedRole: selectedRole,
-          );
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
 
       // Check auth state after login attempt
       final authState = ref.read(authNotifierProvider);
@@ -617,7 +561,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (authState.isAuthenticated) {
         final user = authState.user;
         if (user != null) {
-          await _navigateAfterLogin(user);
+          await _navigateAfterLogin();
         } else if (mounted) {
           context.go('/welcome');
         }
@@ -631,6 +575,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       }
     } catch (e) {
+      if (e is GoogleSignInCancelledException) {
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -654,25 +601,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Future<void> _navigateAfterLogin(User user) async {
+  Future<void> _navigateAfterLogin() async {
     final prefs = PreferencesService();
     final isOnboardingComplete =
         await prefs.isVisitLanguageOnboardingComplete();
     if (!mounted) return;
 
     if (!isOnboardingComplete) {
-      final nextRoute =
-          user.isCaregiver ? '/caregiver/home' : '/patient/home';
-      context.go('/onboarding/visit-language?next=$nextRoute');
+      context.go('/onboarding/visit-language?next=/role-selection');
       return;
     }
 
-    if (user.isPatient) {
-      context.go('/patient/home');
-    } else if (user.isCaregiver) {
-      context.go('/caregiver/home');
-    } else {
-      context.go('/welcome');
-    }
+    context.go('/role-selection');
   }
 }

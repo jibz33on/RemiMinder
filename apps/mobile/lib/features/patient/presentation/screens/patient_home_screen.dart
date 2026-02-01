@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/config/environment.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/preferences_service.dart';
+import '../../../../core/models/user.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/models/patient_task.dart';
 import '../../data/services/patient_tasks_api_service.dart';
@@ -101,6 +103,12 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
         _remindersError = true;
       });
     }
+  }
+
+  Future<void> _switchContext(ActiveContext targetContext) async {
+    await PreferencesService().setLastActiveContext(targetContext);
+    if (!mounted) return;
+    context.go('/loading');
   }
 
   @override
@@ -620,6 +628,23 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   color:
                       Theme.of(context).colorScheme.secondary.withOpacity(0.7),
                 ),
+              ),
+              PopupMenuButton<ActiveContext>(
+                icon: Icon(
+                  Icons.swap_horiz,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                onSelected: _switchContext,
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: ActiveContext.patient,
+                    child: Text('Patient'),
+                  ),
+                  PopupMenuItem(
+                    value: ActiveContext.caregiver,
+                    child: Text('Caregiver'),
+                  ),
+                ],
               ),
             ],
           ),

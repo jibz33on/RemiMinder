@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
@@ -127,10 +128,14 @@ class RoleSelectionScreen extends ConsumerWidget {
   }
 
   void _onContinue(BuildContext context, WidgetRef ref, UserRole selectedRole) {
-    // Pass the selected role to the login/register screens
-    final roleParam =
-        selectedRole == UserRole.patient ? 'patient' : 'caregiver';
-    context.go('/login?role=$roleParam');
+    final targetContext = selectedRole == UserRole.caregiver
+        ? ActiveContext.caregiver
+        : ActiveContext.patient;
+    PreferencesService().setLastActiveContext(targetContext);
+    final homeRoute = selectedRole == UserRole.caregiver
+        ? '/caregiver/home'
+        : '/patient/home';
+    context.go(homeRoute);
   }
 }
 

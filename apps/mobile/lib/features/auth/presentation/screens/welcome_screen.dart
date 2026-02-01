@@ -19,7 +19,7 @@ class WelcomeScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
-                  onPressed: () => context.go('/role-selection'),
+                  onPressed: () => context.go('/login'),
                   child: Text(
                     l10n?.commonSkip ?? 'Skip',
                     style: TextStyle(

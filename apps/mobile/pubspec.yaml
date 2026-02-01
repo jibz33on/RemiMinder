@@ -72,7 +72,7 @@ flutter:
     # Environment configuration
     - .env
     # Logo assets for authentication (currently JPEG, ideally SVG)
-    - assets/images/google_logo.svg
+    - assets/images/google_logo.jpg
     # - assets/images/apple_logo.svg  # Not available yet
     # Custom role icons
     - assets/images/patient_icon.svg
