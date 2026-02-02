@@ -130,143 +130,143 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     final firstName = userName.split(' ').first;
 
     return Column(
-      children: [
-        Container(
-          color: Colors.transparent,
+        children: [
+          Container(
+            color: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0)
-              .copyWith(top: MediaQuery.of(context).padding.top + 16.0),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      greeting,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            firstName,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          '✨',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                    .copyWith(top: MediaQuery.of(context).padding.top + 16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    Text(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                  Icons.person,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        greeting,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              firstName,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Text(
+                            '✨',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Text(
                       l10n?.patientHomeFeelingToday ??
                           'How are you feeling today?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.secondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
+                    ],
+                  ),
+                ),
+                PopupMenuButton<ActiveContext>(
+                  icon: Icon(
+                    Icons.swap_horiz,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  onSelected: _switchContext,
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: ActiveContext.patient,
+                      child: Text('Patient'),
+                    ),
+                    PopupMenuItem(
+                      value: ActiveContext.caregiver,
+                      child: Text('Caregiver'),
                     ),
                   ],
                 ),
-              ),
-              PopupMenuButton<ActiveContext>(
-                icon: Icon(
-                  Icons.swap_horiz,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                onSelected: _switchContext,
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: ActiveContext.patient,
-                    child: Text('Patient'),
-                  ),
-                  PopupMenuItem(
-                    value: ActiveContext.caregiver,
-                    child: Text('Caregiver'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                if (!_isLoadingInvitations && _invitations.isNotEmpty) ...[
-                  _buildInvitationsSection(),
-                  const SizedBox(height: 32),
-                ],
-                const SectionHeader(
-                  title: 'My Patients',
-                  icon: Icons.people,
-                ),
-                const SizedBox(height: 16),
-                _buildPatientsSection(),
-                const SizedBox(height: 32),
-                const SectionHeader(
-                  title: 'Recent Summaries',
-                  icon: Icons.description,
-                ),
-                const SizedBox(height: 16),
-                _buildSummariesSection(),
-                const SizedBox(height: 120),
               ],
             ),
           ),
-        ),
-      ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    const SizedBox(height: 24),
+                _buildSummariesHeroCard(),
+                    const SizedBox(height: 32),
+                if (!_isLoadingInvitations && _invitations.isNotEmpty) ...[
+                  const SectionHeader(
+                    title: 'Invitations',
+                    icon: Icons.mail_outline,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInvitationsSection(),
+                  const SizedBox(height: 32),
+                ],
+                  const SectionHeader(
+                    title: 'My Patients',
+                    icon: Icons.people,
+                  ),
+                  const SizedBox(height: 16),
+                _buildPatientsSection(),
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
+          ),
+        ],
     );
   }
 
@@ -295,48 +295,35 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     final pendingInvitations = _invitations.length;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF1A4D4D), // Dark teal-green
-            Color(0xFF051818), // Very dark green/black
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: const Border(
-          top: BorderSide(
-            color: Colors.white,
-            width: 0.5,
-          ),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.mail,
-                color: Colors.white,
-                size: 28,
+              Icon(
+                Icons.mail_outline,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
               ),
               const SizedBox(width: 12),
               Text(
                 'Pending Invitations',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -344,8 +331,8 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
           const SizedBox(height: 16),
           Text(
             '$pendingInvitations invitation${pendingInvitations > 1 ? 's' : ''} waiting',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -354,15 +341,14 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
           Text(
             'Review and accept caregiver invitations.',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 16,
+              color: Theme.of(context).colorScheme.secondary,
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
+          OutlinedButton(
             onPressed: () => context.go('/caregiver/accept-invitations'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
+            style: OutlinedButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
@@ -523,123 +509,124 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     }
   }
 
-  Widget _buildSummariesSection() {
-    if (_isLoadingSummaries) {
-      return _buildLoadingCard();
-    }
-
-    if (_summaries.isEmpty) {
-      return _buildEmptyCard(
-        title: 'No summaries yet',
-        subtitle: 'Visit summaries will appear here once available.',
-      );
-    }
-
-    if (_summariesError != null) {
-      return _buildEmptyCard(
-        title: 'No summaries yet',
-        subtitle: 'Visit summaries will appear here once available.',
-      );
-    }
-
-    final previewSummaries = _summaries.take(3).toList();
+  Widget _buildSummariesHeroCard() {
+    final l10n = AppLocalizations.of(context);
+    final latestSummary = _summaries.isNotEmpty ? _summaries.first : null;
+    final title = latestSummary == null
+        ? null
+        : (latestSummary.title ??
+            (latestSummary.specialty.isNotEmpty
+                ? latestSummary.specialty
+                : 'Visit Summary'));
+    final subtitle = latestSummary == null
+        ? null
+        : (latestSummary.doctorName.isNotEmpty
+            ? latestSummary.doctorName
+            : 'Doctor');
+    final dateText = latestSummary == null
+        ? null
+        : _formatSummaryDate(
+            latestSummary.visitDate ?? latestSummary.summaryCreatedAt,
+          );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF1A4D4D),
+            Color(0xFF051818),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < previewSummaries.length; i++) ...[
-            _buildSummaryItem(previewSummaries[i]),
-            if (i != previewSummaries.length - 1)
-              const Divider(height: 16),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryItem(SummaryItem summary) {
-    final title = summary.title ??
-        (summary.specialty.isNotEmpty
-            ? summary.specialty
-            : 'Visit Summary');
-    final subtitle = summary.doctorName.isNotEmpty
-        ? summary.doctorName
-        : 'Doctor';
-    final dateText = _formatSummaryDate(summary.visitDate ?? summary.summaryCreatedAt);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.description,
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
+        border: const Border(
+          top: BorderSide(
+            color: Colors.white,
+            width: 0.5,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
+              const Icon(
+                Icons.description,
+                color: Colors.white,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
               Text(
-                title,
+                'Recent Summaries',
                 style: TextStyle(
-                  fontSize: 15,
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ],
+      ),
+          const SizedBox(height: 16),
+          if (_isLoadingSummaries)
+            const Center(child: CircularProgressIndicator())
+          else if (_summariesError != null || latestSummary == null)
+              Text(
+              l10n?.caregiverPatientOverviewNoVisits ?? 'No summaries yet',
+                style: TextStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
+              ),
+            )
+          else ...[
+            Text(
+              title ?? '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+              Text(
+              '$subtitle • $dateText',
+                style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 2),
+            const SizedBox(height: 10),
               Text(
-                '$subtitle • $dateText',
+              latestSummary.summaryPreview,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                summary.summaryPreview,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 14,
                 ),
               ),
             ],
-          ),
-        ),
       ],
+      ),
     );
   }
 
   Widget _buildLoadingCard() {
     return Container(
       padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),

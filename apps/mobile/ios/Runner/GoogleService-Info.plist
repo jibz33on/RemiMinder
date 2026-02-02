@@ -3,23 +3,23 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>575820802106-kas6srrmu4332ufs05nnila9hto88bo1.apps.googleusercontent.com</string>
+	<string>85884993648-obm3aj1cn1glj35hd7a1lf8mf2egn0uu.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.575820802106-kas6srrmu4332ufs05nnila9hto88bo1</string>
+	<string>com.googleusercontent.apps.85884993648-obm3aj1cn1glj35hd7a1lf8mf2egn0uu</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>575820802106-576cjelarpplv12in62su54frlt7lkop.apps.googleusercontent.com</string>
+	<string>85884993648-v8eg8je4h462shv36ukq1s05t1v0l7lp.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCbuzkFNLqfmdYgHrkLWw5RPyyRbXzanNY</string>
+	<string>AIzaSyAeC7Kmj2plHF32sJxCTdwDFEg3tjfy5E8</string>
 	<key>GCM_SENDER_ID</key>
-	<string>575820802106</string>
+	<string>85884993648</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.remiminder.app</string>
+	<string>com.jibin.healthmobile.ios</string>
 	<key>PROJECT_ID</key>
-	<string>stunning-ripsaw-480402-i4</string>
+	<string>health-mobile-app-486203</string>
 	<key>STORAGE_BUCKET</key>
-	<string>stunning-ripsaw-480402-i4.firebasestorage.app</string>
+	<string>health-mobile-app-486203.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:575820802106:ios:e22814a53a098a85456d03</string>
+	<string>1:85884993648:ios:a3793daa048bc03a1374b5</string>
 </dict>
 </plist>
