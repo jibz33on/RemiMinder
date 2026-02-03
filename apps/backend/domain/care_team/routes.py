@@ -10,6 +10,7 @@ from domain.care_team.service import (
     delete_member,
     invite_member,
     list_members,
+    list_my_patients,
     list_my_invitations,
     list_pending_invitations,
     resend_pending_invitation,
@@ -54,10 +55,13 @@ async def invite_care_team_member(
     if not external_auth_id:
         raise PermissionDeniedError("Invalid token", status_code=401)
 
-    if request.permission not in {"view", "full"}:
+    membership_permission = request.permission
+    membership_role = request.role.strip()
+
+    if membership_permission not in {"view", "full"}:
         raise ValidationError("Invalid permission", status_code=400)
 
-    if not request.role.strip():
+    if not membership_role:
         raise ValidationError("Role is required", status_code=400)
 
     token = secrets.token_urlsafe(32)
@@ -65,8 +69,8 @@ async def invite_care_team_member(
     return await invite_member(
         external_auth_id=external_auth_id,
         email=request.email,
-        role=request.role.strip(),
-        permission=request.permission,
+        role=membership_role,
+        permission=membership_permission,
         patient_name=patient_name,
         token=token,
     )
@@ -81,7 +85,10 @@ async def accept_care_team_invitation(
     Accept a care team invitation by token.
     """
     external_auth_id = current_user.get("sub")
-    return await accept_invitation(external_auth_id, request.token)
+    invitee_email = current_user.get("email")
+    if not invitee_email:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    return await accept_invitation(external_auth_id, request.token, invitee_email)
 
 
 @router.get("/my-invitations", status_code=status.HTTP_200_OK)
@@ -93,6 +100,19 @@ async def list_my_care_team_invitations(
     """
     external_auth_id = current_user.get("sub")
     return await list_my_invitations(external_auth_id)
+
+
+@router.get("/my-patients", status_code=status.HTTP_200_OK)
+async def list_my_connected_patients(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    List patients connected to the current caregiver.
+    """
+    external_auth_id = current_user.get("sub")
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    return await list_my_patients(external_auth_id)
 
 
 @router.get("/pending", status_code=status.HTTP_200_OK)
@@ -141,9 +161,10 @@ async def update_care_team_permission(
     Update a care team member's permission for the current patient.
     """
     external_auth_id = current_user.get("sub")
-    if request.permission not in {"view", "full"}:
+    membership_permission = request.permission
+    if membership_permission not in {"view", "full"}:
         raise ValidationError("Invalid permission", status_code=400)
-    return await update_permission(external_auth_id, member_id, request.permission)
+    return await update_permission(external_auth_id, member_id, membership_permission)
 
 
 @router.delete("/{member_id}", status_code=status.HTTP_200_OK)

@@ -25,6 +25,7 @@ from domain.reminders.repo import (
 from workflows.reminder_messages import generate_reminder_message
 from workflows.reminder_alerts import check_and_send_caregiver_alerts
 from domain.ports.cache import get, set, invalidate, invalidate_prefix
+from domain.users.service import assert_patient_access
 
 logger = get_logger()
 
@@ -449,6 +450,7 @@ async def skip_reminder_for_user(reminder_id: str, user_id: str, action: Reminde
 
 
 async def get_caregiver_activity(caregiver_id: str, user_id: str):
+    await assert_patient_access(caregiver_id, user_id, "view")
     cache_key = f"caregiver_dashboard:{caregiver_id}:{user_id}"
     cached = get(cache_key)
     if cached is not None:

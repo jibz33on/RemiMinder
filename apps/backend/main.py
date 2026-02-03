@@ -132,6 +132,7 @@ def create_app() -> FastAPI:
     app.include_router(users_routes.router)          # User authentication
     app.include_router(care_team_routes.router)      # Care team invitations
     app.include_router(patient_tasks_routes.router)  # Patient tasks
+    app.include_router(patient_tasks_routes.caregiver_router)  # Caregiver read-only
     app.include_router(reminders_routes.router)      # Reminders
     return app
 

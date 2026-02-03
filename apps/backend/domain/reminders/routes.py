@@ -14,16 +14,21 @@ from domain.reminders.service import (
     complete_reminder_for_user,
     create_reminder_for_user,
     delete_reminder_for_user,
-    get_caregiver_activity,
+    get_caregiver_activity as get_caregiver_activity_service,
     get_reminder_for_user,
-    list_caregiver_alerts,
+    list_caregiver_alerts as list_caregiver_alerts_service,
     list_reminders_for_user,
-    mark_alert_read,
+    mark_alert_read as mark_alert_read_service,
     skip_reminder_for_user,
     snooze_reminder_for_user,
     update_reminder_for_user,
 )
-from domain.auth import get_current_user as get_current_user_port
+from domain.auth import (
+    get_current_user as get_current_user_port,
+    get_current_user_jwt as get_current_user_jwt_port,
+)
+from domain.errors import PermissionDeniedError
+from domain.users.service import assert_not_caregiver, assert_patient_access, assert_caregiver
 
 router = APIRouter(prefix="/api", tags=["reminders"])
 
@@ -31,11 +36,16 @@ router = APIRouter(prefix="/api", tags=["reminders"])
 def get_current_user(request: Request) -> str:
     return get_current_user_port(request)
 
+
+def get_current_user_claims(request: Request) -> dict:
+    return get_current_user_jwt_port(request)
+
 @router.post("/reminders", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 async def create_reminder(data: ReminderCreate, user_id: str = Depends(get_current_user)):
     """
     Create a new reminder with AI-generated personalized message.
     """
+    await assert_not_caregiver(user_id)
     return await create_reminder_for_user(user_id, data)
 
 # Get user_id from JWT token instead of query param
@@ -45,6 +55,22 @@ async def get_patient_reminders(user_id: str = Depends(get_current_user)):
     Get all reminders for a patient, organized by category (today, upcoming, past).
     """
     return await list_reminders_for_user(user_id)
+
+
+@router.get("/patients/{patient_id}/reminders", response_model=ReminderListResponse)
+async def get_patient_reminders_for_caregiver(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user_claims),
+):
+    """
+    Read-only reminders for a caregiver-selected patient.
+    """
+    caregiver_id = current_user.get("sub")
+    if not caregiver_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    await assert_caregiver(caregiver_id)
+    await assert_patient_access(caregiver_id, patient_id, "view")
+    return await list_reminders_for_user(patient_id)
 
 @router.get("/reminders/{reminder_id}", response_model=ReminderResponse)
 async def get_reminder(reminder_id: str, user_id: str = Depends(get_current_user)):
@@ -59,6 +85,7 @@ async def update_reminder(reminder_id: str, user_id: str = Depends(get_current_u
     """
     Update a reminder (time, title, status, etc.).
     """
+    await assert_not_caregiver(user_id)
     return await update_reminder_for_user(reminder_id, user_id, updates)
 
 
@@ -67,6 +94,7 @@ async def delete_reminder(reminder_id: str, user_id: str = Depends(get_current_u
     """
     Cancel/delete a reminder.
     """
+    await assert_not_caregiver(user_id)
     return await delete_reminder_for_user(reminder_id, user_id)
 
 
@@ -79,6 +107,7 @@ async def mark_complete(
     """
     Mark a reminder as completed.
     """
+    await assert_not_caregiver(user_id)
     return await complete_reminder_for_user(reminder_id, user_id, action)
 
 @router.post("/reminders/{reminder_id}/snooze", response_model=ReminderResponse)
@@ -90,6 +119,7 @@ async def snooze_reminder_post(
     """
     Snooze a reminder. The snooze count is incremented, and the scheduled time is pushed forward.
     """
+    await assert_not_caregiver(user_id)
     return await snooze_reminder_for_user(reminder_id, user_id, snooze_minutes)
 
 @router.post("/reminders/{reminder_id}/skip", response_model=ReminderResponse)
@@ -102,6 +132,7 @@ async def skip_reminder_post(
     """
     Skip a reminder with optional reason.
     """
+    await assert_not_caregiver(user_id)
     return await skip_reminder_for_user(reminder_id, user_id, action)
 
 
@@ -110,27 +141,53 @@ async def skip_reminder_post(
 # ============================================================================
 
 @router.get("/caregivers/{caregiver_id}/activity", response_model=CaregiverDashboardResponse)
-async def get_caregiver_activity(caregiver_id: str, user_id: str = Depends(get_current_user)):
+async def get_caregiver_activity(
+    caregiver_id: str,
+    current_user: dict = Depends(get_current_user_claims),
+):
     """
     Get aggregated activity data for caregiver dashboard.
     Shows next reminders, recent activity, and alert summary.
     """
-    return await get_caregiver_activity(caregiver_id, user_id)
+    external_auth_id = current_user.get("sub")
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    if caregiver_id != external_auth_id:
+        raise PermissionDeniedError("Not authorized", status_code=403)
+    return await get_caregiver_activity_service(caregiver_id, external_auth_id)
 
 @router.get("/caregivers/{caregiver_id}/alerts", response_model=List[CaregiverAlertResponse])
-async def get_alerts(caregiver_id: str, unread_only: bool = False):
+async def get_alerts(
+    caregiver_id: str,
+    unread_only: bool = False,
+    current_user: dict = Depends(get_current_user_claims),
+):
     """
     Get all alerts for a caregiver.
     """
-    return await list_caregiver_alerts(caregiver_id, unread_only)
+    external_auth_id = current_user.get("sub")
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    if caregiver_id != external_auth_id:
+        raise PermissionDeniedError("Not authorized", status_code=403)
+    return await list_caregiver_alerts_service(caregiver_id, unread_only)
 
 
 @router.patch("/caregivers/alerts/{alert_id}/read", response_model=CaregiverAlertResponse)
-async def mark_alert_read(alert_id: str, caregiver_id: str):
+async def mark_alert_read(
+    alert_id: str,
+    caregiver_id: str,
+    current_user: dict = Depends(get_current_user_claims),
+):
     """
     Mark a caregiver alert as read.
     """
-    return await mark_alert_read(alert_id, caregiver_id)
+    external_auth_id = current_user.get("sub")
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+    if caregiver_id != external_auth_id:
+        raise PermissionDeniedError("Not authorized", status_code=403)
+    return await mark_alert_read_service(alert_id, caregiver_id)
 
 
 # High-accuracy speech-to-text processing

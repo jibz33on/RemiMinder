@@ -7,8 +7,9 @@ import '../../../auth/data/models/auth_state.dart';
 import '../../../../shared/utilities/greeting_utils.dart';
 import '../../../patient/presentation/widgets/widgets.dart';
 import '../../../care_team/data/models/care_team_invitation.dart';
-import '../../../care_team/data/models/care_team_member.dart';
 import '../../../care_team/data/services/care_team_api_service.dart';
+import '../../data/models/caregiver_patient.dart';
+import '../providers/caregiver_providers.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../../core/models/user.dart';
 import '../../../patient/data/models/summary_item.dart';
@@ -28,9 +29,6 @@ class CaregiverHomeScreen extends ConsumerStatefulWidget {
 class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   List<CareTeamInvitation> _invitations = [];
   bool _isLoadingInvitations = true;
-  List<CareTeamMember> _patients = [];
-  bool _isLoadingPatients = true;
-  String? _patientsError;
   List<SummaryItem> _summaries = [];
   bool _isLoadingSummaries = true;
   String? _summariesError;
@@ -39,7 +37,6 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   void initState() {
     super.initState();
     _loadInvitations();
-    _loadPatients();
     _loadSummaries();
   }
 
@@ -59,28 +56,6 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
       if (!mounted) return;
       setState(() {
         _isLoadingInvitations = false;
-      });
-    }
-  }
-
-  Future<void> _loadPatients() async {
-    try {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingPatients = true;
-        _patientsError = null;
-      });
-      final patients = await CareTeamApiService().getCareTeam();
-      if (!mounted) return;
-      setState(() {
-        _patients = patients;
-        _isLoadingPatients = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _patientsError = e.toString();
-        _isLoadingPatients = false;
       });
     }
   }
@@ -124,6 +99,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+    final patientsState = ref.watch(caregiverPatientsProvider);
     final l10n = AppLocalizations.of(context);
     final userName = _resolveDisplayName(authState) ?? 'Caregiver';
     final greeting = GreetingUtils.getTimeBasedGreeting();
@@ -244,6 +220,17 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                     const SizedBox(height: 24),
+                Text(
+                  'Read-only caregiver view',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .secondary
+                        .withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _buildSummariesHeroCard(),
                     const SizedBox(height: 32),
                 if (!_isLoadingInvitations && _invitations.isNotEmpty) ...[
@@ -260,7 +247,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
                     icon: Icons.people,
                   ),
                   const SizedBox(height: 16),
-                _buildPatientsSection(),
+                  _buildPatientsSection(patientsState),
                   const SizedBox(height: 120),
                 ],
               ),
@@ -368,12 +355,12 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     );
   }
 
-  Widget _buildPatientsSection() {
-    if (_isLoadingPatients) {
+  Widget _buildPatientsSection(CaregiverPatientsState patientsState) {
+    if (patientsState.isLoading && !patientsState.hasData) {
       return _buildLoadingCard();
     }
 
-    if (_patientsError != null || _patients.isEmpty) {
+    if (patientsState.patients.isEmpty) {
       return _buildEmptyCard(
         title: 'No patients linked yet',
         subtitle:
@@ -381,7 +368,7 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
       );
     }
 
-    final previewPatients = _patients.take(3).toList();
+    final previewPatients = patientsState.patients.take(3).toList();
 
     return InkWell(
       onTap: () => context.go('/caregiver/patients'),
@@ -423,10 +410,10 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
     );
   }
 
-  Widget _buildPatientRow(CareTeamMember patient) {
+  Widget _buildPatientRow(CaregiverPatient patient) {
     final name = patient.fullName ?? patient.email ?? 'Patient';
-    final role = patient.role;
-    final status = patient.status;
+    final email = patient.email;
+    final membershipRole = patient.membershipRole;
 
     return Row(
               children: [
@@ -434,12 +421,12 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-            color: _getStatusColor(status).withOpacity(0.1),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Icon(
                     Icons.person,
-            color: _getStatusColor(status),
+            color: Theme.of(context).colorScheme.primary,
                     size: 24,
                   ),
             ),
@@ -456,21 +443,24 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                  if (email != null && email.isNotEmpty)
+                    Text(
+                      email,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
                   Text(
-                role,
+                    membershipRole,
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.secondary,
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withOpacity(0.7),
                     ),
                   ),
-                      Text(
-                status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                  color: _getStatusTextColor(status),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
             ],
           ),
         ),
@@ -481,32 +471,6 @@ class _CaregiverHomeScreenState extends ConsumerState<CaregiverHomeScreen> {
         ),
       ],
     );
-  }
-
-  Color _getStatusColor(String statusType) {
-    switch (statusType) {
-      case 'active':
-        return Colors.green;
-      case 'attention':
-        return Colors.orange;
-      case 'critical':
-        return Colors.red;
-      default:
-        return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  Color _getStatusTextColor(String statusType) {
-    switch (statusType) {
-      case 'active':
-        return Colors.green;
-      case 'attention':
-        return Colors.orange;
-      case 'critical':
-        return Colors.red;
-      default:
-        return Theme.of(context).colorScheme.secondary;
-    }
   }
 
   Widget _buildSummariesHeroCard() {

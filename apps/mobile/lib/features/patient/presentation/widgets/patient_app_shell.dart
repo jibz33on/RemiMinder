@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../auth/data/models/auth_state.dart';
 import 'rounded_navigation_bar.dart';
 
 /// App shell that wraps all patient screens with a floating bottom navigation bar
@@ -24,7 +22,6 @@ class PatientAppShell extends ConsumerStatefulWidget {
 class _PatientAppShellState extends ConsumerState<PatientAppShell> {
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authNotifierProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
@@ -60,6 +57,8 @@ NavigationItem getCurrentNavigationItem(String location) {
   } else if (location.startsWith('/profile')) {
     return NavigationItem.profile;
   } else if (location.startsWith('/caregiver/home')) {
+    return NavigationItem.home;
+  } else if (location.startsWith('/caregiver/patient-home')) {
     return NavigationItem.home;
   } else if (location.startsWith('/caregiver/patients')) {
     return NavigationItem.visits;

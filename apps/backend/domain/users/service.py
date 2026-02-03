@@ -114,8 +114,8 @@ async def fetch_me(external_auth_id: str) -> dict:
     cache_key = f"user_profile:{external_auth_id}"
     cached = get(cache_key)
     if cached is not None:
-        db_role = cached.get("db_role")
-        api_role = None if not db_role or db_role == "user" else db_role
+        user_role = cached.get("db_role")
+        api_role = None if not user_role or user_role == "user" else user_role
         return {
             "full_name": cached.get("full_name"),
             "email": cached["email"],
@@ -127,8 +127,8 @@ async def fetch_me(external_auth_id: str) -> dict:
     if not user_data:
         raise NotFoundError("User not found")
 
-    db_role = user_data.get("db_role")
-    api_role = None if not db_role or db_role == "user" else db_role
+    user_role = user_data.get("db_role")
+    api_role = None if not user_role or user_role == "user" else user_role
     set(cache_key, user_data, 600)
     return {
         "full_name": user_data.get("full_name"),
@@ -226,3 +226,31 @@ async def assert_patient_access(
         raise PermissionDeniedError("Insufficient permission", status_code=403)
 
     raise PermissionDeniedError("Insufficient permission", status_code=403)
+
+
+async def assert_not_caregiver(external_auth_id: str) -> None:
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
+
+    user_data = await get_user_profile(external_auth_id)
+    if not user_data:
+        raise NotFoundError("User not found")
+
+    user_role = user_data.get("db_role")
+    if user_role == "caregiver":
+        raise PermissionDeniedError(
+            "Caregivers are read-only for patient actions", status_code=403
+        )
+
+
+async def assert_caregiver(external_auth_id: str) -> None:
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token: missing user ID", status_code=401)
+
+    user_data = await get_user_profile(external_auth_id)
+    if not user_data:
+        raise NotFoundError("User not found")
+
+    user_role = user_data.get("db_role")
+    if user_role != "caregiver":
+        raise PermissionDeniedError("Caregiver access required", status_code=403)

@@ -18,6 +18,7 @@ import '../features/patient/presentation/screens/patient_home_screen.dart';
 import '../features/caregiver/presentation/screens/caregiver_home_screen.dart';
 import '../features/caregiver/presentation/screens/patient_list_screen.dart';
 import '../features/caregiver/presentation/screens/patient_overview_screen.dart';
+import '../features/caregiver/presentation/screens/caregiver_patient_home_screen.dart';
 import '../features/caregiver/presentation/screens/accept_invitations_screen.dart';
 import '../features/caregiver/presentation/screens/caregiver_profile_screen.dart';
 import '../features/patient/presentation/screens/visit_recording_screen.dart';
@@ -190,6 +191,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/caregiver/patient-overview',
             builder: (context, state) => const PatientOverviewScreen(),
+          ),
+          GoRoute(
+            path: '/caregiver/patient-home',
+            builder: (context, state) => const CaregiverPatientHomeScreen(),
           ),
           GoRoute(
             path: '/caregiver/accept-invitations',

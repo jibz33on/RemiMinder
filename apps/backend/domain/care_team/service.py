@@ -12,6 +12,7 @@ from domain.care_team.repo import (
     get_care_team_invitation_by_token,
     get_care_team_member_by_id,
     get_care_team_members,
+    get_my_patients,
     get_my_care_team_invitations,
     get_pending_care_team_invitations,
     mark_care_team_invitation_accepted,
@@ -20,6 +21,11 @@ from domain.care_team.repo import (
     update_care_team_member_permission,
 )
 from domain.users.repo import get_user_email, get_user_uuid
+from domain.users.service import assert_caregiver, assert_patient_access
+
+# NOTE:
+# users.role = identity role (patient, caregiver, admin)
+# care_team_members.role = relationship role within a care team
 
 logger = get_logger()
 
@@ -59,12 +65,14 @@ async def invite_member(
     if not external_auth_id:
         raise PermissionDeniedError("Invalid token", status_code=401)
 
+    membership_role = role
+    membership_permission = permission
     patient_id = await get_user_uuid(external_auth_id)
     await create_care_team_invitation(
         patient_id=patient_id,
         invitee_email=email,
-        role=role,
-        permission=permission,
+        role=membership_role,
+        permission=membership_permission,
         token=token,
         invited_by_user_id=patient_id,
     )
@@ -84,7 +92,11 @@ async def invite_member(
     return {"status": "sent"}
 
 
-async def accept_invitation(external_auth_id: str, token: str) -> dict:
+async def accept_invitation(
+    external_auth_id: str,
+    token: str,
+    invitee_email: str,
+) -> dict:
     if not external_auth_id:
         raise PermissionDeniedError("Invalid token", status_code=401)
 
@@ -95,6 +107,11 @@ async def accept_invitation(external_auth_id: str, token: str) -> dict:
     if invitation["status"] != "pending":
         raise ValidationError("Invitation is not pending")
 
+    if not invitee_email:
+        raise PermissionDeniedError("Invalid token: missing email", status_code=401)
+    if invitation.get("invitee_email", "").lower() != invitee_email.lower():
+        raise PermissionDeniedError("You are not the intended invitee", status_code=403)
+
     expires_at = invitation.get("expires_at")
     if expires_at:
         if isinstance(expires_at, str):
@@ -103,15 +120,18 @@ async def accept_invitation(external_auth_id: str, token: str) -> dict:
             raise ValidationError("Invitation expired")
 
     member_user_id = await get_user_uuid(external_auth_id)
+    membership_role = str(invitation["role"])
+    membership_permission = str(invitation["permission"])
 
     await add_care_team_member(
         patient_id=str(invitation["patient_id"]),
         member_user_id=member_user_id,
-        role=str(invitation["role"]),
-        permission=str(invitation["permission"]),
+        role=membership_role,
+        permission=membership_permission,
         status="active",
         invited_by_user_id=invitation.get("invited_by_user_id"),
     )
+    await assert_patient_access(member_user_id, str(invitation["patient_id"]), "view")
 
     updated = await mark_care_team_invitation_accepted(
         invitation_id=str(invitation["id"]),
@@ -154,6 +174,15 @@ async def list_pending_invitations(external_auth_id: str) -> list[dict]:
     invitations = await get_pending_care_team_invitations(patient_id)
     set(cache_key, invitations, 60)
     return invitations
+
+
+async def list_my_patients(external_auth_id: str) -> list[dict]:
+    if not external_auth_id:
+        raise PermissionDeniedError("Invalid token", status_code=401)
+
+    await assert_caregiver(external_auth_id)
+    member_user_id = await get_user_uuid(external_auth_id)
+    return await get_my_patients(member_user_id)
 
 
 async def cancel_pending_invitation(external_auth_id: str, invitation_id: str) -> dict:

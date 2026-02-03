@@ -275,6 +275,38 @@ async def get_care_team_members(patient_id: str) -> list[dict]:
         raise
 
 
+async def get_my_patients(member_user_id: str) -> list[dict]:
+    """
+    Fetch patients connected to a caregiver.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT
+                    m.patient_id,
+                    u.full_name,
+                    u.email,
+                    m.role AS membership_role,
+                    m.permission
+                FROM care_team_members m
+                JOIN users u ON u.external_auth_id = m.patient_id
+                WHERE m.member_user_id = :member_user_id
+                  AND m.status = 'active'
+                ORDER BY u.full_name ASC NULLS LAST
+            """)
+            result = conn.execute(query, {"member_user_id": member_user_id})
+            rows = result.fetchall()
+            return _rows_to_dicts(rows)
+    except Exception as e:
+        logger.error(
+            "Error fetching patients for member_user_id=%s: %s",
+            member_user_id,
+            e,
+        )
+        raise
+
+
 async def get_my_care_team_invitations(user_email: str) -> list[dict]:
     """
     Fetch pending care team invitations for the given email.
