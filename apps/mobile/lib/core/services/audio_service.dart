@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +17,10 @@ class AudioService {
   String? _currentRecordingPath;
   Timer? _recordingTimer;
   Duration _recordingDuration = Duration.zero;
+  static const MethodChannel _platformChannel =
+      MethodChannel('mediminder_audio');
+  static const EventChannel _eventChannel =
+      EventChannel('mediminder_audio_events');
 
   /// Check if currently recording
   bool get isRecording => _isRecording;
@@ -25,6 +30,39 @@ class AudioService {
 
   /// Get current recording path
   String? get currentRecordingPath => _currentRecordingPath;
+
+  Stream<String> get platformEvents => _eventChannel
+      .receiveBroadcastStream()
+      .where((event) => event is String)
+      .cast<String>();
+
+  Future<bool> _startPlatformSession(BuildContext context) async {
+    try {
+      await _platformChannel.invokeMethod('startRecordingSession');
+      return true;
+    } on PlatformException catch (e) {
+      debugPrint('❌ Failed to start platform recording session: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to configure audio session for recording.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return false;
+    } on MissingPluginException {
+      return true;
+    }
+  }
+
+  Future<void> _stopPlatformSession() async {
+    try {
+      await _platformChannel.invokeMethod('stopRecordingSession');
+    } catch (e) {
+      debugPrint('⚠️ Failed to stop platform recording session: $e');
+    }
+  }
 
   /// Request microphone permission and initialize recorder
   /// Uses record package's hasPermission() as source of truth on iOS
@@ -105,17 +143,58 @@ class AudioService {
       // Get the directory to save recordings
       final directory = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      _currentRecordingPath = '${directory.path}/recording_$timestamp.m4a';
+      _currentRecordingPath = '${directory.path}/recording_$timestamp.wav';
 
       // 🔥 iOS-CRITICAL: Small delay prevents AVAudioSession crash
       // This gives iOS time to properly configure the audio session
       await Future.delayed(const Duration(milliseconds: 300));
 
-      debugPrint('🎙️ Starting recorder with path: $_currentRecordingPath');
+      final platformReady = await _startPlatformSession(context);
+      if (!platformReady) return false;
+
+      final config = const RecordConfig(
+        encoder: AudioEncoder.wav,
+        sampleRate: 16000,
+        numChannels: 1,
+      );
+
+      final hasPermission = await _audioRecorder!.hasPermission();
+      if (!hasPermission) {
+        debugPrint('❌ Microphone permission missing');
+        await _stopPlatformSession();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Microphone permission is required to record.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return false;
+      }
+
+      final encoderSupported =
+          await _audioRecorder!.isEncoderSupported(config.encoder);
+      if (!encoderSupported) {
+        debugPrint('❌ WAV encoder not supported on this device');
+        await _stopPlatformSession();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('This device does not support WAV recording (PCM16).'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return false;
+      }
+
+      debugPrint(
+          '🎙️ Starting recorder (wav/pcm16, 16kHz, mono) at $_currentRecordingPath');
 
       // Start recording with record package
-      await _audioRecorder!
-          .start(const RecordConfig(), path: _currentRecordingPath!);
+      await _audioRecorder!.start(config, path: _currentRecordingPath!);
 
       _isRecording = true;
       _recordingDuration = Duration.zero;
@@ -135,6 +214,7 @@ class AudioService {
     } catch (e) {
       debugPrint('❌ Error starting recording: $e');
       _isRecording = false;
+      await _stopPlatformSession();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -153,6 +233,7 @@ class AudioService {
       if (!_isRecording || _audioRecorder == null) return null;
 
       final path = await _audioRecorder!.stop();
+      await _stopPlatformSession();
       _isRecording = false;
       _recordingTimer?.cancel();
       _recordingTimer = null;
@@ -176,6 +257,7 @@ class AudioService {
     } catch (e) {
       debugPrint('Error stopping recording: $e');
       _isRecording = false;
+      await _stopPlatformSession();
       _recordingTimer?.cancel();
       _recordingTimer = null;
       return null;
@@ -215,6 +297,7 @@ class AudioService {
       _isRecording = false;
       _recordingTimer?.cancel();
       _recordingTimer = null;
+      await _platformChannel.invokeMethod('stopRecordingSession');
 
       if (_currentRecordingPath != null) {
         final file = File(_currentRecordingPath!);

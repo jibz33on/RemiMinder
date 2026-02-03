@@ -5,6 +5,7 @@ from domain.ports.logging import get_logger
 
 from domain.transcripts.repo import (
     ensure_transcript_exists,
+    get_transcript_id,
     get_audio_gcs_url,
     update_audio_url,
     update_image_data,
@@ -33,11 +34,13 @@ async def upload_visit_audio(external_auth_id: str, visit_id: str, file) -> dict
 
     await ensure_visit_exists(visit_id, user_uuid, "Audio Visit", status="active")
     await ensure_transcript_exists(visit_id, user_uuid)
+    transcript_id = await get_transcript_id(visit_id, user_uuid)
     await update_audio_url(visit_id, user_uuid, audio_url)
 
     logger.info(f"Audio upload completed: visit={visit_id}, user={user_uuid}")
     return {
-        "message": "Audio uploaded successfully",
+        "status": "uploaded",
+        "audio_id": transcript_id,
         "audio_url": audio_url,
         "expires_in": "24 hours",
     }

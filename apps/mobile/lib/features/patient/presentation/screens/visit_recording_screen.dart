@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/audio_service.dart';
+import '../../../../core/services/audio_upload_state_service.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/preferences_service.dart';
 import '../../../../core/services/consent_service.dart';
 import '../../../../core/services/visit_context.dart';
 import '../../../../core/config/environment.dart';
@@ -21,8 +25,11 @@ class VisitRecordingScreen extends StatefulWidget {
   State<VisitRecordingScreen> createState() => _VisitRecordingScreenState();
 }
 
-class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
+class _VisitRecordingScreenState extends State<VisitRecordingScreen>
+    with WidgetsBindingObserver {
   final AudioService _audioService = AudioService();
+  final AudioUploadStateService _uploadStateService =
+      AudioUploadStateService();
   final AuthService _authService = AuthService();
   final ConsentService _consentService = ConsentService();
   RecordingState _recordingState = RecordingState.idle;
@@ -30,20 +37,71 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   int _secondsElapsed = 0;
   String _formattedTime = '00:00';
   String? _audioFilePath;
+  StreamSubscription<String>? _audioEventSub;
+  bool _wasBackgroundedWhileRecording = false;
+  AudioUploadState? _uploadState;
+  bool _isUploading = false;
+  double _uploadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Establish this visit as the current visit context
     VisitContext().setCurrentVisit(widget.visitId);
     _updateFormattedTime(); // Initialize timer display
+    _audioEventSub = _audioService.platformEvents.listen(_handleAudioEvent);
+    _loadUploadState();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _audioEventSub?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _audioService.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      if (_recordingState == RecordingState.recording) {
+        _wasBackgroundedWhileRecording = true;
+      }
+    } else if (state == AppLifecycleState.resumed &&
+        _wasBackgroundedWhileRecording) {
+      _wasBackgroundedWhileRecording = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Recording is still active.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _loadUploadState() async {
+    final state = await _uploadStateService.getState(widget.visitId);
+    if (!mounted || state == null) return;
+
+    if (state.status == AudioUploadStatus.uploading) {
+      final interrupted = AudioUploadState(
+        status: AudioUploadStatus.failed,
+        errorMessage: 'Upload interrupted. Please retry.',
+      );
+      await _uploadStateService.setState(widget.visitId, interrupted);
+      setState(() {
+        _uploadState = interrupted;
+      });
+      return;
+    }
+
+    setState(() {
+      _uploadState = state;
+    });
   }
 
   @override
@@ -188,7 +246,9 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
               ? _buildMicButtonContent(isSmallScreen)
               : state == RecordingState.recording
                   ? _buildStopButtonContent(isSmallScreen)
-                  : _buildCompletedButtonsContent(isSmallScreen),
+                  : state == RecordingState.paused
+                      ? _buildPausedButtonsContent(isSmallScreen)
+                      : _buildCompletedButtonsContent(isSmallScreen),
         ),
 
         SizedBox(height: isSmallScreen ? 12 : 16),
@@ -247,6 +307,51 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     );
   }
 
+  Widget _buildPausedButtonsContent(bool isSmallScreen) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _toggleRecording,
+          child: Container(
+            width: double.infinity,
+            height: isSmallScreen ? 100 : 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 25,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.play_arrow,
+              color: Colors.white,
+              size: isSmallScreen ? 40 : 52,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: _stopRecording,
+          child: const Text(
+            'Stop recording',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStopButtonContent(bool isSmallScreen) {
     return _PulsingButton(
       child: GestureDetector(
@@ -280,6 +385,65 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   Widget _buildCompletedButtonsContent(bool isSmallScreen) {
+    final status = _uploadState?.status;
+    if (status == AudioUploadStatus.uploading) {
+      return Column(
+        children: [
+          const SizedBox(height: 8),
+          const Text(
+            'Uploading...',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(value: _uploadProgress),
+          const SizedBox(height: 12),
+          Text('${(_uploadProgress * 100).toStringAsFixed(0)}%'),
+        ],
+      );
+    }
+
+    if (status == AudioUploadStatus.failed) {
+      return Column(
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            _uploadState?.errorMessage ?? 'Upload failed. Please retry.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _startUpload,
+            icon: const Icon(Icons.refresh, size: 20),
+            label: const Text('Retry Upload'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              minimumSize: const Size(double.infinity, 0),
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _discardRecording,
+            icon: const Icon(Icons.delete_outline, size: 20),
+            label: const Text('Discard Recording'),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.red),
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              minimumSize: const Size(double.infinity, 0),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         // Success Checkmark
@@ -348,6 +512,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         return Theme.of(context).colorScheme.primary;
       case RecordingState.recording:
         return Colors.red;
+      case RecordingState.paused:
+        return Colors.orange;
       case RecordingState.completed:
         return Colors.green;
     }
@@ -360,6 +526,9 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         break;
       case RecordingState.recording:
         _stopRecording();
+        break;
+      case RecordingState.paused:
+        _resumeRecording();
         break;
       case RecordingState.completed:
         _resetRecording();
@@ -458,6 +627,57 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     _timer?.cancel();
   }
 
+  Future<void> _pauseForInterruption(String message) async {
+    if (_recordingState != RecordingState.recording) return;
+    await _audioService.pauseRecording();
+    if (!mounted) return;
+    setState(() {
+      _recordingState = RecordingState.paused;
+    });
+    _timer?.cancel();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _resumeRecording() async {
+    await _audioService.resumeRecording();
+    if (!mounted) return;
+    setState(() {
+      _recordingState = RecordingState.recording;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _secondsElapsed++;
+          _updateFormattedTime();
+        });
+      }
+    });
+  }
+
+  void _handleAudioEvent(String event) {
+    switch (event) {
+      case 'interruptionBegan':
+      case 'audioFocusLoss':
+      case 'audioFocusLossTransient':
+        _pauseForInterruption(
+            'Recording paused due to an interruption. Tap to resume.');
+        break;
+      case 'interruptionEnded':
+      case 'audioFocusGain':
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Interruption ended. Tap to resume recording.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        break;
+    }
+  }
+
   void _discardRecording() async {
     // Delete the recorded file if it exists
     if (_audioFilePath != null) {
@@ -484,9 +704,17 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   void _saveRecording() async {
-    print("🧪 SAVE BUTTON PRESSED");
+    await _startUpload();
+  }
+
+  Future<void> _startUpload() async {
+    if (_isUploading ||
+        _uploadState?.status == AudioUploadStatus.uploaded) {
+      return;
+    }
 
     if (_audioFilePath == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(AppLocalizations.of(context)
@@ -496,22 +724,35 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(AppLocalizations.of(context)
-                  ?.visitRecordingUploadingAudio ??
-              'Uploading audio...')),
-    );
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0.0;
+      _uploadState = AudioUploadState(status: AudioUploadStatus.uploading);
+    });
+    await _uploadStateService.setState(widget.visitId, _uploadState!);
 
     try {
-      print("🧪 Starting upload...");
-      await _uploadAudioToBackend(_audioFilePath!);
-      if (!mounted) return;
+      final result = await _uploadAudioToBackend(
+        _audioFilePath!,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _uploadProgress = progress;
+          });
+        },
+      );
 
-      print("🧪 Upload finished");
+      final uploadedState = AudioUploadState(
+        status: AudioUploadStatus.uploaded,
+        audioId: result.audioId,
+      );
+      await _uploadStateService.setState(widget.visitId, uploadedState);
+      if (!mounted) return;
+      setState(() {
+        _uploadState = uploadedState;
+      });
 
       // Trigger audio processing pipeline (returns immediately)
-      print("🧪 Triggering processing...");
       await _triggerAudioProcessing();
       if (!mounted) return;
 
@@ -544,7 +785,16 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         },
       );
     } catch (e) {
+      final failedState = AudioUploadState(
+        status: AudioUploadStatus.failed,
+        errorMessage: 'Upload failed. Please retry.',
+      );
+      await _uploadStateService.setState(widget.visitId, failedState);
       if (!mounted) return;
+
+      setState(() {
+        _uploadState = failedState;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -552,10 +802,19 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
                     ?.visitRecordingUploadFailed(e.toString()) ??
                 'Failed to upload audio: $e')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
-  Future<void> _uploadAudioToBackend(String audioFilePath) async {
+  Future<_UploadResult> _uploadAudioToBackend(
+    String audioFilePath, {
+    required void Function(double progress) onProgress,
+  }) async {
     // Get access token from AuthService
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) {
@@ -573,22 +832,60 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
     // Add authentication header
     request.headers['Authorization'] = 'Bearer $accessToken';
 
+    final appLanguage = await PreferencesService().getAppLanguage();
+    final visitLanguage = await PreferencesService().getDefaultVisitLanguage();
+    final deviceLocale =
+        mounted ? Localizations.localeOf(context).toString() : null;
+    final languageHints = <String, String>{};
+    if (appLanguage != null && appLanguage.isNotEmpty) {
+      languageHints['app_language'] = appLanguage;
+    }
+    if (visitLanguage != null && visitLanguage.isNotEmpty) {
+      languageHints['visit_language'] = visitLanguage;
+    }
+    if (deviceLocale != null && deviceLocale.isNotEmpty) {
+      languageHints['device_locale'] = deviceLocale;
+    }
+    if (languageHints.isNotEmpty) {
+      request.fields['language_hints'] = json.encode(languageHints);
+    }
+
     // Use MultipartFile.fromPath for efficient streaming (no memory loading)
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'file', // Field name expected by backend
-        audioFilePath,
-        filename: 'recording.m4a',
+    final file = File(audioFilePath);
+    final fileLength = await file.length();
+    var bytesSent = 0;
+    final stream = file.openRead().transform(
+      StreamTransformer<List<int>, List<int>>.fromHandlers(
+        handleData: (data, sink) {
+          bytesSent += data.length;
+          onProgress(bytesSent / fileLength);
+          sink.add(data);
+        },
       ),
     );
+    final multipartFile = http.MultipartFile(
+      'file',
+      stream,
+      fileLength,
+      filename: 'recording.wav',
+    );
+    request.files.add(multipartFile);
 
     final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode != 200) {
-      final responseBody = await response.stream.bytesToString();
       throw Exception(
           'Audio upload failed: ${response.statusCode} - $responseBody');
     }
+
+    final payload = json.decode(responseBody) as Map<String, dynamic>;
+    if (payload['status'] != 'uploaded') {
+      throw Exception('Audio upload failed: invalid response');
+    }
+    return _UploadResult(
+      audioId: payload['audio_id'] as String?,
+    );
   }
 
   Future<void> _triggerAudioProcessing() async {
@@ -617,7 +914,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
   }
 
   void _handleClose() {
-    if (_recordingState == RecordingState.recording) {
+    if (_recordingState == RecordingState.recording ||
+        _recordingState == RecordingState.paused) {
       // Show confirmation dialog
       showDialog(
         context: context,
@@ -665,6 +963,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         return Theme.of(context).colorScheme.primary;
       case RecordingState.recording:
         return Colors.red;
+      case RecordingState.paused:
+        return Colors.orange;
       case RecordingState.completed:
         return Colors.green;
     }
@@ -677,6 +977,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
         return l10n?.visitRecordingStatusReady ?? 'Ready to Record';
       case RecordingState.recording:
         return l10n?.visitRecordingStatusRecording ?? 'Recording...';
+      case RecordingState.paused:
+        return 'Paused';
       case RecordingState.completed:
         return l10n?.visitRecordingStatusComplete ?? 'Recording complete';
     }
@@ -691,6 +993,8 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen> {
       case RecordingState.recording:
         return l10n?.visitRecordingInstructionRecording ??
             'Recording in progress...';
+      case RecordingState.paused:
+        return 'Recording paused.\nTap to resume when ready.';
       case RecordingState.completed:
         return l10n?.visitRecordingInstructionComplete ??
             'Recording complete!\nTap Generate to process your visit summary';
@@ -743,6 +1047,12 @@ class _PulsingButton extends StatefulWidget {
   _PulsingButtonState createState() => _PulsingButtonState();
 }
 
+class _UploadResult {
+  final String? audioId;
+
+  const _UploadResult({this.audioId});
+}
+
 class _PulsingButtonState extends State<_PulsingButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
@@ -784,5 +1094,6 @@ class _PulsingButtonState extends State<_PulsingButton>
 enum RecordingState {
   idle, // before recording
   recording, // while recording
+  paused, // paused due to interruption/background
   completed, // after recording stops
 }

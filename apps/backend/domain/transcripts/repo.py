@@ -78,6 +78,31 @@ async def ensure_transcript_exists(visit_id: str, user_id: str) -> None:
         raise
 
 
+async def get_transcript_id(visit_id: str, user_id: str) -> str:
+    """
+    Fetch transcript_id for a visit/user pair.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT transcript_id
+                FROM visit_transcripts
+                WHERE visit_id = :visit_id AND user_id = :user_id
+            """)
+            result = conn.execute(query, {
+                "visit_id": visit_id,
+                "user_id": user_id,
+            })
+            row = result.fetchone()
+            if not row:
+                raise NotFoundError(f"Transcript not found for visit {visit_id}")
+            return str(row[0])
+    except Exception as e:
+        logger.error(f"Error fetching transcript_id for visit {visit_id}: {e}")
+        raise
+
+
 async def update_audio_url(visit_id: str, user_id: str, audio_url: str) -> None:
     """
     Update the audio_url for a visit transcript. Expects exactly one row updated.
