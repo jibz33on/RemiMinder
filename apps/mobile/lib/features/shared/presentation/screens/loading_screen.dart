@@ -67,7 +67,18 @@ class _LoadingScreenState extends ConsumerState<LoadingScreen> {
       return;
     }
 
-    // Authenticated users proceed to role selection before entering homes.
+    final profileRole = authState.profile?.role;
+    final normalizedRole = profileRole?.toLowerCase();
+    if (normalizedRole == 'caregiver') {
+      context.go('/caregiver/home');
+      return;
+    }
+    if (normalizedRole == 'patient') {
+      context.go('/patient/home');
+      return;
+    }
+
+    // Role unknown: ask user to select once.
     context.go('/role-selection');
   }
 

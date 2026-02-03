@@ -25,7 +25,7 @@ class UserMeResponse(BaseModel):
     full_name: Optional[str] = None
     email: str
     phone: Optional[str] = None
-    role: str  # "patient" | "caregiver"
+    role: Optional[str] = None  # "caregiver" | None when unknown
 
 
 class BootstrapRequest(BaseModel):

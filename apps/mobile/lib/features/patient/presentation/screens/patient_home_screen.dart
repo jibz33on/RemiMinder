@@ -1,17 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../../core/config/environment.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../../core/models/user.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/models/patient_task.dart';
-import '../../data/services/patient_tasks_api_service.dart';
+import '../providers/patient_home_providers.dart';
 import '../widgets/widgets.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
@@ -22,89 +17,6 @@ class PatientHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
-  final AuthService _authService = AuthService();
-  final PatientTasksApiService _tasksApiService = PatientTasksApiService();
-  List<PatientTask> _tasks = [];
-  bool _isLoadingTasks = true;
-  bool _isLoadingUpNext = true;
-  Map<String, dynamic>? _upNextReminder;
-  List<Map<String, dynamic>> _todayReminders = [];
-  bool _remindersError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchTasks();
-    _fetchUpNextReminder();
-  }
-
-  Future<void> _fetchTasks() async {
-    try {
-      final tasks = await _tasksApiService.fetchTasks();
-      if (!mounted) return;
-      setState(() {
-        _tasks = tasks;
-        _isLoadingTasks = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _tasks = [];
-        _isLoadingTasks = false;
-      });
-    }
-  }
-
-  Future<void> _fetchUpNextReminder() async {
-    try {
-      final accessToken = await _authService.getAccessToken();
-      if (accessToken == null) {
-        throw Exception('Authentication required');
-      }
-
-      final uri = Uri.parse('${Environment.apiBaseUrl}/api/reminders');
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final upcoming = data['upcoming'] as List<dynamic>? ?? [];
-        final today = data['today'] as List<dynamic>? ?? [];
-        if (!mounted) return;
-        setState(() {
-          _upNextReminder =
-              upcoming.isNotEmpty ? upcoming.first as Map<String, dynamic> : null;
-          _todayReminders = today
-              .whereType<Map<String, dynamic>>()
-              .toList();
-          _isLoadingUpNext = false;
-          _remindersError = false;
-        });
-        return;
-      }
-      if (!mounted) return;
-      setState(() {
-        _upNextReminder = null;
-        _todayReminders = [];
-        _isLoadingUpNext = false;
-        _remindersError = true;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _upNextReminder = null;
-        _todayReminders = [];
-        _isLoadingUpNext = false;
-        _remindersError = true;
-      });
-    }
-  }
-
   Future<void> _switchContext(ActiveContext targetContext) async {
     await PreferencesService().setLastActiveContext(targetContext);
     if (!mounted) return;
@@ -114,6 +26,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+    final remindersState = ref.watch(remindersNotifierProvider);
+    final tasksState = ref.watch(patientTasksNotifierProvider);
     final l10n = AppLocalizations.of(context);
     final userName = authState.profile?.fullName ??
         (l10n?.rolePatient ?? 'Patient');
@@ -229,15 +143,26 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
         // Main content
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([
+                ref
+                    .read(remindersNotifierProvider.notifier)
+                    .refresh(userInitiated: true),
+                ref
+                    .read(patientTasksNotifierProvider.notifier)
+                    .refresh(userInitiated: true),
+              ]);
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
 
-                // Up Next Card
-                _buildUpNextCard(),
+                  // Up Next Card
+                  _buildUpNextCard(remindersState),
 
                 const SizedBox(height: 32),
 
@@ -248,7 +173,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   icon: Icons.schedule,
                 ),
                 const SizedBox(height: 16),
-                _buildTodaysSchedule(),
+                _buildTodaysSchedule(remindersState),
 
                 const SizedBox(height: 32),
 
@@ -258,11 +183,12 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                   icon: Icons.checklist,
                 ),
                 const SizedBox(height: 16),
-                _buildTodoList(),
+                _buildTodoList(tasksState),
 
                 // Extra space for bottom navigation - this will be handled by the app shell
                 const SizedBox(height: 120),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -270,9 +196,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildUpNextCard() {
+  Widget _buildUpNextCard(RemindersState remindersState) {
     final l10n = AppLocalizations.of(context);
-    final reminder = _upNextReminder;
+    final reminder = remindersState.upNext;
     final title = reminder?['title'] as String?;
     final message = reminder?['message'] as String?;
     final scheduledTime = reminder?['scheduled_time'] as String?;
@@ -325,7 +251,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          if (_isLoadingUpNext)
+          if (remindersState.isLoading && !remindersState.hasData)
             const Center(child: CircularProgressIndicator())
           else if (reminder == null)
             Text(
@@ -412,7 +338,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildTodaysSchedule() {
+  Widget _buildTodaysSchedule(RemindersState remindersState) {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
@@ -429,18 +355,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
       ),
       child: Column(
         children: [
-          if (_isLoadingUpNext)
+          if (remindersState.isLoading && !remindersState.hasData)
             const Center(child: CircularProgressIndicator())
-          else if (_remindersError)
-              Text(
-              l10n?.patientHomeNothingScheduled ??
-                  'Nothing scheduled for today',
-                style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            )
-          else if (_todayReminders.isEmpty)
+          else if (remindersState.today.isEmpty)
             Text(
               l10n?.patientHomeNothingScheduled ??
                   'Nothing scheduled for today',
@@ -451,7 +368,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             )
           else
             Column(
-              children: _todayReminders.map((reminder) {
+              children: remindersState.today.map((reminder) {
                 final title = reminder['title'] as String?;
                 final message = reminder['message'] as String?;
                 final scheduledTime = reminder['scheduled_time'] as String?;
@@ -538,7 +455,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     );
   }
 
-  Widget _buildTodoList() {
+  Widget _buildTodoList(PatientTasksState tasksState) {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
@@ -553,9 +470,9 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           ),
         ],
       ),
-      child: _isLoadingTasks
+      child: tasksState.isLoading && !tasksState.hasData
           ? const Center(child: CircularProgressIndicator())
-          : _tasks.isEmpty
+          : tasksState.tasks.isEmpty
               ? Center(
                   child: Text(
                     l10n?.patientHomeNoTasksYet ?? 'No tasks yet',
@@ -564,7 +481,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
                 )
               : Column(
                   children: [
-                    ..._tasks.map((task) {
+                    ...tasksState.tasks.map((task) {
                       return Column(
         children: [
           _buildTodoItem(

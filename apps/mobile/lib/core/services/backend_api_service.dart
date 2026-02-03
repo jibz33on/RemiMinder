@@ -177,4 +177,31 @@ class BackendApiService {
     final jsonData = json.decode(response.body) as Map<String, dynamic>;
     return jsonData['phone'] as String?;
   }
+
+  /// Update current user's role
+  Future<void> updateUserRole({
+    required String externalAuthId,
+    required String role,
+  }) async {
+    final accessToken = await _authService.getAccessToken();
+    if (accessToken == null) {
+      throw Exception('Authentication required. Please log in again.');
+    }
+
+    final uri =
+        Uri.parse('${Environment.apiBaseUrl}/api/users/$externalAuthId/role');
+    final response = await http.put(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'role': role}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Update role failed: ${response.statusCode} - ${response.body}');
+    }
+  }
 }

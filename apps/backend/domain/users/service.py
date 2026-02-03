@@ -71,8 +71,8 @@ async def update_role(
     if role not in ["patient", "caregiver"]:
         raise ValidationError("Invalid role. Must be 'patient' or 'caregiver'")
 
-    db_role = "user" if role == "patient" else role
-    user_data = await update_user_role(target_external_auth_id, db_role)
+    # Persist explicit roles; role is stored as patient/caregiver.
+    user_data = await update_user_role(target_external_auth_id, role)
     if not user_data:
         raise NotFoundError("User not found")
 
@@ -83,7 +83,7 @@ async def update_role(
         "email": user_data["email"],
         "full_name": user_data.get("full_name"),
         "display_name": display_name,
-        "role": user_data["db_role"],
+        "role": role,
     }
 
 
@@ -115,7 +115,7 @@ async def fetch_me(external_auth_id: str) -> dict:
     cached = get(cache_key)
     if cached is not None:
         db_role = cached.get("db_role")
-        api_role = "patient" if db_role == "user" else db_role
+        api_role = None if not db_role or db_role == "user" else db_role
         return {
             "full_name": cached.get("full_name"),
             "email": cached["email"],
@@ -128,7 +128,7 @@ async def fetch_me(external_auth_id: str) -> dict:
         raise NotFoundError("User not found")
 
     db_role = user_data.get("db_role")
-    api_role = "patient" if db_role == "user" else db_role
+    api_role = None if not db_role or db_role == "user" else db_role
     set(cache_key, user_data, 600)
     return {
         "full_name": user_data.get("full_name"),

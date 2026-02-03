@@ -167,7 +167,7 @@ def verify_auth_token(token: str) -> dict:
     Raises:
         PermissionDeniedError: If token is invalid or not a Firebase token
     """
-    auth_mode = os.getenv("AUTH_MODE", "google")
+    auth_mode = os.getenv("AUTH_MODE", "google").lower()
 
     # Log authentication attempt (minimal, safe logging)
     logger.info(
@@ -286,14 +286,13 @@ def _get_or_create_external_user(engine, external_auth_id: str, email: str) -> s
         with engine.connect() as conn:
             result = conn.execute(
                 text("""
-                    INSERT INTO users (external_auth_id, email, role)
-                    VALUES (:external_auth_id, :email, :role)
+                    INSERT INTO users (external_auth_id, email)
+                    VALUES (:external_auth_id, :email)
                     RETURNING id
                 """),
                 {
                     "external_auth_id": external_auth_id,
                     "email": email,
-                    "role": "user",
                 }
             )
             new_user_row = result.fetchone()

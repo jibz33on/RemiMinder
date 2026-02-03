@@ -49,14 +49,17 @@ CREATE TABLE public.users (
   auth_provider text NOT NULL DEFAULT 'unknown',
   email citext NOT NULL UNIQUE,
   full_name text,
-  role text NOT NULL DEFAULT 'user',
+  role text,
   is_active boolean NOT NULL DEFAULT true,
   app_language varchar(10) NOT NULL DEFAULT 'en',
   visit_language varchar(10) NOT NULL DEFAULT 'en',
   phone text,
+  country text,
+  timezone text,
+  active_context text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT users_role_check CHECK (role IN ('user', 'caregiver', 'admin'))
+  CONSTRAINT users_role_check CHECK (role IN ('patient', 'caregiver', 'admin'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email

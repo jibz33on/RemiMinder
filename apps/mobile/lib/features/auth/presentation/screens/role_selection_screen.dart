@@ -4,8 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/user.dart';
+import '../../../../core/services/backend_api_service.dart';
 import '../../../../core/services/preferences_service.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../data/models/auth_state.dart';
 import '../providers/auth_provider.dart';
 
 class RoleSelectionScreen extends ConsumerWidget {
@@ -127,11 +129,53 @@ class RoleSelectionScreen extends ConsumerWidget {
     );
   }
 
-  void _onContinue(BuildContext context, WidgetRef ref, UserRole selectedRole) {
+  Future<void> _onContinue(
+      BuildContext context, WidgetRef ref, UserRole selectedRole) async {
+    final authState = ref.read(authNotifierProvider);
+    final userId = authState.user?.id;
+    if (userId == null || userId.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to identify user.')),
+      );
+      return;
+    }
+
+    final apiService = BackendApiService();
+    try {
+      await apiService.updateUserRole(
+        externalAuthId: userId,
+        role: selectedRole.name,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save role: $e')),
+      );
+      return;
+    }
+
+    final email = authState.user?.email;
+    if (email == null || email.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to identify user email.')),
+      );
+      return;
+    }
+
+    final currentProfile = authState.profile;
+    final updatedProfile = (currentProfile ?? AuthProfile(email: email)).copyWith(
+      fullName: currentProfile?.fullName ?? authState.user?.fullName,
+      phone: currentProfile?.phone,
+      role: selectedRole.name,
+    );
+    await ref.read(authNotifierProvider.notifier).updateProfile(updatedProfile);
+
     final targetContext = selectedRole == UserRole.caregiver
         ? ActiveContext.caregiver
         : ActiveContext.patient;
-    PreferencesService().setLastActiveContext(targetContext);
+    await PreferencesService().setLastActiveContext(targetContext);
     final homeRoute = selectedRole == UserRole.caregiver
         ? '/caregiver/home'
         : '/patient/home';

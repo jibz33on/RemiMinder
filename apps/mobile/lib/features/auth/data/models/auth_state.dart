@@ -6,14 +6,14 @@ class AuthProfile {
   final String? fullName;
   final String email;
   final String? phone;
-  final String role; // "patient" | "caregiver"
+  final String? role; // "patient" | "caregiver" | null
   final String plan; // "free" | "premium"
 
   const AuthProfile({
     this.fullName,
     required this.email,
     this.phone,
-    required this.role,
+    this.role,
     this.plan = "free", // Default to free plan
   });
 
@@ -25,6 +25,26 @@ class AuthProfile {
       role: profile.role,
       plan: "free", // Hardcode free plan for now
     );
+  }
+
+  factory AuthProfile.fromJson(Map<String, dynamic> json) {
+    return AuthProfile(
+      fullName: json['full_name'] as String?,
+      email: json['email'] as String,
+      phone: json['phone'] as String?,
+      role: json['role'] as String?,
+      plan: json['plan'] as String? ?? "free",
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'full_name': fullName,
+      'email': email,
+      'phone': phone,
+      'role': role,
+      'plan': plan,
+    };
   }
 
   AuthProfile copyWith({

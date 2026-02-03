@@ -148,13 +148,13 @@ class UserProfile {
   final String? fullName;
   final String email;
   final String? phone;
-  final String role; // "patient" | "caregiver"
+  final String? role; // "patient" | "caregiver" | null
 
   const UserProfile({
     this.fullName,
     required this.email,
     this.phone,
-    required this.role,
+    this.role,
   });
 
   /// Create UserProfile from JSON (API response)
@@ -163,7 +163,7 @@ class UserProfile {
       fullName: json['full_name'] as String?,
       email: json['email'] as String,
       phone: json['phone'] as String?,
-      role: json['role'] as String,
+      role: json['role'] as String?,
     );
   }
 

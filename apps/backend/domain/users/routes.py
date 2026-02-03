@@ -52,7 +52,11 @@ def create_user_profile(request: CreateUserRequest):
 
 
 @router.put("/{target_external_auth_id}/role")
-def update_user_role(target_external_auth_id: str, request: UpdateRoleRequest, current_user: dict = Depends(get_current_user)):
+async def update_user_role(
+    target_external_auth_id: str,
+    request: UpdateRoleRequest,
+    current_user: dict = Depends(get_current_user),
+):
     """Update user role - only allow users to update their own role"""
     current_external_auth_id = current_user.get("sub")
     user_data = await update_role(

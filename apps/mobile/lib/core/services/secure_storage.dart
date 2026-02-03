@@ -14,6 +14,7 @@ class SecureStorage {
 
   // User preference keys
   static const String _rememberMeKey = 'remember_me';
+  static const String _cachedUserProfileKey = 'cached_user_profile';
 
   /// Save authentication tokens
   Future<void> saveTokens(String accessToken, String refreshToken) async {
@@ -63,6 +64,21 @@ class SecureStorage {
   /// Clear all stored data
   Future<void> clearAll() async {
     await _storage.deleteAll();
+  }
+
+  /// Save cached user profile
+  Future<void> saveUserProfile(String jsonProfile) async {
+    await _storage.write(key: _cachedUserProfileKey, value: jsonProfile);
+  }
+
+  /// Read cached user profile
+  Future<String?> getUserProfile() async {
+    return await _storage.read(key: _cachedUserProfileKey);
+  }
+
+  /// Clear cached user profile
+  Future<void> clearUserProfile() async {
+    await _storage.delete(key: _cachedUserProfileKey);
   }
 
   /// Generic storage methods for other data

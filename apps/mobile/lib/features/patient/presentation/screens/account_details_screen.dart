@@ -492,7 +492,7 @@ class _AccountDetailsScreenState extends ConsumerState<AccountDetailsScreen> {
       // Update Riverpod state
       final authState = ref.read(authNotifierProvider);
       final updatedProfile = authState.profile?.copyWith(phone: updatedPhone);
-      ref.read(authNotifierProvider.notifier).updateProfile(updatedProfile);
+      await ref.read(authNotifierProvider.notifier).updateProfile(updatedProfile);
 
       if (mounted) {
         Navigator.of(context).pop(); // Close dialog

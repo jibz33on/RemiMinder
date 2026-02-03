@@ -22,4 +22,14 @@ class PatientTask {
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'type': type,
+      'status': status,
+      'created_at': createdAt?.toIso8601String(),
+    };
+  }
 }

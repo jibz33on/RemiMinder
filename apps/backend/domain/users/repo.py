@@ -112,8 +112,8 @@ async def ensure_user_exists(
 
         conn.execute(
             text("""
-                INSERT INTO users (external_auth_id, email, full_name, role, is_active)
-                VALUES (:external_auth_id, :email, :full_name, 'user', true)
+                INSERT INTO users (external_auth_id, email, full_name, is_active)
+                VALUES (:external_auth_id, :email, :full_name, true)
             """),
             {
                 "external_auth_id": external_auth_id,

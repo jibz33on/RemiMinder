@@ -41,8 +41,8 @@ def _load_attr(spec: str):
     return getattr(module, attr)
 
 
-def _load_provider(spec_env: str):
-    spec = os.getenv(spec_env)
+def _load_provider(spec_env: str, default_spec: str | None = None):
+    spec = os.getenv(spec_env) or default_spec
     if not spec:
         raise RuntimeError(f"Missing provider config: {spec_env}")
     return _load_attr(spec)
@@ -67,8 +67,14 @@ def wire_infra_ports() -> None:
     notifications_port.set_caregiver_alert_email_sender(
         _load_provider("NOTIFICATIONS_CAREGIVER_EMAIL_PROVIDER")
     )
-    auth_port.get_current_user_jwt = _load_provider("AUTH_GET_CURRENT_USER_JWT")
-    auth_port.get_current_user = _load_provider("AUTH_GET_CURRENT_USER")
+    auth_port.get_current_user_jwt = _load_provider(
+        "AUTH_GET_CURRENT_USER_JWT",
+        "providers.auth.firebase_auth:get_current_user_jwt",
+    )
+    auth_port.get_current_user = _load_provider(
+        "AUTH_GET_CURRENT_USER",
+        "providers.auth.firebase_auth:get_current_user",
+    )
 
 
 def configure_auth_overrides(app) -> None:

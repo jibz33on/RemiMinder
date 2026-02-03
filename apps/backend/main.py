@@ -49,7 +49,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(NotFoundError)
     async def handle_not_found(request: Request, exc: NotFoundError):
-        logger.warning(
+        logger.exception(
             "Domain error",
             error=str(exc),
             type=exc.__class__.__name__,
@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(PermissionDeniedError)
     async def handle_permission_denied(request: Request, exc: PermissionDeniedError):
-        logger.warning(
+        logger.exception(
             "Domain error",
             error=str(exc),
             type=exc.__class__.__name__,
@@ -71,7 +71,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ValidationError)
     async def handle_validation_error(request: Request, exc: ValidationError):
-        logger.warning(
+        logger.exception(
             "Domain error",
             error=str(exc),
             type=exc.__class__.__name__,
@@ -82,7 +82,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ConflictError)
     async def handle_conflict(request: Request, exc: ConflictError):
-        logger.warning(
+        logger.exception(
             "Domain error",
             error=str(exc),
             type=exc.__class__.__name__,
@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(InternalError)
     async def handle_internal_error(request: Request, exc: InternalError):
-        logger.error(
+        logger.exception(
             "Domain error",
             error=str(exc),
             type=exc.__class__.__name__,
