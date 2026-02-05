@@ -1,12 +1,12 @@
 from typing import Any, Callable, Dict
 
-_upload_audio: Callable[[str, Any], str] | None = None
+_upload_audio: Callable[[str, Any], Dict[str, Any]] | None = None
 _upload_image: Callable[[str, Any], Dict[str, Any]] | None = None
 _image_reference_builder: Callable[[str], str] | None = None
 
 
 def set_storage_providers(
-    upload_audio: Callable[[str, Any], str],
+    upload_audio: Callable[[str, Any], Dict[str, Any]],
     upload_image: Callable[[str, Any], Dict[str, Any]],
 ) -> None:
     global _upload_audio, _upload_image
@@ -19,7 +19,7 @@ def set_image_reference_builder(builder: Callable[[str], str]) -> None:
     _image_reference_builder = builder
 
 
-async def upload_audio_file(visit_id: str, file) -> str:
+async def upload_audio_file(visit_id: str, file) -> Dict[str, Any]:
     if _upload_audio is None:
         raise RuntimeError("Storage provider not configured")
     return await _upload_audio(visit_id, file)

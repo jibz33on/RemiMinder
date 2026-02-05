@@ -8,6 +8,7 @@ from domain.ports.logging import get_logger
 from workflows.summary_normalizer_v2 import normalize_v2_summary
 from domain.patient_tasks.service import generate_reminders_from_actions, generate_tasks_from_summary
 from domain.transcripts.repo import get_transcript_text, save_raw_transcript
+from domain.stt2.service import enqueue_stt2_extraction
 from domain.summaries.repo import insert_ai_summary_log
 from domain.users.repo import get_user_language_preferences, get_user_uuid
 from domain.visits.repo import update_visit_with_structured_data
@@ -144,25 +145,27 @@ async def run_ai_summary_pipeline(visit_id: str, transcript_id: str, user_id: st
 async def process_audio_visit(visit_id: str, external_auth_id: str) -> None:
     """
     End-to-end audio visit processing:
-    GCS audio -> STT -> save transcript -> AI summary pipeline.
+    GCS audio -> STT -> save raw transcript.
     """
     logger.info(f"Starting audio visit processing for visit_id={visit_id}")
 
     stt_result = await run_audio_stt_pipeline(visit_id, external_auth_id)
     user_uuid = await get_user_uuid(external_auth_id)
 
-    transcript_id = await save_raw_transcript(
+    await save_raw_transcript(
         visit_id=visit_id,
         user_id=user_uuid,
         transcript=stt_result["transcript"],
         confidence=stt_result["confidence"],
         language=stt_result["language"],
+        stt_engine=stt_result["stt_engine"],
     )
 
-    await run_ai_summary_pipeline(
-        visit_id=visit_id,
-        transcript_id=transcript_id,
-        user_id=user_uuid,
-    )
+    try:
+        job_id = await enqueue_stt2_extraction(visit_id)
+        if job_id:
+            logger.info("Queued STT-2 extraction job %s for visit %s", job_id, visit_id)
+    except Exception as exc:
+        logger.warning("Failed to enqueue STT-2 extraction for visit %s: %s", visit_id, exc)
 
     logger.info(f"Completed audio visit processing for visit_id={visit_id}")

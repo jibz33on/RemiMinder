@@ -7,7 +7,7 @@ from domain.transcripts.repo import (
     ensure_transcript_exists,
     get_transcript_id,
     get_audio_gcs_url,
-    update_audio_url,
+    update_audio_artifacts,
     update_image_data,
 )
 from domain.users.repo import get_user_uuid
@@ -30,12 +30,14 @@ async def upload_visit_audio(external_auth_id: str, visit_id: str, file) -> dict
     user_uuid = await get_user_uuid(external_auth_id)
     await assert_patient_access(user_uuid, user_uuid, "full")
 
-    audio_url = await upload_audio_file(visit_id, file)
+    audio_result = await upload_audio_file(visit_id, file)
+    audio_url = audio_result["signed_url"]
+    canonical_audio_path = audio_result["canonical_path"]
 
     await ensure_visit_exists(visit_id, user_uuid, "Audio Visit", status="active")
     await ensure_transcript_exists(visit_id, user_uuid)
     transcript_id = await get_transcript_id(visit_id, user_uuid)
-    await update_audio_url(visit_id, user_uuid, audio_url)
+    await update_audio_artifacts(visit_id, user_uuid, audio_url, canonical_audio_path)
 
     logger.info(f"Audio upload completed: visit={visit_id}, user={user_uuid}")
     return {

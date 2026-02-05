@@ -4,10 +4,8 @@ Reads audio from Google Cloud Storage, processes with Google STT, returns transc
 """
 
 import os
-import tempfile
-import subprocess
 from typing import Dict, Any, List
-from google.cloud import speech, storage
+from google.cloud import speech
 
 from domain.ports.logging import get_logger
 
@@ -25,26 +23,14 @@ LANGUAGE_MAP = {
 }
 
 
-def convert_m4a_to_wav(input_path: str, output_path: str) -> None:
-    """
-    Convert m4a (AAC) audio to WAV (LINEAR16, 16kHz, mono) using system ffmpeg.
-    """
-    command = [
-        "ffmpeg",
-        "-y",              # overwrite output
-        "-i", input_path,  # input file
-        "-ac", "1",        # mono
-        "-ar", "16000",    # 16kHz sample rate
-        "-acodec", "pcm_s16le",  # LINEAR16 codec
-        output_path,       # output file
-    ]
-
-    subprocess.run(
-        command,
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+def _parse_gcs_uri(gcs_uri: str) -> tuple[str, str]:
+    if not gcs_uri.startswith("gs://"):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    path = gcs_uri[len("gs://"):]
+    parts = path.split("/", 1)
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    return parts[0], parts[1]
 
 
 async def run_audio_stt_pipeline(
@@ -57,88 +43,28 @@ async def run_audio_stt_pipeline(
 
         # Step 1: Resolve user UUID
         from domain.users.repo import get_user_uuid
-        from domain.transcripts.repo import get_audio_gcs_url
+        from domain.transcripts.repo import get_canonical_audio_path
 
         user_uuid = await get_user_uuid(external_auth_id)
 
-        # Step 2: Validate audio exists in DB (guard)
-        audio_url = await get_audio_gcs_url(visit_id, user_uuid)
-
-        bucket_name = os.getenv("GCS_BUCKET_NAME")
-        if not bucket_name:
-            raise RuntimeError("GCS_BUCKET_NAME environment variable not set")
-
-        m4a_blob_name = f"audio/{visit_id}.m4a"
+        # Step 2: Validate canonical audio exists in DB (guard)
+        canonical_audio_path = await get_canonical_audio_path(visit_id, user_uuid)
+        bucket_name, object_name = _parse_gcs_uri(canonical_audio_path)
 
         logger.info(f"Starting STT for visit {visit_id}")
-        logger.info(f"Converting {m4a_blob_name} -> WAV")
-        logger.info("Audio URL (DB) resolved")
+        logger.info(f"Converting {object_name} -> WAV")
+        logger.info("Canonical audio path (DB) resolved")
 
-        # Step 3: Download m4a, convert to wav, and upload to GCS temp location
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(bucket_name)
-
-        m4a_temp_path = None
-        wav_temp_path = None
-        stt_temp_blob_name = f"stt_temp/{visit_id}.wav"
-
-        try:
-            # Download m4a file to temp location
-            m4a_blob = bucket.blob(m4a_blob_name)
-            with tempfile.NamedTemporaryFile(suffix='.m4a', delete=False, dir='/tmp') as m4a_temp:
-                m4a_blob.download_to_file(m4a_temp)
-                m4a_temp_path = m4a_temp.name
-
-            # Convert to WAV using system ffmpeg
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False, dir='/tmp') as wav_temp:
-                wav_temp_path = wav_temp.name
-
-            convert_m4a_to_wav(m4a_temp_path, wav_temp_path)
-
-            # Upload converted WAV to GCS temp location
-            stt_blob = bucket.blob(stt_temp_blob_name)
-            stt_blob.upload_from_filename(wav_temp_path)
-
-            logger.info(f"Uploaded converted WAV to GCS: {stt_temp_blob_name}")
-
-        except Exception as e:
-            # Clean up temp files and GCS blob on error
-            if m4a_temp_path and os.path.exists(m4a_temp_path):
-                os.unlink(m4a_temp_path)
-            if wav_temp_path and os.path.exists(wav_temp_path):
-                os.unlink(wav_temp_path)
-            # Clean up GCS temp blob if it exists
-            try:
-                temp_blob = bucket.blob(stt_temp_blob_name)
-                if temp_blob.exists():
-                    temp_blob.delete()
-            except:
-                pass  # Ignore cleanup errors
-            raise RuntimeError(f"Audio conversion/upload failed: {e}")
-        finally:
-            # Always clean up local temp files
-            if m4a_temp_path and os.path.exists(m4a_temp_path):
-                os.unlink(m4a_temp_path)
-            if wav_temp_path and os.path.exists(wav_temp_path):
-                os.unlink(wav_temp_path)
-
-        # Step 4: Configure STT using GCS URI
+        # Step 3: Configure STT using canonical GCS URI
         speech_client = speech.SpeechClient()
-        gcs_wav_uri = f"gs://{bucket_name}/{stt_temp_blob_name}"
-
-        audio = speech.RecognitionAudio(uri=gcs_wav_uri)
-
-        # Map language code for STT
-        language_code = LANGUAGE_MAP.get(language, "en-US")
-        logger.info(f"🔍 [STT] Language mapping: input='{language}', available_keys={list(LANGUAGE_MAP.keys())}, result='{language_code}'")
-        logger.info(f"🔍 [STT] Starting Google STT with language_code='{language_code}' for visit {visit_id}")
+        audio = speech.RecognitionAudio(uri=canonical_audio_path)
 
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            language_code=language_code,
-            enable_automatic_punctuation=True,
-            use_enhanced=True,
-            model="medical_conversation",
+            sample_rate_hertz=16000,
+            language_code=language,
+            enable_automatic_punctuation=False,
+            use_enhanced=False,
         )
 
         # Step 5: Run long-running recognition
@@ -146,16 +72,6 @@ async def run_audio_stt_pipeline(
 
         # Wait for completion (up to 30 minutes for very long recordings)
         response = operation.result(timeout=1800)
-
-        # Clean up GCS temp file after successful processing
-        try:
-            temp_blob = bucket.blob(stt_temp_blob_name)
-            if temp_blob.exists():
-                temp_blob.delete()
-                logger.info(f"Cleaned up GCS temp file: {stt_temp_blob_name}")
-        except Exception as cleanup_error:
-            logger.warning(f"Failed to clean up GCS temp file {stt_temp_blob_name}: {cleanup_error}")
-            # Don't fail the whole process for cleanup issues
 
         logger.info("STT job completed")
 
@@ -188,7 +104,8 @@ async def run_audio_stt_pipeline(
         return {
             "transcript": transcript,
             "confidence": confidence,
-            "language": language_code,
+            "language": language,
+            "stt_engine": "google_stt",
         }
 
     except Exception:

@@ -15,6 +15,7 @@ async def store_raw_transcript(
     transcript: str,
     confidence: float | None = None,
     language: str | None = None,
+    stt_engine: str | None = None,
 ) -> str:
     return await save_raw_transcript(
         visit_id=visit_id,
@@ -22,4 +23,5 @@ async def store_raw_transcript(
         transcript=transcript,
         confidence=confidence,
         language=language,
+        stt_engine=stt_engine,
     )

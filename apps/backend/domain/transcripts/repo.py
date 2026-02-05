@@ -14,33 +14,72 @@ async def save_raw_transcript(
     user_id: str,
     transcript: str,
     confidence: float | None = None,
-    language: str | None = None
+    language: str | None = None,
+    stt_engine: str | None = None,
 ) -> str:
-    """Save raw STT transcript to visit_transcripts table.
+    """Save raw STT transcript to raw_stt_transcripts table.
 
-    Returns the transcript_id of the saved record.
+    Returns the transcript_id of the visit_transcripts record.
     """
+    if not stt_engine:
+        raise ValueError("stt_engine is required for raw transcript persistence")
     try:
         engine = get_db_engine()
-        with engine.connect() as conn:
-            # Update existing record with transcript (only guaranteed columns)
-            update_query = text("""
-                UPDATE visit_transcripts
-                SET transcript_text = :transcript
+        with engine.begin() as conn:
+            # Idempotency: if a raw transcript already exists, exit cleanly
+            exists_query = text("""
+                SELECT 1 FROM raw_stt_transcripts
                 WHERE visit_id = :visit_id
+                LIMIT 1
             """)
+            existing = conn.execute(exists_query, {"visit_id": visit_id}).fetchone()
+            if existing:
+                select_query = text("""
+                    SELECT transcript_id FROM visit_transcripts
+                    WHERE visit_id = :visit_id
+                """)
+                result = conn.execute(select_query, {"visit_id": visit_id})
+                row = result.fetchone()
+                if not row:
+                    raise NotFoundError(f"No transcript record found for visit {visit_id}")
+                transcript_id = str(row[0])
+                logger.info(
+                    "Raw STT transcript already exists for visit %s; skipping insert",
+                    visit_id,
+                )
+                return transcript_id
 
-            conn.execute(update_query, {
+            # Append raw STT artifact (never overwrite)
+            insert_query = text("""
+                INSERT INTO raw_stt_transcripts (
+                    visit_id,
+                    transcript_text,
+                    stt_engine,
+                    language,
+                    confidence
+                )
+                VALUES (
+                    :visit_id,
+                    :transcript,
+                    :stt_engine,
+                    :language,
+                    :confidence
+                )
+                ON CONFLICT (visit_id) DO NOTHING
+            """)
+            conn.execute(insert_query, {
+                "visit_id": visit_id,
                 "transcript": transcript,
-                "visit_id": visit_id
+                "stt_engine": stt_engine,
+                "language": language,
+                "confidence": confidence,
             })
 
-            # Get the transcript_id for the updated record
+            # Get the transcript_id for the visit record
             select_query = text("""
                 SELECT transcript_id FROM visit_transcripts
                 WHERE visit_id = :visit_id
             """)
-
             result = conn.execute(select_query, {"visit_id": visit_id})
             row = result.fetchone()
 
@@ -48,8 +87,12 @@ async def save_raw_transcript(
                 raise NotFoundError(f"No transcript record found for visit {visit_id}")
 
             transcript_id = str(row[0])
-            conn.commit()
-            logger.info(f"Saved transcript for visit {visit_id}: {len(transcript)} characters, transcript_id: {transcript_id}")
+            logger.info(
+                "Saved raw STT transcript for visit %s: %s chars, transcript_id: %s",
+                visit_id,
+                len(transcript),
+                transcript_id,
+            )
 
             return transcript_id
 
@@ -57,6 +100,48 @@ async def save_raw_transcript(
         raise
     except Exception as e:
         logger.error(f"Error saving transcript for visit {visit_id}: {e}")
+        raise
+
+
+async def save_raw_stt_transcript(
+    visit_id: str,
+    transcript: str,
+    stt_engine: str,
+    language: str | None = None,
+    confidence: float | None = None,
+) -> None:
+    """
+    Append a raw STT transcript artifact for a visit.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.begin() as conn:
+            insert_query = text("""
+                INSERT INTO raw_stt_transcripts (
+                    visit_id,
+                    transcript_text,
+                    stt_engine,
+                    language,
+                    confidence
+                )
+                VALUES (
+                    :visit_id,
+                    :transcript,
+                    :stt_engine,
+                    :language,
+                    :confidence
+                )
+                ON CONFLICT (visit_id) DO NOTHING
+            """)
+            conn.execute(insert_query, {
+                "visit_id": visit_id,
+                "transcript": transcript,
+                "stt_engine": stt_engine,
+                "language": language,
+                "confidence": confidence,
+            })
+    except Exception as e:
+        logger.error(f"Error saving raw STT transcript for visit {visit_id}: {e}")
         raise
 
 
@@ -124,6 +209,38 @@ async def update_audio_url(visit_id: str, user_id: str, audio_url: str) -> None:
                 raise RuntimeError(f"Expected 1 row updated, got {result.rowcount}")
     except Exception as e:
         logger.error(f"Error updating audio_url for visit {visit_id}: {e}")
+        raise
+
+
+async def update_audio_artifacts(
+    visit_id: str,
+    user_id: str,
+    audio_url: str,
+    canonical_audio_path: str,
+) -> None:
+    """
+    Update audio_url and canonical_audio_path for a visit transcript.
+    Expects exactly one row updated.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.begin() as conn:
+            update_query = text("""
+                UPDATE visit_transcripts
+                SET audio_url = :audio_url,
+                    canonical_audio_path = :canonical_audio_path
+                WHERE visit_id = :visit_id AND user_id = :user_id
+            """)
+            result = conn.execute(update_query, {
+                "audio_url": audio_url,
+                "canonical_audio_path": canonical_audio_path,
+                "visit_id": visit_id,
+                "user_id": user_id,
+            })
+            if result.rowcount != 1:
+                raise RuntimeError(f"Expected 1 row updated, got {result.rowcount}")
+    except Exception as e:
+        logger.error(f"Error updating audio artifacts for visit {visit_id}: {e}")
         raise
 
 
@@ -280,6 +397,32 @@ async def get_audio_gcs_url(visit_id: str, user_id: str) -> str:
             return str(row[0])
 
     except DomainError:
+        raise
+
+
+async def get_canonical_audio_path(visit_id: str, user_id: str) -> str:
+    """
+    Fetch canonical_audio_path for a visit from Cloud SQL only.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.connect() as conn:
+            query = text("""
+                SELECT canonical_audio_path FROM visit_transcripts
+                WHERE visit_id = :visit_id AND user_id = :user_id
+            """)
+            result = conn.execute(query, {"visit_id": visit_id, "user_id": user_id})
+            row = result.fetchone()
+
+            if not row or not row[0]:
+                raise NotFoundError(f"No canonical audio path found for visit {visit_id}")
+
+            return str(row[0])
+
+    except DomainError:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching canonical audio path for visit {visit_id}: {e}")
         raise
     except Exception as e:
         logger.error(f"Error fetching audio URL for visit {visit_id}: {e}")

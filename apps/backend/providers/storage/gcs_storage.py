@@ -9,7 +9,7 @@ from domain.ports.logging import get_logger
 
 logger = get_logger()
 
-async def upload_audio(file: UploadFile, visit_id: str) -> str:
+async def upload_audio(file: UploadFile, visit_id: str) -> dict:
     """
     Upload audio file to Google Cloud Storage with UBLA compatibility.
     Returns a signed URL for temporary access.
@@ -19,17 +19,13 @@ async def upload_audio(file: UploadFile, visit_id: str) -> str:
         visit_id: Unique identifier for the visit
 
     Returns:
-        str: Signed URL for accessing the uploaded audio file
+        dict: Contains signed URL and canonical GCS path for the uploaded audio file
     """
     try:
         # Get GCS configuration from environment
         bucket_name = os.getenv("GCS_BUCKET_NAME")
         if not bucket_name:
             raise ValueError("GCS_BUCKET_NAME environment variable not set")
-
-        # HARDENING: Verify exact bucket name for HIPAA compliance
-        if bucket_name != "mediminder-audio":
-            raise RuntimeError(f"Invalid GCS bucket name: {bucket_name}. Must be 'mediminder-audio'")
 
         # Initialize GCS client
         storage_client = storage.Client()
@@ -45,6 +41,10 @@ async def upload_audio(file: UploadFile, visit_id: str) -> str:
 
         # Create blob
         blob = bucket.blob(blob_name)
+
+        # Guard: prevent overwrite if audio already uploaded for this visit
+        if blob.exists():
+            raise RuntimeError("audio_already_uploaded")
 
         # Upload file directly from the file object (UBLA-compatible)
         # Reset file pointer to beginning in case it was read before
@@ -68,7 +68,11 @@ async def upload_audio(file: UploadFile, visit_id: str) -> str:
         # LOG: Post-upload verification
         logger.info(f"GCS_AUDIO_UPLOAD_SUCCESS - visit_id={visit_id}, blob={blob_name}, size={blob.size}, signed_url_generated=True")
 
-        return signed_url
+        canonical_path = f"gs://{bucket_name}/{blob_name}"
+        return {
+            "signed_url": signed_url,
+            "canonical_path": canonical_path,
+        }
 
     except Exception as e:
         # LOG: Upload failure
@@ -102,10 +106,6 @@ async def upload_image(file: UploadFile, visit_id: str) -> dict:
         bucket_name = os.getenv("GCS_BUCKET_NAME")
         if not bucket_name:
             raise ValueError("GCS_BUCKET_NAME environment variable not set")
-
-        # HARDENING: Verify exact bucket name for HIPAA compliance
-        if bucket_name != "mediminder-audio":
-            raise RuntimeError(f"Invalid GCS bucket name: {bucket_name}. Must be 'mediminder-audio'")
 
         # Initialize GCS client
         storage_client = storage.Client()
