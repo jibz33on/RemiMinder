@@ -1,7 +1,12 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/auth_service.dart';
+import '../../../../core/config/environment.dart';
 import '../../data/models/patient_task.dart';
+import '../../data/models/summary_item.dart';
 import '../../data/services/patient_home_cache_service.dart';
+import '../../data/services/patient_api_service.dart';
 import '../../data/services/patient_tasks_api_service.dart';
 import '../../data/services/reminders_api_service.dart';
 
@@ -209,6 +214,95 @@ class PatientTasksNotifier extends Notifier<PatientTasksState> {
   }
 }
 
+class SummaryPreviewState {
+  final SummaryItem? summary;
+  final DateTime? lastUpdated;
+  final bool isLoading;
+  final bool isRefreshing;
+  final String? errorMessage;
+
+  const SummaryPreviewState({
+    this.summary,
+    this.lastUpdated,
+    this.isLoading = false,
+    this.isRefreshing = false,
+    this.errorMessage,
+  });
+
+  bool get hasData => summary != null;
+
+  SummaryPreviewState copyWith({
+    SummaryItem? summary,
+    DateTime? lastUpdated,
+    bool? isLoading,
+    bool? isRefreshing,
+    String? errorMessage,
+  }) {
+    return SummaryPreviewState(
+      summary: summary ?? this.summary,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      isLoading: isLoading ?? this.isLoading,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+class SummaryPreviewNotifier extends Notifier<SummaryPreviewState> {
+  bool _isFetching = false;
+  bool _initialized = false;
+
+  @override
+  SummaryPreviewState build() {
+    if (!_initialized) {
+      _initialized = true;
+      Future.microtask(() async {
+        await refresh();
+      });
+    }
+    return const SummaryPreviewState(isLoading: true);
+  }
+
+  Future<void> refresh({bool userInitiated = false}) async {
+    if (_isFetching) return;
+    _isFetching = true;
+    state = state.copyWith(
+      isRefreshing: true,
+      isLoading: !state.hasData,
+      errorMessage: null,
+    );
+    try {
+      final token = await AuthService().getAccessToken();
+      if (token == null) {
+        throw Exception('Authentication required');
+      }
+      final api = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: token,
+      );
+      final summary = await api.getLatestSummary();
+      print("🔍 HOME SCREEN: Got latest summary: $summary");
+      state = state.copyWith(
+        summary: summary,
+        lastUpdated: DateTime.now(),
+        isLoading: false,
+        isRefreshing: false,
+        errorMessage: null,
+      );
+    } catch (e) {
+      print("🔥 HOME PROVIDER ERROR: $e");
+      developer.log("Home summary provider error", error: e);
+      state = state.copyWith(
+        isLoading: false,
+        isRefreshing: false,
+        errorMessage: userInitiated ? e.toString() : null,
+      );
+    } finally {
+      _isFetching = false;
+    }
+  }
+}
+
 final remindersNotifierProvider =
     NotifierProvider<RemindersNotifier, RemindersState>(() {
   return RemindersNotifier();
@@ -217,6 +311,11 @@ final remindersNotifierProvider =
 final patientTasksNotifierProvider =
     NotifierProvider<PatientTasksNotifier, PatientTasksState>(() {
   return PatientTasksNotifier();
+});
+
+final summaryPreviewNotifierProvider =
+    NotifierProvider<SummaryPreviewNotifier, SummaryPreviewState>(() {
+  return SummaryPreviewNotifier();
 });
 
 class _ParsedReminders {

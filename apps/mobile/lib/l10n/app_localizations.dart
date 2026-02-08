@@ -2192,6 +2192,18 @@ abstract class AppLocalizations {
   /// **'Visit Summary'**
   String get visitDetailsSummarySection;
 
+  /// No description provided for @visitDetailsFinalSummarySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit Summary'**
+  String get visitDetailsFinalSummarySection;
+
+  /// No description provided for @visitRecordingSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording saved successfully! You can now generate a summary.'**
+  String get visitRecordingSaved;
+
   /// No description provided for @visitDetailsDecisionsSection.
   ///
   /// In en, this message translates to:

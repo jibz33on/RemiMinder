@@ -4,7 +4,7 @@ from domain.errors import NotFoundError, PermissionDeniedError, ValidationError
 from domain.ports.logging import get_logger
 
 from domain.users.repo import (
-    ensure_user_exists,
+    ensure_user_exists_with_details,
     get_user_language_preferences,
     get_user_profile,
     update_user_language_preferences,
@@ -98,7 +98,7 @@ async def bootstrap(
     if not email:
         raise ValidationError("Email missing from auth token")
 
-    created = await ensure_user_exists(
+    created = await ensure_user_exists_with_details(
         external_auth_id,
         email,
         request_full_name,

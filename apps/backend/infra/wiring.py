@@ -56,7 +56,7 @@ def wire_infra_ports() -> None:
     ai_port.set_visit_summary_provider(_load_provider("AI_VISIT_SUMMARY_PROVIDER"))
     ai_port.set_model_name_provider(lambda: _load_provider("AI_MODEL_NAME_PROVIDER"))
     ai_port.set_reminder_message_provider(_load_provider("AI_REMINDER_MESSAGE_PROVIDER"))
-    stt_port.set_stt_provider(_load_provider("STT_PROVIDER"))
+    # STT provider is now resolved dynamically in run_audio_stt_pipeline()
     storage_port.set_storage_providers(
         _load_provider("STORAGE_UPLOAD_AUDIO_PROVIDER"),
         _load_provider("STORAGE_UPLOAD_IMAGE_PROVIDER"),
@@ -75,6 +75,18 @@ def wire_infra_ports() -> None:
         "AUTH_GET_CURRENT_USER",
         "providers.auth.firebase_auth:get_current_user",
     )
+
+
+def wire_worker_ports() -> None:
+    """
+    Wire only the infrastructure ports needed by background workers.
+    Avoids importing heavy provider SDKs (vision, notifications, auth) that
+    cause hangs during worker startup.
+    """
+    logging_port.set_logger(StdLogger())
+    db_port.set_db_engine_provider(get_cloud_sql_engine)
+    cache_port.set_cache_provider(CacheAdapter())
+    jobs_port.set_job_creator(create_job)
 
 
 def configure_auth_overrides(app) -> None:

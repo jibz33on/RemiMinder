@@ -11,10 +11,13 @@ logger = get_logger()
 
 
 class STT2ExtractionService:
+    """Stage 3.3: Extract structured data from transcript using LLM."""
+
     def __init__(self, client: GeminiClient | None = None) -> None:
         self._client = client or GeminiClient()
 
     def extract(self, transcript_text: str) -> dict:
+        """Extract structured clinical data from transcript text."""
         prompt = build_stt2_prompt(transcript_text)
         model_name = getattr(self._client, "model_name", "unknown")
         logger.info(f"STT-2 extraction prompt_version={STT2_PROMPT_VERSION} model_name={model_name}")

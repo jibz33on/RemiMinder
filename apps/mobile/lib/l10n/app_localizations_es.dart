@@ -1249,6 +1249,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get visitDetailsSummarySection => 'Resumen de la visita';
 
   @override
+  String get visitDetailsFinalSummarySection => 'Resumen de la visita';
+
+  @override
+  String get visitRecordingSaved =>
+      '¡Grabación guardada exitosamente! Ahora puedes generar un resumen.';
+
+  @override
   String get visitDetailsDecisionsSection => 'Decisiones clínicas';
 
   @override

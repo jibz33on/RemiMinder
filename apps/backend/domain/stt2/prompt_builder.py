@@ -1,4 +1,4 @@
-STT2_PROMPT_VERSION = "stt2_v0"
+STT2_PROMPT_VERSION = "stt2_v0"  # Structured extraction prompt version
 
 STT2_PROMPT_TEMPLATE = """
 You are a clinical scribe extracting structured data from a patient-doctor transcript.

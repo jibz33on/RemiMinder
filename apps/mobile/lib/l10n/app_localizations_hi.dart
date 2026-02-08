@@ -1239,6 +1239,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get visitDetailsSummarySection => 'विज़िट सारांश';
 
   @override
+  String get visitDetailsFinalSummarySection => 'विज़िट सारांश';
+
+  @override
+  String get visitRecordingSaved =>
+      'रिकॉर्डिंग सफलतापूर्वक सहेजी गई! अब आप सारांश जनरेट कर सकते हैं।';
+
+  @override
   String get visitDetailsDecisionsSection => 'क्लिनिकल निर्णय';
 
   @override

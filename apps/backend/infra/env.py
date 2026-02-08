@@ -18,12 +18,14 @@ def load_env() -> None:
 
 
 def validate_env() -> None:
-    required_vars = ["GCS_BUCKET_NAME"]
+    required_vars = ["GCS_BUCKET_NAME", "GOOGLE_APPLICATION_CREDENTIALS", "STT_PROVIDER"]
     for var in required_vars:
-        if not os.getenv(var):
+        value = os.getenv(var)
+        if not value:
             raise RuntimeError(
                 f"Critical environment variable {var} is not set. Check your .env file."
             )
+        logger.info(f"Environment variable {var} resolved to: {value}")
 
     cloud_sql_vars = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
     cloud_sql_configured = all(os.getenv(var) for var in cloud_sql_vars)

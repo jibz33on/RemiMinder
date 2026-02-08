@@ -347,6 +347,8 @@
   "visitDetailsRetry": "إعادة المحاولة",
   "visitDetailsUnavailable": "ملخص الزيارة غير متاح",
   "visitDetailsSummarySection": "ملخص الزيارة",
+  "visitDetailsFinalSummarySection": "ملخص الزيارة",
+  "visitRecordingSaved": "تم حفظ التسجيل بنجاح! يمكنك الآن إنشاء ملخص.",
   "visitDetailsDecisionsSection": "القرارات السريرية",
   "visitDetailsMedicationsSection": "الأدوية",
   "visitDetailsActionsSection": "الخطوات التالية",

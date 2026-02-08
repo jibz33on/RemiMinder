@@ -3,8 +3,6 @@ Google Vision API service for OCR processing.
 Processes images from Google Cloud Storage.
 """
 
-from google.cloud import vision
-
 from domain.ports.logging import get_logger
 logger = get_logger()
 _PROVIDER_NAME = "google_vision"
@@ -25,6 +23,9 @@ async def extract_text_from_gcs_uri(gcs_uri: str) -> dict:
         - language: Detected language code
     """
     try:
+        # Lazy import to avoid initialization at module import time
+        from google.cloud import vision
+
         # Initialize Vision client
         client = vision.ImageAnnotatorClient()
 

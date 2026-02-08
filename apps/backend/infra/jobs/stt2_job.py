@@ -15,7 +15,7 @@ class STT2JobError(Exception):
 
 def run_stt2_job(payload: Dict[str, Any], job_id: str | None = None) -> None:
     """
-    Execute the STT-2 placeholder extraction for a visit.
+    Execute Stages 3.2-3.4: STT execution + extraction + final summary generation.
     """
     visit_id = payload.get("visit_id")
     if not visit_id:

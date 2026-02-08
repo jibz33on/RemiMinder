@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 from sqlalchemy import text
@@ -7,6 +8,10 @@ from domain.errors import DomainError, NotFoundError
 from domain.ports.logging import get_logger
 
 logger = get_logger()
+
+
+def _hash_transcript(text: str) -> str:
+    return hashlib.sha256((text or "").encode("utf-8")).hexdigest()
 
 
 async def save_raw_transcript(
@@ -50,18 +55,25 @@ async def save_raw_transcript(
                 return transcript_id
 
             # Append raw STT artifact (never overwrite)
+            transcript_hash = _hash_transcript(transcript)
             insert_query = text("""
                 INSERT INTO raw_stt_transcripts (
                     visit_id,
                     transcript_text,
+                    transcript_hash,
                     stt_engine,
+                    stt_provider,
+                    stt_model_version,
                     language,
                     confidence
                 )
                 VALUES (
                     :visit_id,
                     :transcript,
+                    :transcript_hash,
                     :stt_engine,
+                    :stt_provider,
+                    :stt_model_version,
                     :language,
                     :confidence
                 )
@@ -70,7 +82,10 @@ async def save_raw_transcript(
             conn.execute(insert_query, {
                 "visit_id": visit_id,
                 "transcript": transcript,
+                "transcript_hash": transcript_hash,
                 "stt_engine": stt_engine,
+                "stt_provider": stt_engine,  # Use same value as stt_engine for now
+                "stt_model_version": "latest",  # Default model version for Google STT
                 "language": language,
                 "confidence": confidence,
             })
@@ -222,6 +237,7 @@ async def update_audio_artifacts(
     Update audio_url and canonical_audio_path for a visit transcript.
     Expects exactly one row updated.
     """
+    logger.info(f"[AUDIO] Updating audio artifacts for visit {visit_id}, user {user_id}, path {canonical_audio_path}")
     try:
         engine = get_db_engine()
         with engine.begin() as conn:
@@ -239,6 +255,8 @@ async def update_audio_artifacts(
             })
             if result.rowcount != 1:
                 raise RuntimeError(f"Expected 1 row updated, got {result.rowcount}")
+
+            logger.info(f"[AUDIO] Canonical audio path persisted for visit {visit_id}: {canonical_audio_path}")
     except Exception as e:
         logger.error(f"Error updating audio artifacts for visit {visit_id}: {e}")
         raise
@@ -404,6 +422,7 @@ async def get_canonical_audio_path(visit_id: str, user_id: str) -> str:
     """
     Fetch canonical_audio_path for a visit from Cloud SQL only.
     """
+    logger.info(f"[AUDIO] Getting canonical audio path for visit {visit_id}, user {user_id}")
     try:
         engine = get_db_engine()
         with engine.connect() as conn:

@@ -347,6 +347,8 @@
   "visitDetailsRetry": "Erneut versuchen",
   "visitDetailsUnavailable": "Besuchszusammenfassung ist nicht verfügbar",
   "visitDetailsSummarySection": "Besuchszusammenfassung",
+  "visitDetailsFinalSummarySection": "Besuchszusammenfassung",
+  "visitRecordingSaved": "Aufnahme erfolgreich gespeichert! Sie können jetzt eine Zusammenfassung erstellen.",
   "visitDetailsDecisionsSection": "Klinische Entscheidungen",
   "visitDetailsMedicationsSection": "Medikamente",
   "visitDetailsActionsSection": "Nächste Schritte",

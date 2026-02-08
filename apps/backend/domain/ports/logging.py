@@ -4,30 +4,36 @@ from typing import Any
 
 class LoggerPort(ABC):
     @abstractmethod
-    def info(self, message: str, **kwargs: Any) -> None: ...
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None: ...
 
     @abstractmethod
-    def warning(self, message: str, **kwargs: Any) -> None: ...
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None: ...
 
     @abstractmethod
-    def error(self, message: str, **kwargs: Any) -> None: ...
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None: ...
 
     @abstractmethod
-    def exception(self, message: str, **kwargs: Any) -> None: ...
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None: ...
+
+    @abstractmethod
+    def exception(self, message: str, *args: Any, **kwargs: Any) -> None: ...
 
 
 class _NullLogger(LoggerPort):
-    def info(self, message: str, **kwargs: Any) -> None:
-        return None
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
+        pass
 
-    def warning(self, message: str, **kwargs: Any) -> None:
-        return None
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        pass
 
-    def error(self, message: str, **kwargs: Any) -> None:
-        return None
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
+        pass
 
-    def exception(self, message: str, **kwargs: Any) -> None:
-        return None
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def exception(self, message: str, *args: Any, **kwargs: Any) -> None:
+        pass
 
 
 _logger: LoggerPort = _NullLogger()

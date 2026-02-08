@@ -12,7 +12,8 @@ from domain.visits.service import (
     get_visit_audio_url,
     get_visit_details,
     process_visit_ocr,
-    queue_audio_processing,
+    process_audio_with_stt_and_create_job,
+    generate_visit_summary,
     upload_visit_audio,
     upload_visit_image,
 )
@@ -136,14 +137,26 @@ async def process_visit_audio(
     user_id: str = Depends(get_user_id)
 ):
     """
-    Process uploaded audio file with Speech-to-Text and save transcript.
-    Background pipeline: GCS -> STT -> Cloud SQL.
+    LEGACY: Full pipeline processing with STT + job creation.
+    Use /generate-summary for Stage 2 job creation only.
     """
-    return await queue_audio_processing(user_id, visit_id)
+    return await process_audio_with_stt_and_create_job(user_id, visit_id)
+
+
+@router.post("/visits/{visit_id}/generate-summary")
+async def generate_visit_summary_endpoint(
+    visit_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Stage 2: Create processing job for visit summary generation.
+    Validates visit and audio exist, creates job, returns immediately.
+    """
+    return await generate_visit_summary(user_id, visit_id)
 
 
 @router.get("/visits/latest/status")
-async def get_latest_visit_status(user_id: str = Depends(get_user_id)):
+async def get_latest_visit_status_endpoint(user_id: str = Depends(get_user_id)):
     """
     Check whether the latest visit for this user is still processing.
     """

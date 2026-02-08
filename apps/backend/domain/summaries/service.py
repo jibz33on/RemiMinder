@@ -20,7 +20,8 @@ async def get_summary(external_auth_id: str, visit_id: str) -> dict:
     user_uuid = await get_user_uuid(external_auth_id)
     await assert_patient_access(user_uuid, user_uuid, "view")
 
-    summary_text = await get_latest_ai_summary_for_visit(visit_id, user_uuid)
+    # visits.user_id contains external_auth_id, not UUID
+    summary_text = await get_latest_ai_summary_for_visit(visit_id, external_auth_id)
     if summary_text:
         return {"summary": summary_text}
     return {"status": "processing"}
@@ -42,12 +43,13 @@ async def list_summaries(external_auth_id: str) -> list[dict]:
     user_uuid = await get_user_uuid(external_auth_id)
     await assert_patient_access(user_uuid, user_uuid, "view")
 
-    cache_key = f"summaries_list:{user_uuid}"
+    cache_key = f"summaries_list:{external_auth_id}"  # Use external_auth_id for cache key
     cached = get(cache_key)
     if cached is not None:
         return cached
 
-    summaries = await get_user_summaries(user_uuid)
+    # visits.user_id contains external_auth_id, not UUID
+    summaries = await get_user_summaries(external_auth_id)
     set(cache_key, summaries, 120)
     return summaries
 

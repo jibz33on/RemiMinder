@@ -42,6 +42,7 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
   AudioUploadState? _uploadState;
   bool _isUploading = false;
   double _uploadProgress = 0.0;
+  bool _isGeneratingSummary = false;
 
   @override
   void initState() {
@@ -463,16 +464,33 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
 
         SizedBox(height: isSmallScreen ? 12 : 16),
 
-        // Save Button
+        // Generate Summary Button
         ElevatedButton.icon(
-          onPressed: _saveRecording,
-          icon: const Icon(Icons.save, size: 20),
+          onPressed: (_uploadState?.status == AudioUploadStatus.uploaded && !_isGeneratingSummary)
+              ? _generateSummary
+              : null,
+          icon: _isGeneratingSummary
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.auto_awesome, size: 20),
           label: Text(
-              AppLocalizations.of(context)?.visitRecordingGenerateSummary ??
-                  'Generate Summary'),
+              _isGeneratingSummary
+                  ? 'Generating...'
+                  : (AppLocalizations.of(context)?.visitRecordingGenerateSummary ??
+                      'Generate Summary')),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Colors.white,
+            backgroundColor: (_uploadState?.status == AudioUploadStatus.uploaded && !_isGeneratingSummary)
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.surfaceContainerHighest,
+            foregroundColor: (_uploadState?.status == AudioUploadStatus.uploaded && !_isGeneratingSummary)
+                ? Colors.white
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
@@ -481,6 +499,19 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
                 Size(double.infinity, 0), // Full width within container
           ),
         ),
+
+        if (_uploadState?.status != AudioUploadStatus.uploaded)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Save your recording first to generate a summary',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
 
         SizedBox(height: isSmallScreen ? 8 : 12),
 
@@ -752,37 +783,21 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
         _uploadState = uploadedState;
       });
 
-      // Trigger audio processing pipeline (returns immediately)
-      await _triggerAudioProcessing();
+      // Processing will be triggered explicitly by user action
       if (!mounted) return;
 
       // Clean up local file
       await _audioService.deleteRecording(_audioFilePath!);
       if (!mounted) return;
 
-      await showDialog<void>(
-        context: context,
-        builder: (context) {
-          final l10n = AppLocalizations.of(context);
-          return AlertDialog(
-            title: Text(l10n?.visitRecordingProcessingTitle ??
-                '✅ Your visit is being processed'),
-            content: Text(
-              l10n?.visitRecordingProcessingBody ??
-                  'This may take ~30–60 seconds.\nYou can continue using the app. We\'ll notify you when it\'s ready.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go('/patient/home');
-                },
-                child: Text(
-                    l10n?.visitRecordingGoToHome ?? 'Go to Home'),
-              ),
-            ],
-          );
-        },
+      // Show success message and stay on screen to allow Generate Summary
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)?.visitRecordingSaved ??
+              '✅ Recording saved successfully! You can now generate a summary.'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     } catch (e) {
       final failedState = AudioUploadState(
@@ -888,8 +903,19 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
     );
   }
 
-  Future<void> _triggerAudioProcessing() async {
-    print("🧪 Inside _triggerAudioProcessing()");
+  Future<void> _generateSummary() async {
+    print("📋 Stage 2: Generating summary for visit ${widget.visitId}");
+
+    if (!mounted) return;
+    setState(() {
+      _isGeneratingSummary = true;
+    });
+
+    try {
+      // Double-check that audio has been uploaded
+      if (_uploadState?.status != AudioUploadStatus.uploaded) {
+        throw Exception('Please save your recording first before generating summary.');
+      }
 
     final accessToken = await _authService.getAccessToken();
     if (accessToken == null) {
@@ -898,18 +924,96 @@ class _VisitRecordingScreenState extends State<VisitRecordingScreen>
 
     final visitId = widget.visitId;
     final uri = Uri.parse(
-        '${Environment.apiBaseUrl}/api/visits/$visitId/process-audio');
+        '${Environment.apiBaseUrl}/api/visits/$visitId/generate-summary');
 
-    final response = await http.post(
-      uri,
-      headers: {'Authorization': 'Bearer $accessToken'},
-    );
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
 
-    print("🧪 process-audio status: ${response.statusCode}");
+      print("📋 generate-summary status: ${response.statusCode}");
 
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Failed to trigger audio processing: ${response.statusCode}');
+      if (response.statusCode == 404) {
+        // Audio not found - user needs to upload first
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingNoRecording ??
+                'Please save your recording first before generating summary.'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
+
+      if (response.statusCode != 200) {
+        final responseBody = response.body;
+        throw Exception(
+            'Failed to generate summary: ${response.statusCode} - $responseBody');
+      }
+
+      // Parse response to get job info
+      final responseBody = response.body;
+      // Response contains job information but we don't need it for UI
+
+      if (!mounted) return;
+
+      // Show success dialog and navigate
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(l10n?.visitRecordingProcessingTitle ??
+                '✅ Summary generation started'),
+            content: Text(
+              l10n?.visitRecordingProcessingBody ??
+                  'Your visit summary is being generated.\nYou can continue using the app. We\'ll notify you when it\'s ready.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/patient/home');
+                },
+                child: Text(
+                    l10n?.visitRecordingGoToHome ?? 'Go to Home'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGeneratingSummary = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingUploadFailed(e.toString()) ??
+                'Failed to start summary generation: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingSummary = false;
+        });
+      }
+    }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGeneratingSummary = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                    ?.visitRecordingUploadFailed(e.toString()) ??
+                'Failed to start summary generation: ${e.toString()}')),
+      );
     }
   }
 

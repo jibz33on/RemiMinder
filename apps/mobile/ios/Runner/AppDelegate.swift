@@ -49,7 +49,7 @@ import AVFoundation
   private func startRecordingSession(result: FlutterResult) {
     do {
       let session = AVAudioSession.sharedInstance()
-      try session.setCategory(.record, mode: .spokenAudio, options: [.duckOthers])
+      try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth])
       try session.setActive(true)
       result(true)
     } catch {

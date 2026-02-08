@@ -1229,6 +1229,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visitDetailsSummarySection => 'Visit Summary';
 
   @override
+  String get visitDetailsFinalSummarySection => 'Visit Summary';
+
+  @override
+  String get visitRecordingSaved =>
+      'Recording saved successfully! You can now generate a summary.';
+
+  @override
   String get visitDetailsDecisionsSection => 'Clinical Decisions';
 
   @override

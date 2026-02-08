@@ -12,7 +12,8 @@ logger = get_logger()
 
 async def get_user_uuid(external_auth_id: str) -> str:
     """
-    Validate external_auth_id exists in users table and return it.
+    Get the internal user UUID (id field) for the given external_auth_id.
+    Validates that the user exists and returns their UUID.
     """
     try:
         cache_key = f"user_uuid:{external_auth_id}"
@@ -21,7 +22,7 @@ async def get_user_uuid(external_auth_id: str) -> str:
             engine = get_db_engine()
             with engine.connect() as conn:
                 query = text("""
-                    SELECT external_auth_id FROM users WHERE external_auth_id = :external_auth_id
+                    SELECT id FROM users WHERE external_auth_id = :external_auth_id
                 """)
 
                 result = conn.execute(query, {"external_auth_id": external_auth_id})
@@ -38,6 +39,37 @@ async def get_user_uuid(external_auth_id: str) -> str:
         raise
     except Exception as e:
         logger.error(f"Error validating auth ID {external_auth_id}: {e}")
+        raise
+
+
+from uuid import UUID
+
+async def ensure_user_exists(user_uuid: UUID, external_auth_id: str) -> None:
+    """
+    Ensure a user exists by UUID and external_auth_id.
+    Creates the user record if it doesn't exist.
+    Used for bootstrapping users that authenticated successfully but lack local DB records.
+    """
+    try:
+        engine = get_db_engine()
+        with engine.begin() as conn:
+            # Insert user if not exists
+            insert_query = text("""
+                INSERT INTO users (id, external_auth_id, email, full_name)
+                VALUES (:user_uuid, :external_auth_id, :email, :full_name)
+                ON CONFLICT (id) DO NOTHING
+            """)
+            conn.execute(insert_query, {
+                "user_uuid": str(user_uuid),
+                "external_auth_id": external_auth_id,
+                "email": f"{external_auth_id}@firebase.local",  # Placeholder email
+                "full_name": f"User {external_auth_id[:8]}",    # Placeholder name
+            })
+
+        logger.info(f"[USERS] Ensured user exists: {user_uuid}")
+
+    except Exception as exc:
+        logger.error(f"Error ensuring user exists for UUID {user_uuid}: {exc}")
         raise
 
 
@@ -63,7 +95,7 @@ async def get_user_email(user_id: str) -> str:
         raise
 
 
-async def ensure_user_exists(
+async def ensure_user_exists_with_details(
     external_auth_id: str,
     email: str,
     request_full_name: Optional[str] = None,

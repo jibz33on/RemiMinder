@@ -347,6 +347,8 @@
   "visitDetailsRetry": "Reintentar",
   "visitDetailsUnavailable": "El resumen de la visita no está disponible",
   "visitDetailsSummarySection": "Resumen de la visita",
+  "visitDetailsFinalSummarySection": "Resumen de la visita",
+  "visitRecordingSaved": "¡Grabación guardada exitosamente! Ahora puedes generar un resumen.",
   "visitDetailsDecisionsSection": "Decisiones clínicas",
   "visitDetailsMedicationsSection": "Medicamentos",
   "visitDetailsActionsSection": "Próximos pasos",

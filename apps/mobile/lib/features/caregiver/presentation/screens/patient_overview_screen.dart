@@ -742,13 +742,8 @@ class _PatientOverviewScreenState extends State<PatientOverviewScreen>
   }
 
   void _viewVisitDetails(Map<String, dynamic> visit) {
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(l10n?.caregiverPatientOverviewViewVisitDetails(
-                  visit['type']) ??
-              'View ${visit['type']} details - Coming Soon!')),
-    );
+    final visitId = visit['id'] as String;
+    context.push('/caregiver/visit-details?visitId=$visitId&patientId=$_patientId');
   }
 
   void _viewReminderDetails(Map<String, dynamic> reminder) {

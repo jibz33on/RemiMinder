@@ -347,6 +347,8 @@
   "visitDetailsRetry": "पुनः प्रयास करें",
   "visitDetailsUnavailable": "विज़िट सारांश उपलब्ध नहीं है",
   "visitDetailsSummarySection": "विज़िट सारांश",
+  "visitDetailsFinalSummarySection": "विज़िट सारांश",
+  "visitRecordingSaved": "रिकॉर्डिंग सफलतापूर्वक सहेजी गई! अब आप सारांश जनरेट कर सकते हैं।",
   "visitDetailsDecisionsSection": "क्लिनिकल निर्णय",
   "visitDetailsMedicationsSection": "दवाएँ",
   "visitDetailsActionsSection": "अगले कदम",

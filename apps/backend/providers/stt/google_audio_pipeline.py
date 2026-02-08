@@ -42,13 +42,10 @@ async def run_audio_stt_pipeline(
         logger.info(f"🔍 [STT] Starting STT pipeline for visit {visit_id} with language='{language}'")
 
         # Step 1: Resolve user UUID
-        from domain.users.repo import get_user_uuid
         from domain.transcripts.repo import get_canonical_audio_path
 
-        user_uuid = await get_user_uuid(external_auth_id)
-
         # Step 2: Validate canonical audio exists in DB (guard)
-        canonical_audio_path = await get_canonical_audio_path(visit_id, user_uuid)
+        canonical_audio_path = await get_canonical_audio_path(visit_id, external_auth_id)
         bucket_name, object_name = _parse_gcs_uri(canonical_audio_path)
 
         logger.info(f"Starting STT for visit {visit_id}")

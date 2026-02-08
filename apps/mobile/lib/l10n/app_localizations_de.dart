@@ -1264,6 +1264,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get visitDetailsSummarySection => 'Besuchszusammenfassung';
 
   @override
+  String get visitDetailsFinalSummarySection => 'Besuchszusammenfassung';
+
+  @override
+  String get visitRecordingSaved =>
+      'Aufnahme erfolgreich gespeichert! Sie können jetzt eine Zusammenfassung erstellen.';
+
+  @override
   String get visitDetailsDecisionsSection => 'Klinische Entscheidungen';
 
   @override

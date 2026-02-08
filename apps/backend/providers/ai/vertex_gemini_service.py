@@ -10,9 +10,6 @@ import os
 import re
 from datetime import datetime
 
-from google.cloud import aiplatform
-from vertexai.generative_models import GenerativeModel  # type: ignore
-
 from utils.prompts.medical_summary import build_medical_summary_prompt
 from utils.prompts.medical_summary_actions_v2 import build_medical_summary_prompt_v2
 from domain.ports.logging import get_logger
@@ -137,6 +134,10 @@ async def generate_visit_summary(raw_text: str, language: str = "en") -> dict:
         Exception: If Gemini API call fails or JSON parsing fails
     """
     try:
+        # Lazy imports to avoid initialization at module import time
+        from google.cloud import aiplatform
+        from vertexai.generative_models import GenerativeModel  # type: ignore
+
         # Get configuration from environment (region is fixed to us-west4)
         project_id = os.getenv("GCP_PROJECT")
 

@@ -1220,6 +1220,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get visitDetailsSummarySection => 'ملخص الزيارة';
 
   @override
+  String get visitDetailsFinalSummarySection => 'ملخص الزيارة';
+
+  @override
+  String get visitRecordingSaved =>
+      'تم حفظ التسجيل بنجاح! يمكنك الآن إنشاء ملخص.';
+
+  @override
   String get visitDetailsDecisionsSection => 'القرارات السريرية';
 
   @override

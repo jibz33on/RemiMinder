@@ -10,11 +10,7 @@ class Environment {
       _isLoaded ? (dotenv.env['AUTH_PROVIDER'] ?? 'firebase') : 'firebase';
 
   // API Configuration
-  static String get apiBaseUrl => _isLoaded
-      ? (dotenv.env['MOBILE_API_BASE_URL'] ??
-          dotenv.env['API_BASE_URL'] ??
-          'http://localhost:8000')
-      : 'http://localhost:8000';
+  static String get apiBaseUrl => 'https://uneven-jere-untaxing.ngrok-free.dev';
 
   // App Environment
   static String get flutterEnv =>

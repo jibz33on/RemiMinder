@@ -207,17 +207,32 @@ class PatientApiService {
 
   // Summaries List
   Future<List<SummaryItem>> getSummaries() async {
+    print("🔍 API: Calling GET /api/summaries");
     final response = await http.get(
       Uri.parse('$baseUrl/api/summaries'),
       headers: _headers,
     );
 
+    print("🔍 API: Summaries response status: ${response.statusCode}");
+    print("🔍 API: Summaries response body: ${response.body}");
+
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
-      return data.map((json) => SummaryItem.fromJson(json)).toList();
+      print("🔍 API: Parsed ${data.length} summaries");
+      final summaries = data.map((json) => SummaryItem.fromJson(json)).toList();
+      print("🔍 API: Converted to ${summaries.length} SummaryItem objects");
+      return summaries;
     } else {
       throw Exception('Failed to fetch summaries: ${response.statusCode}');
     }
+  }
+
+  Future<SummaryItem?> getLatestSummary() async {
+    final summaries = await getSummaries();
+    if (summaries.isEmpty) {
+      return null;
+    }
+    return summaries.first;
   }
 
   // Latest visit processing status

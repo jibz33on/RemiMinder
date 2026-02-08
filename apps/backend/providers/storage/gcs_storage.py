@@ -9,14 +9,14 @@ from domain.ports.logging import get_logger
 
 logger = get_logger()
 
-async def upload_audio(file: UploadFile, visit_id: str) -> dict:
+async def upload_audio(visit_id: str, file: UploadFile) -> dict:
     """
     Upload audio file to Google Cloud Storage with UBLA compatibility.
     Returns a signed URL for temporary access.
 
     Args:
-        file: The uploaded audio file
         visit_id: Unique identifier for the visit
+        file: The uploaded audio file
 
     Returns:
         dict: Contains signed URL and canonical GCS path for the uploaded audio file
@@ -89,14 +89,14 @@ async def upload_audio(file: UploadFile, visit_id: str) -> dict:
         raise Exception(f"GCS upload failed: {str(e)}")
 
 
-async def upload_image(file: UploadFile, visit_id: str) -> dict:
+async def upload_image(visit_id: str, file: UploadFile) -> dict:
     """
     Upload image file to Google Cloud Storage with UBLA compatibility.
     Returns signed URL and metadata for temporary access.
 
     Args:
-        file: The uploaded image file
         visit_id: Unique identifier for the visit
+        file: The uploaded image file
 
     Returns:
         dict: Contains signed URL, file path, and content type

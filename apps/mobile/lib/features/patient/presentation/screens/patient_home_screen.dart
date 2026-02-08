@@ -28,6 +28,8 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
     final authState = ref.watch(authNotifierProvider);
     final remindersState = ref.watch(remindersNotifierProvider);
     final tasksState = ref.watch(patientTasksNotifierProvider);
+    final summaryState = ref.watch(summaryPreviewNotifierProvider);
+    print("🏠 HOME SCREEN BUILD: summaryState = $summaryState");
     final l10n = AppLocalizations.of(context);
     final userName = authState.profile?.fullName ??
         (l10n?.rolePatient ?? 'Patient');
@@ -163,6 +165,11 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
 
                   // Up Next Card
                   _buildUpNextCard(remindersState),
+
+                const SizedBox(height: 32),
+
+                // Latest Summary Preview
+                _buildLatestSummaryCard(summaryState),
 
                 const SizedBox(height: 32),
 
@@ -333,6 +340,84 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLatestSummaryCard(SummaryPreviewState summaryState) {
+    final l10n = AppLocalizations.of(context);
+    final summary = summaryState.summary;
+
+    print("🏠 HOME SCREEN: Summary state - hasData: ${summaryState.hasData}, summary: $summary, isLoading: ${summaryState.isLoading}");
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.description_outlined, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                l10n?.overviewTabSummaries ?? 'Summary',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (summaryState.isLoading && !summaryState.hasData)
+            const Center(child: CircularProgressIndicator())
+          else if (summary == null)
+            Text(
+              l10n?.overviewNoSummariesSubtitle ??
+                  'Your visit summaries will appear here',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.secondary,
+                fontSize: 14,
+              ),
+            )
+          else ...[
+            Text(
+              summary.summaryPreview,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  final visitDateQuery = summary.visitDate == null
+                      ? ''
+                      : '&visitDate=${Uri.encodeComponent(summary.visitDate!)}';
+                  context.go(
+                      '/patient/visit-details?visitId=${summary.visitId}$visitDateQuery');
+                },
+                child: Text(l10n?.overviewNewSummaryView ?? 'View Summary'),
+              ),
+            ),
+          ],
         ],
       ),
     );

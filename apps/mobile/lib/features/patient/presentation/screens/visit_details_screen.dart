@@ -32,6 +32,10 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   bool _isLoadingSummary = true;
   String _summaryStatus =
       'loading'; // 'loading', 'processing', 'ready', 'error'
+
+  // Final narrative summary state
+  String? _finalSummary;
+
   bool _isLoadingVisit = true;
   String? _visitDoctor;
   String? _visitSpecialty;
@@ -42,6 +46,43 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     super.initState();
     _fetchVisitMetadata();
     _fetchAISummary();
+    _fetchFinalSummary();
+  }
+
+  Future<void> _fetchFinalSummary() async {
+    print("📝 _fetchFinalSummary called for visitId: ${widget.visitId}");
+
+    try {
+      final authToken = await AuthService().getAccessToken();
+      print("📝 Auth token available: ${authToken != null}");
+
+      final apiService = PatientApiService(
+        baseUrl: Environment.apiBaseUrl,
+        authToken: authToken ?? '',
+      );
+
+      print("📝 Calling GET /api/visits/${widget.visitId}/summary");
+      final data = await apiService.getVisitSummary(widget.visitId);
+      print("📝 Final summary API response: $data");
+
+      if (data.containsKey('summary') && data['summary'] != null) {
+        setState(() {
+          _finalSummary = data['summary'] as String;
+        });
+        print("📝 Final summary loaded successfully");
+      } else {
+        print("📝 No final summary available");
+        setState(() {
+          _finalSummary = null;
+        });
+      }
+    } catch (e) {
+      print("📝 Error fetching final summary: $e");
+      // Silently fail - don't break the UI
+      setState(() {
+        _finalSummary = null;
+      });
+    }
   }
 
   Future<void> _fetchAISummary() async {
@@ -74,9 +115,9 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         });
       } else if (data.containsKey('summary')) {
         print("🔍 Found structured summary, setting to ready state");
-        final decisions = _toStringList(data['decisions']);
+        final decisions = _toStringList(data['key_diagnoses'] ?? data['decisions']);
         final medications = _toStringList(data['medications']);
-        final actions = _toStringList(data['actions']);
+        final actions = _toStringList(data['action_items'] ?? data['actions']);
         setState(() {
           _summaryText = data['summary'];
           _decisions = decisions;
@@ -442,6 +483,11 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Final narrative summary (always visible at top)
+        if (_finalSummary != null && _finalSummary!.trim().isNotEmpty)
+          _buildFinalSummarySection(),
+
+        // Original structured summary
         _buildSummarySection(
           title: l10n?.visitDetailsSummarySection ??
               'Visit Summary',
@@ -470,6 +516,53 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
                   'Next Steps',
               items: _actions),
       ],
+    );
+  }
+
+  Widget _buildFinalSummarySection() {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.description,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n?.visitDetailsFinalSummarySection ?? 'Visit Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _finalSummary!,
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
