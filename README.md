@@ -2,7 +2,7 @@
 
 RemiMinder records doctor-patient visits on mobile, transcribes the audio with Google Speech-to-Text, and uses Gemini to extract a schema-validated clinical JSON record — giving patients a structured, searchable account of every visit and giving caregivers real-time visibility into adherence and follow-up actions.
 
-**[View Presentation →](https://jibz33on.github.io/Health-mobile/presentation.html)**
+**[View Presentation →](https://jibz33on.github.io/RemiMinder/presentation.html)**
 
 ## AI Pipeline
 
