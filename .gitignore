@@ -69,8 +69,6 @@ Thumbs.db
 *.log
 logs/
 
-# Documentation (local development only)
-docs/
 
 # Temporary files
 *.tmp
